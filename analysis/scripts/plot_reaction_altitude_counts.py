@@ -20,6 +20,9 @@ def main() -> None:
         choices=("all", "state_change", "ionization", "lya", "elastic"),
         default="all",
     )
+    parser.add_argument(
+        "--altitude-range", type=float, nargs=2, metavar=("MIN_KM", "MAX_KM")
+    )
     args = parser.parse_args()
 
     data = np.genfromtxt(args.csv_file, delimiter=",", names=True)
@@ -41,6 +44,24 @@ def main() -> None:
             "elastic": "#4d4d4d",
         }
         field = args.reaction
+        if args.altitude_range is not None:
+            fig, ax = plt.subplots(figsize=(7, 7), constrained_layout=True)
+            ax.plot(data[field], altitude, color=colors[field], lw=2)
+            ax.fill_betweenx(
+                altitude, 0, data[field], color=colors[field], alpha=0.18
+            )
+            ax.set_xlabel(f"{labels[field]} count per {bin_width:g} km bin")
+            ax.set_ylabel("Altitude (km)")
+            ax.set_ylim(*args.altitude_range)
+            ax.grid(True, color="0.85", lw=0.7)
+            ax.set_title(
+                f"MarsASPEN {labels[field].lower()} counts, "
+                "1,000,000 particles"
+            )
+            fig.savefig(output, dpi=220)
+            plt.close(fig)
+            print(f"output={output.resolve()}")
+            return
         fig, axes = plt.subplots(
             1, 2, figsize=(11, 7), sharey=False, constrained_layout=True
         )
