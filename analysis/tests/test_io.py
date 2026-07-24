@@ -1,3 +1,5 @@
+"""Unit tests for MAT v7.3 loading and event selectors."""
+
 from pathlib import Path
 
 import h5py

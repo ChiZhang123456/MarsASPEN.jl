@@ -1,3 +1,5 @@
+"""Detailed trajectory figures and collision-event CSV export."""
+
 from __future__ import annotations
 
 import argparse

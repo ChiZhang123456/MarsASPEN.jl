@@ -26,6 +26,9 @@ The Julia package is separated by responsibility:
 * `src/ensembles.jl`: threaded ensembles and low-memory diagnostic histograms
 * `src/io.jl`: detailed MAT output
 
+A detailed Chinese guide to every source file, data convention, run script, and
+analysis program is available in [`docs/CODE_GUIDE_ZH.md`](docs/CODE_GUIDE_ZH.md).
+
 ## Neutral atmosphere
 
 The package includes MGITM and MAMPS data for Ls = 0, 90, 180, and 270 degrees

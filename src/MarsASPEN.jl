@@ -1,5 +1,8 @@
 module MarsASPEN
 
+# Package entry point. Physics and numerical algorithms live in the included
+# files below. The include order is significant because later files use types
+# and helper functions defined by earlier files.
 using MAT
 using Random
 using Statistics

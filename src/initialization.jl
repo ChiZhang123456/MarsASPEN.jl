@@ -1,3 +1,7 @@
+# Model initialization. This file selects one of the 12 MGITM/MAMPS cases and
+# combines it with the H and H+ collision database into one AspenModel.
+
+"""Normalize a solar-activity label to the supported F10.7 value."""
 function normalize_f107(solar)
     key = lowercase(replace(string(solar), r"[_\-\s]" => ""))
     key in ("solarmax", "max", "f200", "200") && return 200
@@ -6,10 +10,18 @@ function normalize_f107(solar)
     throw(ArgumentError("solar must be solar_max, solar_moderate, solar_min, 200, 130, or 70"))
 end
 
+"""Return all available `(Ls, F10.7)` neutral-atmosphere combinations."""
 function available_atmosphere_cases()
     [(ls=ls, f107=f107) for ls in (0, 90, 180, 270), f107 in (70, 130, 200)] |> vec
 end
 
+"""
+Load one MGITM cold atmosphere and its matching MAMPS hot-O atmosphere.
+
+MGITM densities are stored internally as log(number density) so interpolation
+and lower-atmosphere extrapolation remain positive. MAMPS hot O uses the same
+log-density representation.
+"""
 function load_atmospheres(
     atmosphere_dir::AbstractString, ls::Int, f107_value::Int,
 )
@@ -37,6 +49,12 @@ function load_atmospheres(
     atmosphere, hot_atmosphere
 end
 
+"""
+Construct a complete transport model.
+
+Keyword arguments select season and solar activity. `atmosphere_data_dir`
+allows the large atmosphere files to live outside the package checkout.
+"""
 function load_model(repo_root::AbstractString=pkgdir(@__MODULE__);
                     ls::Int=0, solar=70, f107::Union{Nothing,Int}=nothing,
                     atmosphere_data_dir::Union{Nothing,AbstractString}=nothing)

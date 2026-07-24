@@ -1,3 +1,11 @@
+# Collision cross sections, energy-loss constants, and stochastic event choice.
+#
+# Cross-section source tables use cm^2. `load_cross_sections` converts every
+# value to m^2 before transport. Array dimensions are:
+#   sigma[charge + 1, target, reaction, energy]
+# where charge is 0 for H ENA and 1 for H+.
+
+"""Read a whitespace-delimited numerical reference table."""
 function _read_table(path::AbstractString, nskip::Int)
     rows = Vector{Vector{Float64}}()
     for (i, line) in enumerate(eachline(path))
@@ -9,6 +17,7 @@ function _read_table(path::AbstractString, nskip::Int)
     reduce(vcat, permutedims.(rows))
 end
 
+"""Linear interpolation with zero outside the tabulated energy range."""
 @inline function interp1(x::Float64, xp::Vector{Float64}, fp)
     (x < xp[1] || x > xp[end]) && return 0.0
     i = clamp(searchsortedlast(xp, x), 1, length(xp) - 1)
@@ -16,6 +25,7 @@ end
     muladd(w, fp[i + 1] - fp[i], fp[i])
 end
 
+"""Read fixed reaction energy losses from cross-section header comments."""
 function _parse_losses(path::AbstractString, charge::Int)
     names = charge == 1 ?
         Dict("sigma_10"=>1, "sigma_ip"=>2, "sigma_La"=>3, "sigma_el"=>4) :
@@ -32,6 +42,13 @@ function _parse_losses(path::AbstractString, charge::Int)
     out
 end
 
+"""
+Load H and H+ cross sections for CO2, O, and N2.
+
+The internal energy grid contains 768 logarithmically spaced points from
+1 eV to 10 MeV. Reaction channels are reordered into the common sequence
+state change, ionization, Ly-alpha, and elastic.
+"""
 function load_cross_sections(repo_root::AbstractString)
     cross_section_dir = joinpath(repo_root, "data", "cross_sections")
     files = (
@@ -65,10 +82,17 @@ function load_cross_sections(repo_root::AbstractString)
     )
 end
 
+"""Interpolate one cross section at projectile energy `e` in eV."""
 @inline function sigma_at(cs::CrossSections, charge, target, reaction, e)
     interp1(e, cs.energy, view(cs.sigma, charge + 1, target, reaction, :))
 end
 
+"""
+Evaluate local target densities and total collision coefficient.
+
+`alpha = sum(n_target * sigma)` has units m^-1 and is the collision probability
+per unit path length used by the optical-depth transport algorithm.
+"""
 @inline function local_state(model::AspenModel, x, y, z, charge, e, include_hot_o::Bool)
     rkm = sqrt(x*x + y*y + z*z) / 1000
     alt = rkm - MARS_RADIUS_KM
@@ -85,6 +109,7 @@ end
     alt, n, alpha
 end
 
+"""Randomly select target species and reaction channel from `n * sigma` weights."""
 @inline function choose_event(rng, model, charge, e, n)
     weights = ntuple(12) do q
         it = (q - 1) ÷ 4 + 1

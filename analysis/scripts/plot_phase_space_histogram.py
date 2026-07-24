@@ -1,3 +1,5 @@
+"""Plot path-length-weighted H ENA and H+ altitude-energy histograms."""
+
 from __future__ import annotations
 
 import argparse

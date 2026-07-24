@@ -1,3 +1,5 @@
+"""Plot altitude-binned state-change, ionization, Ly-alpha, or elastic counts."""
+
 from __future__ import annotations
 
 import argparse

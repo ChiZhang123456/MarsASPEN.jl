@@ -1,3 +1,6 @@
+# Performance and reproducibility benchmark.
+# Usage: julia --project=. -t auto scripts/benchmark.jl [n_particles] [single]
+# A small serial run compiles the kernel before the timed measurement.
 using MarsASPEN
 using Statistics
 using Printf

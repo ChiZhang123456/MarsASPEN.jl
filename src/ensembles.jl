@@ -1,3 +1,10 @@
+# Threaded ensemble drivers and low-memory diagnostics.
+#
+# Each particle has an independent RNG, so @threads scheduling does not change
+# numerical results. Histogram modes allocate one accumulator per Julia thread
+# and reduce them only after transport, avoiding locks in the inner loop.
+
+"""Run compact particle summaries without storing trajectory histories."""
 function run_ensemble(model::AspenModel, cfg::MonteCarloConfig; threaded::Bool=true)
     out = Vector{ParticleSummary}(undef, cfg.n_particles)
     if threaded && nthreads() > 1
@@ -11,6 +18,12 @@ function run_ensemble(model::AspenModel, cfg::MonteCarloConfig; threaded::Bool=t
     end
     out
 end
+"""
+Run an ensemble and count collision events in altitude bins.
+
+The output matrix has dimensions `(altitude bin, reaction)`. Counts are raw
+events, not physical rates, and one particle can contribute many events.
+"""
 function run_binned_ensemble(
     model::AspenModel,
     cfg::MonteCarloConfig;
@@ -40,6 +53,13 @@ function run_binned_ensemble(
     )
 end
 
+"""
+Accumulate H ENA and H+ altitude-energy distributions.
+
+The returned array has dimensions `(altitude bin, energy bin, charge state)`.
+Each segment contributes `particle_weight * ds` in meters. This is a
+track-length estimator, not an event-count histogram.
+"""
 function run_phase_space_ensemble(
     model::AspenModel,
     cfg::MonteCarloConfig;
@@ -81,6 +101,7 @@ function run_phase_space_ensemble(
     )
 end
 
+"""Run full-history trajectories for small diagnostic ensembles."""
 function run_detailed_ensemble(model::AspenModel, cfg::MonteCarloConfig)
     summaries = Vector{ParticleSummary}(undef, cfg.n_particles)
     histories = Vector{Vector{HistoryEvent}}(undef, cfg.n_particles)

@@ -1,3 +1,18 @@
+# Physical constants, model containers, run configuration, and output records.
+#
+# Unit convention:
+#   distance: m internally, km for altitude interfaces
+#   velocity: m s^-1
+#   energy: eV
+#   number density: m^-3
+#   collision cross section: m^2
+#   temperature: K
+#
+# Integer code convention:
+#   charge state 0 = neutral H ENA, 1 = H+
+#   target 1 = CO2, 2 = O, 3 = N2
+#   reaction 1 = state change, 2 = ionization, 3 = Ly-alpha, 4 = elastic
+
 const QE = 1.602176634e-19
 const AMU = 1.66053906660e-27
 const MARS_RADIUS_KM = 3388.25
@@ -42,18 +57,27 @@ struct AspenModel
 end
 
 Base.@kwdef struct MonteCarloConfig
+    # Number of independent Monte Carlo trajectories.
     n_particles::Int = 1000
+    # All particles currently start at MSO (R_Mars + altitude, 0, 0).
     initial_altitude_km::Float64 = 600.0
+    # Default 400 km/s H ENA beam directed toward Mars.
     initial_speed_m_s::Float64 = 400_000.0
+    # A particle-specific RNG is derived from (seed, particle id).
     seed::Int = 7
+    # Maximum optical-depth increment allowed in one transport step.
     safety_factor::Float64 = 0.4
+    # Absolute upper bound on a spatial transport step.
     max_step_m::Float64 = 1000.0
+    # Tracking stops when projectile energy falls below this threshold.
     min_energy_ev::Float64 = 10.0
     min_altitude_km::Float64 = MODEL_MIN_ALTITUDE_KM
     max_altitude_km::Float64 = 1000.0
+    # Safety limits prevent pathologically long individual trajectories.
     max_collisions::Int = 2000
     max_steps_per_collision::Int = 100_000
     include_hot_o::Bool = true
+    # Macro-particle weight. Unit weight gives raw Monte Carlo statistics.
     particle_weight::Float64 = 1.0
 end
 
@@ -66,6 +90,8 @@ struct ParticleSummary
     n_ionization::Int
     n_lya::Int
     n_state_change::Int
+    # 1 low energy, 2 lower boundary, 3 upper boundary,
+    # 4 step safety limit, 5 collision safety limit.
     stop_code::UInt8
 end
 

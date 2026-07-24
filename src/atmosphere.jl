@@ -1,8 +1,18 @@
+# Neutral-atmosphere interpolation and coordinate conversion.
+#
+# Horizontal interpolation is periodic in longitude and linear in latitude.
+# Density interpolation is linear in log density. From 98.75 down to 80 km the
+# lowest two MGITM layers are log-linearly extrapolated. Above the MGITM top,
+# each cold species follows a hydrostatic exponential using the local top-layer
+# temperature. MAMPS hot O is used only inside its native altitude range.
+
+"""Return bracketing grid indices and linear interpolation weight."""
 @inline function bracket(grid::Vector{Float64}, x::Float64)
     i = clamp(searchsortedlast(grid, x), 1, length(grid) - 1)
     w = clamp((x - grid[i]) / (grid[i + 1] - grid[i]), 0.0, 1.0)
     i, i + 1, w
 end
+"""Altitude bracket that permits MGITM extrapolation down to 80 km."""
 @inline function atmosphere_altitude_bracket(grid::Vector{Float64}, altitude::Float64)
     effective_altitude = max(altitude, MODEL_MIN_ALTITUDE_KM)
     if effective_altitude < grid[1]
@@ -11,6 +21,7 @@ end
     bracket(grid, effective_altitude)
 end
 
+"""Trilinearly interpolate MAMPS hot-O number density in m^-3."""
 @inline function hot_o_density(a::HotAtmosphere, lon::Float64, lat::Float64, alt::Float64)
     (alt < a.alt[1] || alt > a.alt[end]) && return 0.0
     i0, i1, wx = lonbracket(a.lon, lon)
@@ -25,6 +36,7 @@ end
     exp(muladd(wz, c1 - c0, c0))
 end
 
+"""Return periodic longitude indices and interpolation weight."""
 @inline function lonbracket(grid::Vector{Float64}, xraw::Float64)
     x = mod(xraw - grid[1], 360.0) + grid[1]
     i = searchsortedlast(grid, x)
@@ -36,6 +48,11 @@ end
     i, i + 1, (x - grid[i]) / (grid[i + 1] - grid[i])
 end
 
+"""
+Interpolate all five MGITM species at one longitude, latitude, and altitude.
+
+The returned tuple order is `(CO2, O, O2, N2, CO)`, all in m^-3.
+"""
 @inline function density3(a::Atmosphere, lon::Float64, lat::Float64, alt::Float64)
     i0, i1, wx = lonbracket(a.lon, lon)
     j0, j1, wy = bracket(a.lat, lat)
@@ -60,6 +77,12 @@ end
     density
 end
 
+"""
+Fast density path used by transport.
+
+Only CO2, O, and N2 are returned because the present collision database does
+not contain O2 or CO projectile cross sections.
+"""
 @inline function transport_density3(
     a::Atmosphere, lon::Float64, lat::Float64, alt::Float64,
 )
@@ -89,6 +112,7 @@ end
     density
 end
 
+"""Interpolate MGITM neutral temperature in K."""
 @inline function temperature3(a::Atmosphere, lon::Float64, lat::Float64, alt::Float64)
     i0, i1, wx = lonbracket(a.lon, lon)
     j0, j1, wy = bracket(a.lat, lat)
@@ -102,6 +126,7 @@ end
     muladd(wz, c1 - c0, c0)
 end
 
+"""Return named neutral densities and temperature at a geographic position."""
 function neutral_density(model::AspenModel, lon_deg::Real, lat_deg::Real,
                          altitude_km::Real; include_hot_o::Bool=true)
     cold = density3(
@@ -120,6 +145,7 @@ function neutral_density(model::AspenModel, lon_deg::Real, lat_deg::Real,
     )
 end
 
+"""Convert Mars-centered Cartesian coordinates to longitude, latitude, altitude."""
 function cartesian_to_lon_lat_alt(x::Real, y::Real, z::Real;
                                   position_unit::Symbol=:m)
     scale = position_unit === :m ? 1 / 1000 :
@@ -135,6 +161,7 @@ function cartesian_to_lon_lat_alt(x::Real, y::Real, z::Real;
     )
 end
 
+"""Evaluate `neutral_density` from a Mars-centered Cartesian position."""
 function neutral_density_xyz(model::AspenModel, x::Real, y::Real, z::Real;
                              position_unit::Symbol=:m, include_hot_o::Bool=true)
     position = cartesian_to_lon_lat_alt(x, y, z; position_unit=position_unit)

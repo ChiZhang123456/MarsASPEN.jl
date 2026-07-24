@@ -1,3 +1,5 @@
+"""Readers and selectors for MarsASPEN detailed MAT trajectory output."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -26,7 +28,7 @@ def load_history_mat(filename: str | Path) -> dict[str, np.ndarray]:
 
 
 def particle_history(data: dict[str, np.ndarray], particle_id: int) -> dict[str, np.ndarray]:
-    """Return all event columns for one particle."""
+    """Return aligned one-dimensional event columns for one particle."""
     mask = np.asarray(data["particle_id"], dtype=int) == int(particle_id)
     n_events = mask.size
     return {
@@ -41,7 +43,11 @@ def reaction_events(
     particle_id: int | None = None,
     include_elastic: bool = False,
 ) -> dict[str, np.ndarray]:
-    """Return collision rows, optionally restricted to chemical reactions."""
+    """Return collision rows, optionally restricted to chemical reactions.
+
+    Reaction codes 1 to 3 are state change, ionization, and Ly-alpha.
+    Elastic collisions use code 4 and are excluded unless requested.
+    """
     event_type = np.asarray(data["event_type"], dtype=int)
     reaction = np.asarray(data["reaction_code"], dtype=int)
     mask = event_type == 2

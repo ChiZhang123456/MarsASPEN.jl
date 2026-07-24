@@ -1,3 +1,5 @@
+"""Plot one MGITM cold-atmosphere column together with MAMPS hot O."""
+
 from __future__ import annotations
 
 import argparse

@@ -1,3 +1,18 @@
+# Single-particle Monte Carlo transport kernel.
+#
+# The algorithm samples a collision optical depth `-log(U)`, advances the
+# projectile with adaptive spatial steps, and accumulates `alpha * ds` until
+# the sampled optical depth is reached. A target and reaction are then drawn
+# from local `n * sigma` weights. Energy, direction, and charge state are
+# updated immediately before the next collision probability is evaluated.
+
+"""
+Rotate a velocity vector by polar angle `theta` and azimuth `phi`.
+
+The original velocity defines the local polar axis. The function returns a
+vector with magnitude `speed_after`, so scattering direction and energy loss
+are handled independently.
+"""
 @inline function rotate_velocity(vx, vy, vz, speed_after, theta, phi)
     speed = sqrt(vx*vx + vy*vy + vz*vz)
     e0x, e0y, e0z = vx/speed, vy/speed, vz/speed
@@ -11,6 +26,21 @@
     speed_after * (ct*e0y + st*(cp*e1y + sp*e2y)),
     speed_after * (ct*e0z + st*(cp*e1z + sp*e2z))
 end
+"""
+Transport one particle until a physical or numerical stopping condition.
+
+Optional accumulators support three output modes without duplicating the
+physics kernel:
+
+* `record=true` stores full step and collision history.
+* `reaction_counts` accumulates collision events by altitude and reaction.
+* `path_length_m` accumulates `particle_weight * ds` by altitude, energy,
+  and charge state.
+
+All particles currently begin as neutral H ENA at 600 km, moving radially
+toward Mars. The random stream is derived from `(cfg.seed, id)`, which makes
+results reproducible and independent of thread scheduling.
+"""
 function run_particle_core(
     model::AspenModel, cfg::MonteCarloConfig, id::Int, record::Bool;
     altitude_edges_km::Union{Nothing,Vector{Float64}}=nothing,
@@ -18,9 +48,12 @@ function run_particle_core(
     energy_edges_ev::Union{Nothing,Vector{Float64}}=nothing,
     path_length_m::Union{Nothing,Array{Float64,3}}=nothing,
 )
+    # A separate deterministic RNG per particle prevents thread-order effects.
     rng = Xoshiro(hash((cfg.seed, id)))
     x, y, z = (MARS_RADIUS_KM + cfg.initial_altitude_km) * 1000, 0.0, 0.0
     vx, vy, vz = -cfg.initial_speed_m_s, 0.0, 0.0
+    # charge=0 is neutral H ENA. `tau` is accumulated optical depth and
+    # `threshold` is the exponentially distributed optical depth to collision.
     charge, tau, threshold = 0, 0.0, -log(rand(rng))
     steps = collisions = 0
     counts = zeros(Int, 4)
@@ -46,10 +79,13 @@ function run_particle_core(
             stop = 4; break
         end
         speed = sqrt(vx*vx + vy*vy + vz*vz)
+        # Limit both optical-depth change and absolute spatial step length.
         candidate = alpha > 0 ? min(cfg.safety_factor / alpha, cfg.max_step_m) : cfg.max_step_m
         remaining = threshold - tau
         ds = alpha > 0 ? min(candidate, remaining / alpha) : candidate
         if !isnothing(path_length_m)
+            # Midpoint binning reduces altitude error for a finite segment.
+            # Weighting by ds avoids bias from adaptive step subdivision.
             mx = x + 0.5 * vx / speed * ds
             my = y + 0.5 * vy / speed * ds
             mz = z + 0.5 * vz / speed * ds
@@ -79,10 +115,13 @@ function run_particle_core(
             phi = 2pi * rand(rng)
             energy_before = e
             if reaction == 4
+                # Two-body elastic energy transfer in the laboratory frame.
                 ratio = charge == 1 ? HP_MASS / TARGET_MASS[target] : H_MASS / TARGET_MASS[target]
                 disc = max(1 - (ratio*sin(theta))^2, 0.0)
                 speed_after = speed * max((ratio*cos(theta) + sqrt(disc)) / (1 + ratio), 0.0)
             else
+                # Inelastic channels subtract a fixed tabulated loss.
+                # State change toggles H <-> H+; Ly-alpha leaves neutral H.
                 e2 = max(e - model.cross_sections.loss[charge + 1, target, reaction], 0.0)
                 newcharge = reaction == 1 ? 1 - charge : (reaction == 3 ? 0 : charge)
                 speed_after = sqrt(2 * e2 * QE / (newcharge == 1 ? HP_MASS : H_MASS))
@@ -105,6 +144,7 @@ function run_particle_core(
                     vx_before,vy_before,vz_before,Int8(charge),
                     UInt8(target),UInt8(reaction),energy_before-energy_after))
             end
+            # A collision ends the current free path. Sample the next one.
             tau, threshold = 0.0, -log(rand(rng))
         end
     end

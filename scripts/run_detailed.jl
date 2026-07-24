@@ -1,3 +1,6 @@
+# Run a small full-history ensemble and save every transport and collision row.
+# Detailed histories grow rapidly, so this mode is intended for trajectory
+# inspection rather than million-particle production simulations.
 using MarsASPEN
 using Printf
 

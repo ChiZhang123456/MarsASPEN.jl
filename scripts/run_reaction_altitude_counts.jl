@@ -1,3 +1,6 @@
+# Low-memory production run for altitude-binned reaction event counts.
+# Arguments: particle count, output CSV, altitude-bin width in km.
+# Counts are raw Monte Carlo collision events, not volume rates.
 using MarsASPEN
 using Printf
 using Statistics

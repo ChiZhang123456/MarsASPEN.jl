@@ -1,5 +1,19 @@
+# Detailed trajectory serialization.
+#
+# Histories are flattened into column arrays because this layout is efficient
+# in MAT/HDF5 and easy to read from Python. Particle start indices and event
+# counts reconstruct each variable-length trajectory without object arrays.
+
+"""
+Write detailed particle histories to a compressed MAT v7.3 file.
+
+Event rows use event type 0 initial, 1 transport step, 2 collision, and 3 final.
+Collision rows include the state before and after the event, target code,
+reaction code, energy loss, position, velocity, and charge state.
+"""
 function write_detailed_mat(filename::AbstractString, summaries, histories;
                             config::MonteCarloConfig)
+    # Flatten variable-length per-particle vectors into a table-like layout.
     events = reduce(vcat, histories; init=HistoryEvent[])
     starts = cumsum(vcat(1, length.(histories)[1:end-1]))
     data = Dict{String,Any}(

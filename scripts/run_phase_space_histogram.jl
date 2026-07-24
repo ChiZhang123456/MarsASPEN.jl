@@ -1,3 +1,7 @@
+# Low-memory altitude-energy histogram for neutral H ENA and H+.
+# Arguments: particle count, MAT output, altitude-bin width, number of
+# logarithmic energy bins, and macro-particle weight.
+# Each segment contributes particle_weight * ds to its phase-space bin.
 using MarsASPEN
 using MAT
 using Printf
