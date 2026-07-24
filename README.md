@@ -58,6 +58,20 @@ Detailed output uses flat arrays plus particle offsets in one compressed MAT
 v7.3 file. Compact output is recommended for large ensembles. Saving every
 transport step for 1,000,000 particles can require hundreds of GB.
 
+## Altitude-binned reaction counts
+
+Large ensembles can accumulate reaction counts directly into altitude bins
+without storing every collision event:
+
+```powershell
+julia --project=. -t auto scripts/run_reaction_altitude_counts.jl 1000000 output/reaction_altitude_counts_1000000p.csv 10
+C:\Users\Win\.conda\envs\mars\python.exe analysis/scripts/plot_reaction_altitude_counts.py output/reaction_altitude_counts_1000000p.csv
+```
+
+The CSV separates charge-state change, ionization, Lyman-alpha production, and
+elastic collisions. Counts are collision events, so one particle can contribute
+many events.
+
 ## Python analysis
 
 ```powershell

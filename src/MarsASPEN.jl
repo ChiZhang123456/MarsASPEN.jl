@@ -8,7 +8,7 @@ using Base.Threads
 export AspenModel, MonteCarloConfig, ParticleSummary, HistoryEvent, load_model,
        neutral_density, neutral_density_xyz, cartesian_to_lon_lat_alt,
        available_atmosphere_cases, run_ensemble, run_detailed_ensemble,
-       write_detailed_mat
+       run_binned_ensemble, write_detailed_mat
 
 const QE = 1.602176634e-19
 const AMU = 1.66053906660e-27
@@ -400,7 +400,11 @@ end
     speed_after * (ct*e0z + st*(cp*e1z + sp*e2z))
 end
 
-function run_particle_core(model::AspenModel, cfg::MonteCarloConfig, id::Int, record::Bool)
+function run_particle_core(
+    model::AspenModel, cfg::MonteCarloConfig, id::Int, record::Bool;
+    altitude_edges_km::Union{Nothing,Vector{Float64}}=nothing,
+    reaction_counts::Union{Nothing,Matrix{Int64}}=nothing,
+)
     rng = Xoshiro(hash((cfg.seed, id)))
     x, y, z = (MARS_RADIUS_KM + cfg.initial_altitude_km) * 1000, 0.0, 0.0
     vx, vy, vz = -cfg.initial_speed_m_s, 0.0, 0.0
@@ -461,6 +465,13 @@ function run_particle_core(model::AspenModel, cfg::MonteCarloConfig, id::Int, re
             end
             vx, vy, vz = rotate_velocity(vx, vy, vz, speed_after, theta, phi)
             collisions += 1
+            if !isnothing(reaction_counts)
+                collision_altitude = sqrt(x*x+y*y+z*z)/1000 - MARS_RADIUS_KM
+                ibin = searchsortedlast(altitude_edges_km, collision_altitude)
+                if 1 <= ibin < length(altitude_edges_km)
+                    reaction_counts[ibin, reaction] += 1
+                end
+            end
             if record
                 alt_collision = sqrt(x*x+y*y+z*z)/1000 - MARS_RADIUS_KM
                 energy_after = energy(vx,vy,vz,charge)
@@ -496,6 +507,35 @@ function run_ensemble(model::AspenModel, cfg::MonteCarloConfig; threaded::Bool=t
         end
     end
     out
+end
+
+function run_binned_ensemble(
+    model::AspenModel,
+    cfg::MonteCarloConfig;
+    altitude_edges_km::AbstractVector{<:Real}=collect(100.0:10.0:1000.0),
+)
+    edges = Float64.(altitude_edges_km)
+    length(edges) >= 2 || throw(ArgumentError("altitude_edges_km needs at least two edges"))
+    all(diff(edges) .> 0) || throw(ArgumentError("altitude_edges_km must increase"))
+    summaries = Vector{ParticleSummary}(undef, cfg.n_particles)
+    thread_counts = [
+        zeros(Int64, length(edges)-1, 4) for _ in 1:Base.Threads.maxthreadid()
+    ]
+    @threads for i in eachindex(summaries)
+        tid = threadid()
+        summaries[i] = first(run_particle_core(
+            model, cfg, i, false;
+            altitude_edges_km=edges,
+            reaction_counts=thread_counts[tid],
+        ))
+    end
+    counts = reduce(+, thread_counts)
+    (
+        summaries=summaries,
+        altitude_edges_km=edges,
+        reaction_names=REACTION_NAMES,
+        reaction_counts=counts,
+    )
 end
 
 function run_detailed_ensemble(model::AspenModel, cfg::MonteCarloConfig)

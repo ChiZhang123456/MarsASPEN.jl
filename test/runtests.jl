@@ -77,4 +77,6 @@ end
     @test all(r -> isfinite(r.final_energy_ev) && r.final_energy_ev >= 0, a)
     @test all(r -> r.n_collisions ==
         r.n_elastic + r.n_ionization + r.n_lya + r.n_state_change, a)
+    binned = run_binned_ensemble(MODEL, cfg; altitude_edges_km=collect(100.0:10.0:1000.0))
+    @test sum(binned.reaction_counts) == sum(r.n_collisions for r in binned.summaries)
 end
