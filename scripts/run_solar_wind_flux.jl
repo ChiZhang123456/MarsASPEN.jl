@@ -22,6 +22,7 @@ energy_spacing_ev = length(ARGS) >= 4 ? parse(Float64, ARGS[4]) : 2.0
 number_density_m3 = 5.0e6
 bulk_speed_m_s = 400_000.0
 temperature_ev = 10.0
+sampling_temperature_factor = 5.0
 
 model = load_model(repo; solar="solar_min", ls=0)
 config = MonteCarloConfig(
@@ -30,6 +31,7 @@ config = MonteCarloConfig(
     initial_speed_m_s=bulk_speed_m_s,
     initial_charge_state=1,
     initial_temperature_ev=temperature_ev,
+    sampling_temperature_factor=sampling_temperature_factor,
     initial_number_density_m3=number_density_m3,
     seed=7,
 )
@@ -42,6 +44,7 @@ run_directional_flux_ensemble(
         n_particles=2,
         initial_charge_state=1,
         initial_temperature_ev=temperature_ev,
+        sampling_temperature_factor=sampling_temperature_factor,
         initial_number_density_m3=number_density_m3,
     );
     altitude_surfaces_km=collect(100.0:20.0:300.0),
@@ -66,6 +69,9 @@ matwrite(output, Dict(
     "initial_bulk_velocity_m_s" => [-bulk_speed_m_s, 0.0, 0.0],
     "initial_number_density_m3" => number_density_m3,
     "initial_temperature_ev" => temperature_ev,
+    "sampling_temperature_ev" => temperature_ev * sampling_temperature_factor,
+    "sampling_temperature_factor" => sampling_temperature_factor,
+    "total_importance_weight" => result.total_importance_weight,
     "nominal_incident_flux_m2_s" => number_density_m3 * bulk_speed_m_s,
     "altitude_surfaces_km" => altitude_surfaces,
     "energy_edges_ev" => energy_edges,

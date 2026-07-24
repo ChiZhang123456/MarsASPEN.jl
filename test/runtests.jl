@@ -161,3 +161,44 @@ end
     )
     @test doubled.flux_m2_s ≈ 2 .* flux.flux_m2_s
 end
+
+@testset "Maxwellian importance and physical particle weights" begin
+    bulk = (-400_000.0, 0.0, 0.0)
+    velocity = (-380_000.0, 12_000.0, -8_000.0)
+    @test maxwellian_importance_weight_3d(
+        bulk, velocity, 10.0, 10.0; mass_kg=MarsASPEN.HP_MASS,
+    ) ≈ 1.0
+
+    vth = thermal_speed_from_temperature_ev(10.0, MarsASPEN.HP_MASS)
+    vsample = thermal_speed_from_temperature_ev(50.0, MarsASPEN.HP_MASS)
+    dv2 = sum((velocity[i] - bulk[i])^2 for i in 1:3)
+    expected = (vsample / vth)^3 *
+               exp(dv2 / vsample^2 - dv2 / vth^2)
+    actual = maxwellian_importance_weight_3d(
+        bulk, velocity, 10.0, 50.0; mass_kg=MarsASPEN.HP_MASS,
+    )
+    @test actual ≈ expected rtol=2e-14
+
+    weights = [0.2, 0.7, 1.1, 2.0]
+    density_weights = particle_density_weight.(
+        weights, 5.0e6, sum(weights),
+    )
+    @test sum(density_weights) ≈ 5.0e6
+
+    cfg = MonteCarloConfig(
+        n_particles=40,
+        seed=31,
+        initial_charge_state=1,
+        initial_temperature_ev=10.0,
+        sampling_temperature_factor=5.0,
+        initial_number_density_m3=5.0e6,
+    )
+    flux = run_directional_flux_ensemble(
+        MODEL, cfg;
+        altitude_surfaces_km=collect(100.0:20.0:300.0),
+        energy_edges_ev=collect(10.0:40.0:2010.0),
+    )
+    @test flux.total_importance_weight > 0
+    @test all(isfinite, flux.flux_m2_s)
+    @test sum(flux.flux_m2_s) > 0
+end

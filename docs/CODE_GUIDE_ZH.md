@@ -188,7 +188,26 @@ alpha = sum(n_target × sigma_target,reaction)
 
 `choose_event` 使用所有通道的 `n × sigma` 作为权重，随机选择靶粒子和反应。
 
-### 3.6 `src/transport.jl`
+### 3.6 `src/monte_carlo_sampling.jl`
+
+这个文件负责漂移 Maxwellian 的重要性采样和物理宏粒子权重。物理速度
+分布为 `f(v; U, T)`，采样时可以使用更宽的分布 `fs(v; U, Ts)`。每个
+随机粒子的无量纲重要性权重为：
+
+```text
+W_i = f(v_i; U, T) / fs(v_i; U, Ts)
+```
+
+给定源区数密度 `n_source` 后，粒子密度权重为：
+
+```text
+Wn_i = n_source W_i / sum(W)
+```
+
+因此所有粒子的密度权重之和严格等于输入数密度。穿过注入面的向下通量
+权重为 `Wn_i max(-v_x,i, 0)`。
+
+### 3.7 `src/transport.jl`
 
 这是单粒子输运核心。
 
@@ -324,10 +343,13 @@ julia --project=. -t auto scripts/run_phase_space_histogram.jl 1000000 output/ph
 julia --project=. -t auto scripts/run_solar_wind_flux.jl 10000000 output/solar_wind_flux.mat 0.5 2
 ```
 
-每个初始粒子的 flux weight 为：
+脚本默认令 `sampling_temperature_factor = 5`，也就是从 50 eV 的较宽
+采样分布产生速度，再用 `f/fs` 恢复 10 eV 的物理太阳风分布。每个粒子的
+密度权重和 flux weight 分别为：
 
 ```text
-w_i = n_sw max(-v_x,i, 0) / N
+Wn_i = n_sw (f/fs)_i / sum(f/fs)
+Wflux_i = Wn_i max(-v_x,i, 0)
 ```
 
 因此 energy bin 内保存的是 number flux。除以能量 bin 宽度后得到 differential

@@ -57,8 +57,9 @@ end
 Accumulate H ENA and H+ altitude-energy distributions.
 
 The returned array has dimensions `(altitude bin, energy bin, charge state)`.
-Each segment contributes `particle_weight * ds` in meters. This is a
-track-length estimator, not an event-count histogram.
+Each segment contributes its particle density weight times `ds`. Without a
+physical source density this is `particle_weight * ds`. This is a track-length
+estimator, not an event-count histogram.
 """
 function run_phase_space_ensemble(
     model::AspenModel,
@@ -83,6 +84,7 @@ function run_phase_space_ensemble(
             Float64, length(altitude_edges)-1, length(energy_edges)-1, 2,
         ) for _ in 1:Base.Threads.maxthreadid()
     ]
+    total_importance_weight = initial_importance_weight_sum(cfg)
     @threads for i in eachindex(summaries)
         tid = threadid()
         summaries[i] = first(run_particle_core(
@@ -90,6 +92,7 @@ function run_phase_space_ensemble(
             altitude_edges_km=altitude_edges,
             energy_edges_ev=energy_edges,
             path_length_m=thread_weights[tid],
+            total_importance_weight=total_importance_weight,
         ))
     end
     (
@@ -98,7 +101,22 @@ function run_phase_space_ensemble(
         energy_edges_ev=energy_edges,
         charge_state_names=("H_ENA", "Hplus"),
         path_length_m=reduce(+, thread_weights),
+        total_importance_weight=total_importance_weight,
     )
+end
+
+"""Compute the realized normalization `sum(f/fs)` for the source ensemble."""
+function initial_importance_weight_sum(cfg::MonteCarloConfig)
+    if cfg.initial_temperature_ev <= 0 || cfg.sampling_temperature_factor == 1
+        return Float64(cfg.n_particles)
+    end
+    thread_sums = zeros(Float64, Base.Threads.maxthreadid())
+    @threads for particle_id in 1:cfg.n_particles
+        rng = Xoshiro(hash((cfg.seed, particle_id)))
+        importance_weight = last(sample_initial_velocity(cfg, rng))
+        thread_sums[threadid()] += importance_weight
+    end
+    sum(thread_sums)
 end
 
 """
@@ -139,6 +157,7 @@ function run_directional_flux_ensemble(
     thread_final_energy = zeros(Float64, nslots)
     thread_collisions = zeros(Int64, nslots)
     thread_steps = zeros(Int64, nslots)
+    total_importance_weight = initial_importance_weight_sum(cfg)
 
     @threads for particle_id in 1:cfg.n_particles
         tid = threadid()
@@ -147,6 +166,7 @@ function run_directional_flux_ensemble(
             flux_altitude_km=altitude_surfaces,
             flux_energy_edges_ev=energy_edges,
             directional_flux=thread_flux[tid],
+            total_importance_weight=total_importance_weight,
         ))
         1 <= summary.stop_code <= 5 &&
             (thread_stop_counts[tid][summary.stop_code] += 1)
@@ -165,6 +185,7 @@ function run_directional_flux_ensemble(
         final_energy_mean_ev=sum(thread_final_energy) / cfg.n_particles,
         collision_mean=sum(thread_collisions) / cfg.n_particles,
         step_mean=sum(thread_steps) / cfg.n_particles,
+        total_importance_weight=total_importance_weight,
     )
 end
 

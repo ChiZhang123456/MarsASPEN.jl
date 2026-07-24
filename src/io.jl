@@ -52,6 +52,10 @@ function write_detailed_mat(filename::AbstractString, summaries, histories;
         "config_include_hot_o" => config.include_hot_o,
         "config_initial_altitude_km" => config.initial_altitude_km,
         "config_initial_speed_m_s" => config.initial_speed_m_s,
+        "config_initial_charge_state" => config.initial_charge_state,
+        "config_initial_temperature_ev" => config.initial_temperature_ev,
+        "config_sampling_temperature_factor" => config.sampling_temperature_factor,
+        "config_initial_number_density_m3" => config.initial_number_density_m3,
         "config_max_step_m" => config.max_step_m,
     )
     mkpath(dirname(abspath(filename)))

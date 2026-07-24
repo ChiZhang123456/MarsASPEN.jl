@@ -22,12 +22,26 @@ The Julia package is separated by responsibility:
 * `src/initialization.jl`: MGITM, MAMPS, and cross-section model initialization
 * `src/atmosphere.jl`: neutral-atmosphere interpolation and extrapolation
 * `src/cross_sections.jl`: cross-section interpolation and reaction selection
+* `src/monte_carlo_sampling.jl`: Maxwellian importance sampling and physical particle weights
 * `src/transport.jl`: one-particle propagation, collision kinematics, and state changes
 * `src/ensembles.jl`: threaded ensembles and low-memory diagnostic histograms
 * `src/io.jl`: detailed MAT output
 
 A detailed Chinese guide to every source file, data convention, run script, and
 analysis program is available in [`docs/CODE_GUIDE_ZH.md`](docs/CODE_GUIDE_ZH.md).
+
+## Single-particle examples
+
+The [`examples/`](examples/) directory contains reproducible 400 km/s H ENA and
+H+ trajectories. Each example saves detailed state, energy, velocity, and
+collision history, then the shared Python program marks reaction locations:
+
+```powershell
+julia --project=. examples/run_h_ena_trajectory.jl
+julia --project=. examples/run_hplus_trajectory.jl
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py examples/output/single_h_ena_400kms.mat
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py examples/output/single_hplus_400kms.mat
+```
 
 ## Neutral atmosphere
 
@@ -119,6 +133,10 @@ C:\Users\Win\.conda\envs\mars\python.exe analysis/scripts/plot_solar_wind_flux.p
 
 The final two arguments are altitude spacing in km and energy spacing in eV.
 The plotted quantity is differential number flux in m^-2 s^-1 eV^-1.
+The run samples velocities from a Maxwellian five times hotter than the
+physical source to improve tail statistics. Every particle is corrected by
+`f / f_sample`. Its density weight is `n_source * W_i / sum(W)`, and its
+inward crossing-flux weight is the density weight times `max(-v_x, 0)`.
 
 ## Python analysis
 

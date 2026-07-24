@@ -28,19 +28,21 @@ are handled independently.
 end
 
 """
-Sample the initial drifting-Maxwellian projectile state and injection weight.
+Sample the initial drifting-Maxwellian projectile velocity and importance weight.
 
-The bulk velocity is along MSO -X. Each thermal component is Gaussian with
-standard deviation `sqrt(kT/m)`. When `initial_number_density_m3 > 0`, sampling
-is from the velocity distribution and the Monte Carlo flux weight is
-`n * max(-vx, 0) / N`, in m^-2 s^-1. Otherwise the configured unitless
-`particle_weight` is used.
+The bulk velocity is along MSO -X. Thermal components are sampled at
+`T_sample = sampling_temperature_factor * T`. The returned importance weight
+is `f(T) / f(T_sample)`.
 """
-@inline function initial_particle_state(cfg::MonteCarloConfig, rng)
+@inline function sample_initial_velocity(cfg::MonteCarloConfig, rng)
     charge = cfg.initial_charge_state
     charge in (0, 1) || throw(ArgumentError("initial_charge_state must be 0 or 1"))
     mass = charge == 1 ? HP_MASS : H_MASS
-    thermal_sigma = sqrt(max(cfg.initial_temperature_ev, 0.0) * QE / mass)
+    cfg.sampling_temperature_factor > 0 ||
+        throw(ArgumentError("sampling_temperature_factor must be positive"))
+    sampled_temperature_ev =
+        max(cfg.initial_temperature_ev, 0.0) * cfg.sampling_temperature_factor
+    thermal_sigma = sqrt(sampled_temperature_ev * QE / mass)
     if thermal_sigma > 0
         vx = -cfg.initial_speed_m_s + thermal_sigma * randn(rng)
         vy = thermal_sigma * randn(rng)
@@ -49,10 +51,38 @@ is from the velocity distribution and the Monte Carlo flux weight is
         # Preserve the original monoenergetic random stream when T=0.
         vx, vy, vz = -cfg.initial_speed_m_s, 0.0, 0.0
     end
-    flux_weight = cfg.initial_number_density_m3 > 0 ?
-        cfg.initial_number_density_m3 * max(-vx, 0.0) / cfg.n_particles :
+    importance_weight = cfg.initial_temperature_ev > 0 ?
+        maxwellian_importance_weight_3d(
+            (-cfg.initial_speed_m_s, 0.0, 0.0), (vx, vy, vz),
+            cfg.initial_temperature_ev, sampled_temperature_ev;
+            mass_kg=mass,
+        ) : 1.0
+    charge, vx, vy, vz, importance_weight
+end
+
+"""
+Return initial state, density weight, and physical crossing-flux weight.
+
+When a source density is supplied, the density weight follows py_aspen:
+`Wn_i = n_source * (f/fs)_i / sum(f/fs)`. Multiplying by the inward normal
+speed gives the particle crossing-flux weight in m^-2 s^-1.
+"""
+@inline function initial_particle_state(
+    cfg::MonteCarloConfig, rng, total_importance_weight::Float64,
+)
+    charge, vx, vy, vz, importance_weight = sample_initial_velocity(cfg, rng)
+    density_weight = if cfg.initial_number_density_m3 > 0
+        density_weight = particle_density_weight(
+            importance_weight, cfg.initial_number_density_m3,
+            total_importance_weight,
+        )
+        density_weight
+    else
         cfg.particle_weight
-    charge, vx, vy, vz, flux_weight
+    end
+    flux_weight = cfg.initial_number_density_m3 > 0 ?
+                  density_weight * max(-vx, 0.0) : density_weight
+    charge, vx, vy, vz, density_weight, flux_weight
 end
 """
 Transport one particle until a physical or numerical stopping condition.
@@ -80,11 +110,13 @@ function run_particle_core(
     flux_altitude_km::Union{Nothing,Vector{Float64}}=nothing,
     flux_energy_edges_ev::Union{Nothing,Vector{Float64}}=nothing,
     directional_flux::Union{Nothing,Array{Float64,4}}=nothing,
+    total_importance_weight::Float64=Float64(cfg.n_particles),
 )
     # A separate deterministic RNG per particle prevents thread-order effects.
     rng = Xoshiro(hash((cfg.seed, id)))
     x, y, z = (MARS_RADIUS_KM + cfg.initial_altitude_km) * 1000, 0.0, 0.0
-    charge, vx, vy, vz, injection_flux_weight = initial_particle_state(cfg, rng)
+    charge, vx, vy, vz, particle_density_weight_m3, injection_flux_weight =
+        initial_particle_state(cfg, rng, total_importance_weight)
     # `tau` is accumulated optical depth and
     # `threshold` is the exponentially distributed optical depth to collision.
     tau, threshold = 0.0, -log(rand(rng))
@@ -127,7 +159,8 @@ function run_particle_core(
             ie = searchsortedlast(energy_edges_ev, e)
             if 1 <= ia < length(altitude_edges_km) &&
                1 <= ie < length(energy_edges_ev)
-                path_length_m[ia, ie, charge + 1] += cfg.particle_weight * ds
+                path_length_m[ia, ie, charge + 1] +=
+                    particle_density_weight_m3 * ds
             end
         end
         xnew = x + vx / speed * ds
