@@ -13,6 +13,19 @@ The repository contains:
 * compact high-particle-count runs and detailed MAT v7.3 history output
 * the `marsaspen-analysis` Python package under `analysis/`
 
+## Source layout
+
+The Julia package is separated by responsibility:
+
+* `src/MarsASPEN.jl`: module entry point, exports, and include order
+* `src/types.jl`: physical constants, model types, particle configuration, and outputs
+* `src/initialization.jl`: MGITM, MAMPS, and cross-section model initialization
+* `src/atmosphere.jl`: neutral-atmosphere interpolation and extrapolation
+* `src/cross_sections.jl`: cross-section interpolation and reaction selection
+* `src/transport.jl`: one-particle propagation, collision kinematics, and state changes
+* `src/ensembles.jl`: threaded ensembles and low-memory diagnostic histograms
+* `src/io.jl`: detailed MAT output
+
 ## Neutral atmosphere
 
 The package includes MGITM and MAMPS data for Ls = 0, 90, 180, and 270 degrees
