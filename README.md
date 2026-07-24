@@ -22,7 +22,7 @@ The Julia package is separated by responsibility:
 * `src/initialization.jl`: MGITM, MAMPS, and cross-section model initialization
 * `src/atmosphere.jl`: neutral-atmosphere interpolation and extrapolation
 * `src/cross_sections.jl`: cross-section interpolation and reaction selection
-* `src/monte_carlo_sampling.jl`: Maxwellian importance sampling and physical particle weights
+* `src/monte_carlo_weight.jl`: Maxwellian importance sampling and physical particle weights
 * `src/transport.jl`: one-particle propagation, collision kinematics, and state changes
 * `src/ensembles.jl`: threaded ensembles and low-memory diagnostic histograms
 * `src/io.jl`: detailed MAT output

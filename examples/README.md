@@ -23,7 +23,7 @@ and energy panels.
 
 ## Monte Carlo source weights
 
-Large ensembles use the routines in `src/monte_carlo_sampling.jl`.
+Large ensembles use the routines in `src/monte_carlo_weight.jl`.
 
 When the sampling temperature differs from the physical temperature, each
 velocity receives dimensionless importance weight

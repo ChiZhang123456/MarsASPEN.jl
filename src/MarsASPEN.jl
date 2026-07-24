@@ -17,7 +17,7 @@ export AspenModel, MonteCarloConfig, ParticleSummary, HistoryEvent, load_model,
        write_detailed_mat
 
 include("types.jl")
-include("monte_carlo_sampling.jl")
+include("monte_carlo_weight.jl")
 include("cross_sections.jl")
 include("initialization.jl")
 include("atmosphere.jl")

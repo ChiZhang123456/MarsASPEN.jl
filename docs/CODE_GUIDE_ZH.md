@@ -188,7 +188,7 @@ alpha = sum(n_target × sigma_target,reaction)
 
 `choose_event` 使用所有通道的 `n × sigma` 作为权重，随机选择靶粒子和反应。
 
-### 3.6 `src/monte_carlo_sampling.jl`
+### 3.6 `src/monte_carlo_weight.jl`
 
 这个文件负责漂移 Maxwellian 的重要性采样和物理宏粒子权重。物理速度
 分布为 `f(v; U, T)`，采样时可以使用更宽的分布 `fs(v; U, Ts)`。每个
