@@ -314,6 +314,25 @@ julia --project=. -t auto scripts/run_phase_space_histogram.jl 1000000 output/ph
 2. 对数能量 bin 数。
 3. 初始宏粒子权重。
 
+### 4.5 `scripts/run_solar_wind_flux.jl`
+
+从 600 km 注入漂移 Maxwellian 太阳风 H⁺。默认参数为密度 5 cm⁻³、体速度
+`[-400, 0, 0] km s⁻¹` 和 `kT = 10 eV`。程序统计 100 至 300 km 每个固定
+高度面的下行和上行 H⁺、H ENA 穿越通量。
+
+```powershell
+julia --project=. -t auto scripts/run_solar_wind_flux.jl 10000000 output/solar_wind_flux.mat 0.5 2
+```
+
+每个初始粒子的 flux weight 为：
+
+```text
+w_i = n_sw max(-v_x,i, 0) / N
+```
+
+因此 energy bin 内保存的是 number flux。除以能量 bin 宽度后得到 differential
+number flux，单位 m⁻² s⁻¹ eV⁻¹。
+
 ## 5. Python 分析代码
 
 ### 5.1 `analysis/marsaspen_analysis/io.py`
@@ -353,7 +372,12 @@ sum(particle_weight × ds)
 
 这是详细轨迹绘图的命令行入口。
 
-### 5.7 `analysis/tests/test_io.py`
+### 5.7 `analysis/scripts/plot_solar_wind_flux.py`
+
+绘制四个高度能量通量面板，分别为下行 H⁺、上行 H⁺、下行 H ENA 和上行
+H ENA。四个面板使用统一的对数色标，可以直接比较绝对通量。
+
+### 5.8 `analysis/tests/test_io.py`
 
 测试 MAT v7.3 reader、单粒子筛选和反应事件筛选。
 

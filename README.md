@@ -106,6 +106,20 @@ energy, and charge-state bin. This path-length weighting avoids bias from the
 adaptive transport step. A physical incident flux can be applied by replacing
 the unit weight with the corresponding macro-particle weight.
 
+## Solar-wind proton directional flux
+
+The following production run injects a drifting-Maxwellian H+ population at
+600 km with density 5 cm^-3, bulk velocity `[-400, 0, 0]` km/s, and `kT = 10 eV`.
+It records downward and upward H+ and H ENA flux crossings from 100 to 300 km:
+
+```powershell
+julia --project=. -t auto scripts/run_solar_wind_flux.jl 10000000 output/solar_wind_flux_10000000p.mat 0.5 2
+C:\Users\Win\.conda\envs\mars\python.exe analysis/scripts/plot_solar_wind_flux.py output/solar_wind_flux_10000000p.mat
+```
+
+The final two arguments are altitude spacing in km and energy spacing in eV.
+The plotted quantity is differential number flux in m^-2 s^-1 eV^-1.
+
 ## Python analysis
 
 ```powershell

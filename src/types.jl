@@ -63,6 +63,12 @@ Base.@kwdef struct MonteCarloConfig
     initial_altitude_km::Float64 = 600.0
     # Default 400 km/s H ENA beam directed toward Mars.
     initial_speed_m_s::Float64 = 400_000.0
+    # Initial projectile: 0 neutral H ENA, 1 proton.
+    initial_charge_state::Int = 0
+    # Isotropic drifting-Maxwellian temperature expressed as kT in eV.
+    initial_temperature_ev::Float64 = 0.0
+    # Set above zero to derive physical injection flux weights from n * |vx|.
+    initial_number_density_m3::Float64 = 0.0
     # A particle-specific RNG is derived from (seed, particle id).
     seed::Int = 7
     # Maximum optical-depth increment allowed in one transport step.

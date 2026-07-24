@@ -101,6 +101,73 @@ function run_phase_space_ensemble(
     )
 end
 
+"""
+Accumulate upward and downward differential-flux numerators.
+
+`flux[altitude surface, energy bin, charge, direction]` contains the sum of
+injection flux weights for every crossing. Charge order is H ENA then H+.
+Direction order is downward then upward. Divide by energy-bin width to obtain
+`m^-2 s^-1 eV^-1` when physical density weighting is enabled.
+
+This production driver intentionally does not retain per-particle summaries,
+which keeps memory bounded for ensembles of ten million particles.
+"""
+function run_directional_flux_ensemble(
+    model::AspenModel,
+    cfg::MonteCarloConfig;
+    altitude_surfaces_km::AbstractVector{<:Real}=collect(100.0:0.5:300.0),
+    energy_edges_ev::AbstractVector{<:Real}=collect(10.0:2.0:1500.0),
+)
+    altitude_surfaces = Float64.(altitude_surfaces_km)
+    energy_edges = Float64.(energy_edges_ev)
+    all(diff(altitude_surfaces) .> 0) ||
+        throw(ArgumentError("altitude_surfaces_km must increase"))
+    all(diff(energy_edges) .> 0) ||
+        throw(ArgumentError("energy_edges_ev must increase"))
+    length(altitude_surfaces) >= 1 ||
+        throw(ArgumentError("at least one altitude surface is required"))
+    length(energy_edges) >= 2 ||
+        throw(ArgumentError("energy_edges_ev needs at least two edges"))
+
+    nslots = Base.Threads.maxthreadid()
+    thread_flux = [
+        zeros(
+            Float64, length(altitude_surfaces), length(energy_edges)-1, 2, 2,
+        ) for _ in 1:nslots
+    ]
+    thread_stop_counts = [zeros(Int64, 5) for _ in 1:nslots]
+    thread_final_energy = zeros(Float64, nslots)
+    thread_collisions = zeros(Int64, nslots)
+    thread_steps = zeros(Int64, nslots)
+
+    @threads for particle_id in 1:cfg.n_particles
+        tid = threadid()
+        summary = first(run_particle_core(
+            model, cfg, particle_id, false;
+            flux_altitude_km=altitude_surfaces,
+            flux_energy_edges_ev=energy_edges,
+            directional_flux=thread_flux[tid],
+        ))
+        1 <= summary.stop_code <= 5 &&
+            (thread_stop_counts[tid][summary.stop_code] += 1)
+        thread_final_energy[tid] += summary.final_energy_ev
+        thread_collisions[tid] += summary.n_collisions
+        thread_steps[tid] += summary.n_steps
+    end
+
+    (
+        altitude_surfaces_km=altitude_surfaces,
+        energy_edges_ev=energy_edges,
+        charge_state_names=("H_ENA", "Hplus"),
+        direction_names=("downward", "upward"),
+        flux_m2_s=reduce(+, thread_flux),
+        stop_counts=reduce(+, thread_stop_counts),
+        final_energy_mean_ev=sum(thread_final_energy) / cfg.n_particles,
+        collision_mean=sum(thread_collisions) / cfg.n_particles,
+        step_mean=sum(thread_steps) / cfg.n_particles,
+    )
+end
+
 """Run full-history trajectories for small diagnostic ensembles."""
 function run_detailed_ensemble(model::AspenModel, cfg::MonteCarloConfig)
     summaries = Vector{ParticleSummary}(undef, cfg.n_particles)

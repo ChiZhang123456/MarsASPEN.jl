@@ -124,3 +124,40 @@ end
     )
     @test weighted.path_length_m ≈ 3 .* phase.path_length_m
 end
+
+@testset "Solar-wind proton directional flux" begin
+    altitude_surfaces = collect(100.0:10.0:300.0)
+    energy_edges = collect(10.0:20.0:2010.0)
+    cfg = MonteCarloConfig(
+        n_particles=40,
+        seed=31,
+        initial_charge_state=1,
+        initial_temperature_ev=10.0,
+        initial_number_density_m3=5.0e6,
+    )
+    flux = run_directional_flux_ensemble(
+        MODEL, cfg;
+        altitude_surfaces_km=altitude_surfaces,
+        energy_edges_ev=energy_edges,
+    )
+    @test size(flux.flux_m2_s) ==
+          (length(altitude_surfaces), length(energy_edges)-1, 2, 2)
+    @test all(flux.flux_m2_s .>= 0)
+    @test sum(flux.flux_m2_s[:,:,2,1]) > 0
+    @test sum(flux.flux_m2_s[end,:,2,1]) >
+          sum(flux.flux_m2_s[end,:,1,1])
+    @test sum(flux.stop_counts) == cfg.n_particles
+
+    doubled = run_directional_flux_ensemble(
+        MODEL, MonteCarloConfig(
+            n_particles=40,
+            seed=31,
+            initial_charge_state=1,
+            initial_temperature_ev=10.0,
+            initial_number_density_m3=1.0e7,
+        );
+        altitude_surfaces_km=altitude_surfaces,
+        energy_edges_ev=energy_edges,
+    )
+    @test doubled.flux_m2_s ≈ 2 .* flux.flux_m2_s
+end

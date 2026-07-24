@@ -26,6 +26,34 @@ are handled independently.
     speed_after * (ct*e0y + st*(cp*e1y + sp*e2y)),
     speed_after * (ct*e0z + st*(cp*e1z + sp*e2z))
 end
+
+"""
+Sample the initial drifting-Maxwellian projectile state and injection weight.
+
+The bulk velocity is along MSO -X. Each thermal component is Gaussian with
+standard deviation `sqrt(kT/m)`. When `initial_number_density_m3 > 0`, sampling
+is from the velocity distribution and the Monte Carlo flux weight is
+`n * max(-vx, 0) / N`, in m^-2 s^-1. Otherwise the configured unitless
+`particle_weight` is used.
+"""
+@inline function initial_particle_state(cfg::MonteCarloConfig, rng)
+    charge = cfg.initial_charge_state
+    charge in (0, 1) || throw(ArgumentError("initial_charge_state must be 0 or 1"))
+    mass = charge == 1 ? HP_MASS : H_MASS
+    thermal_sigma = sqrt(max(cfg.initial_temperature_ev, 0.0) * QE / mass)
+    if thermal_sigma > 0
+        vx = -cfg.initial_speed_m_s + thermal_sigma * randn(rng)
+        vy = thermal_sigma * randn(rng)
+        vz = thermal_sigma * randn(rng)
+    else
+        # Preserve the original monoenergetic random stream when T=0.
+        vx, vy, vz = -cfg.initial_speed_m_s, 0.0, 0.0
+    end
+    flux_weight = cfg.initial_number_density_m3 > 0 ?
+        cfg.initial_number_density_m3 * max(-vx, 0.0) / cfg.n_particles :
+        cfg.particle_weight
+    charge, vx, vy, vz, flux_weight
+end
 """
 Transport one particle until a physical or numerical stopping condition.
 
@@ -36,10 +64,12 @@ physics kernel:
 * `reaction_counts` accumulates collision events by altitude and reaction.
 * `path_length_m` accumulates `particle_weight * ds` by altitude, energy,
   and charge state.
+* `directional_flux` counts weighted upward and downward crossings of altitude
+  surfaces by energy and charge state.
 
-All particles currently begin as neutral H ENA at 600 km, moving radially
-toward Mars. The random stream is derived from `(cfg.seed, id)`, which makes
-results reproducible and independent of thread scheduling.
+Particles begin at 600 km with the configured charge state and drifting
+Maxwellian velocity. The random stream is derived from `(cfg.seed, id)`, which
+makes results reproducible and independent of thread scheduling.
 """
 function run_particle_core(
     model::AspenModel, cfg::MonteCarloConfig, id::Int, record::Bool;
@@ -47,14 +77,17 @@ function run_particle_core(
     reaction_counts::Union{Nothing,Matrix{Int64}}=nothing,
     energy_edges_ev::Union{Nothing,Vector{Float64}}=nothing,
     path_length_m::Union{Nothing,Array{Float64,3}}=nothing,
+    flux_altitude_km::Union{Nothing,Vector{Float64}}=nothing,
+    flux_energy_edges_ev::Union{Nothing,Vector{Float64}}=nothing,
+    directional_flux::Union{Nothing,Array{Float64,4}}=nothing,
 )
     # A separate deterministic RNG per particle prevents thread-order effects.
     rng = Xoshiro(hash((cfg.seed, id)))
     x, y, z = (MARS_RADIUS_KM + cfg.initial_altitude_km) * 1000, 0.0, 0.0
-    vx, vy, vz = -cfg.initial_speed_m_s, 0.0, 0.0
-    # charge=0 is neutral H ENA. `tau` is accumulated optical depth and
+    charge, vx, vy, vz, injection_flux_weight = initial_particle_state(cfg, rng)
+    # `tau` is accumulated optical depth and
     # `threshold` is the exponentially distributed optical depth to collision.
-    charge, tau, threshold = 0, 0.0, -log(rand(rng))
+    tau, threshold = 0.0, -log(rand(rng))
     steps = collisions = 0
     counts = zeros(Int, 4)
     stop = UInt8(0)
@@ -97,7 +130,34 @@ function run_particle_core(
                 path_length_m[ia, ie, charge + 1] += cfg.particle_weight * ds
             end
         end
-        x += vx / speed * ds; y += vy / speed * ds; z += vz / speed * ds
+        xnew = x + vx / speed * ds
+        ynew = y + vy / speed * ds
+        znew = z + vz / speed * ds
+        if !isnothing(directional_flux)
+            # Count crossings of fixed spherical altitude surfaces. Direction
+            # 1 is downward and direction 2 is upward.
+            altitude_after = sqrt(xnew*xnew + ynew*ynew + znew*znew)/1000 -
+                             MARS_RADIUS_KM
+            ie = searchsortedlast(flux_energy_edges_ev, e)
+            if 1 <= ie < length(flux_energy_edges_ev)
+                if altitude_after < alt
+                    first_surface = searchsortedlast(flux_altitude_km, altitude_after) + 1
+                    last_surface = searchsortedlast(flux_altitude_km, alt)
+                    for ia in first_surface:last_surface
+                        directional_flux[ia, ie, charge + 1, 1] +=
+                            injection_flux_weight
+                    end
+                elseif altitude_after > alt
+                    first_surface = searchsortedlast(flux_altitude_km, alt) + 1
+                    last_surface = searchsortedlast(flux_altitude_km, altitude_after)
+                    for ia in first_surface:last_surface
+                        directional_flux[ia, ie, charge + 1, 2] +=
+                            injection_flux_weight
+                    end
+                end
+            end
+        end
+        x, y, z = xnew, ynew, znew
         elapsed_time += ds / speed
         tau += alpha * ds
         steps += 1
