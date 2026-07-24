@@ -71,7 +71,7 @@ def main() -> None:
             ax.set_xlabel(f"{labels[field]} count per {bin_width:g} km bin")
             ax.set_ylabel("Altitude (km)")
             ax.grid(True, color="0.85", lw=0.7)
-        axes[0].set_ylim(100, 1000)
+        axes[0].set_ylim(80, 1000)
         axes[0].set_title("Full altitude range")
         axes[1].set_ylim(100, 250)
         axes[1].set_title("Lower atmosphere detail")
@@ -106,7 +106,7 @@ def main() -> None:
     axes[1].legend()
     for ax in axes:
         ax.grid(True, which="both", color="0.85", lw=0.7)
-        ax.set_ylim(100, 1000)
+        ax.set_ylim(80, 1000)
     fig.suptitle("MarsASPEN reaction counts, 1,000,000 particles")
     fig.savefig(output, dpi=220)
     plt.close(fig)

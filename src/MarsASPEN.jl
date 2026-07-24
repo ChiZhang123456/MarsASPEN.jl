@@ -23,6 +23,7 @@ const ATMOSPHERE_SPECIES = (:CO2, :O, :O2, :N2, :CO)
 const KB = 1.380649e-23
 const MARS_G0 = 3.71
 const REACTION_NAMES = (:state_change, :ionization, :lya, :elastic)
+const MODEL_MIN_ALTITUDE_KM = 80.0
 
 struct Atmosphere
     lon::Vector{Float64}
@@ -61,7 +62,7 @@ Base.@kwdef struct MonteCarloConfig
     safety_factor::Float64 = 0.4
     max_step_m::Float64 = 1000.0
     min_energy_ev::Float64 = 10.0
-    min_altitude_km::Float64 = 100.0
+    min_altitude_km::Float64 = MODEL_MIN_ALTITUDE_KM
     max_altitude_km::Float64 = 1000.0
     max_collisions::Int = 2000
     max_steps_per_collision::Int = 100_000
@@ -212,6 +213,14 @@ end
     i, i + 1, w
 end
 
+@inline function atmosphere_altitude_bracket(grid::Vector{Float64}, altitude::Float64)
+    effective_altitude = max(altitude, MODEL_MIN_ALTITUDE_KM)
+    if effective_altitude < grid[1]
+        return 1, 2, (effective_altitude - grid[1]) / (grid[2] - grid[1])
+    end
+    bracket(grid, effective_altitude)
+end
+
 @inline function hot_o_density(a::HotAtmosphere, lon::Float64, lat::Float64, alt::Float64)
     (alt < a.alt[1] || alt > a.alt[end]) && return 0.0
     i0, i1, wx = lonbracket(a.lon, lon)
@@ -240,7 +249,7 @@ end
 @inline function density3(a::Atmosphere, lon::Float64, lat::Float64, alt::Float64)
     i0, i1, wx = lonbracket(a.lon, lon)
     j0, j1, wy = bracket(a.lat, lat)
-    k0, k1, wz = bracket(a.alt, clamp(alt, a.alt[1], a.alt[end]))
+    k0, k1, wz = atmosphere_altitude_bracket(a.alt, min(alt, a.alt[end]))
     density = ntuple(5) do it
         c00 = muladd(wx, a.logn[i1,j0,k0,it] - a.logn[i0,j0,k0,it], a.logn[i0,j0,k0,it])
         c10 = muladd(wx, a.logn[i1,j1,k0,it] - a.logn[i0,j1,k0,it], a.logn[i0,j1,k0,it])
@@ -266,7 +275,7 @@ end
 )
     i0, i1, wx = lonbracket(a.lon, lon)
     j0, j1, wy = bracket(a.lat, lat)
-    k0, k1, wz = bracket(a.alt, clamp(alt, a.alt[1], a.alt[end]))
+    k0, k1, wz = atmosphere_altitude_bracket(a.alt, min(alt, a.alt[end]))
     field_indices = (1, 2, 4)
     density = ntuple(3) do target
         it = field_indices[target]
@@ -293,7 +302,7 @@ end
 @inline function temperature3(a::Atmosphere, lon::Float64, lat::Float64, alt::Float64)
     i0, i1, wx = lonbracket(a.lon, lon)
     j0, j1, wy = bracket(a.lat, lat)
-    k0, k1, wz = bracket(a.alt, clamp(alt, a.alt[1], a.alt[end]))
+    k0, k1, wz = atmosphere_altitude_bracket(a.alt, min(alt, a.alt[end]))
     c00 = muladd(wx, a.tn[i1,j0,k0] - a.tn[i0,j0,k0], a.tn[i0,j0,k0])
     c10 = muladd(wx, a.tn[i1,j1,k0] - a.tn[i0,j1,k0], a.tn[i0,j1,k0])
     c01 = muladd(wx, a.tn[i1,j0,k1] - a.tn[i0,j0,k1], a.tn[i0,j0,k1])
@@ -512,7 +521,7 @@ end
 function run_binned_ensemble(
     model::AspenModel,
     cfg::MonteCarloConfig;
-    altitude_edges_km::AbstractVector{<:Real}=collect(100.0:10.0:1000.0),
+    altitude_edges_km::AbstractVector{<:Real}=collect(80.0:10.0:1000.0),
 )
     edges = Float64.(altitude_edges_km)
     length(edges) >= 2 || throw(ArgumentError("altitude_edges_km needs at least two edges"))

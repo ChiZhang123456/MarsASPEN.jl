@@ -9,6 +9,28 @@ const ATMOSPHERE_DIR = get(
 )
 const MODEL = load_model(REPO; atmosphere_data_dir=ATMOSPHERE_DIR)
 
+@testset "MGITM lower-atmosphere extrapolation" begin
+    z1, z2 = MODEL.atmosphere.alt[1:2]
+    for lon in (0.0, 45.0, 181.0), lat in (-45.0, 0.0, 45.0)
+        n1 = MarsASPEN.density3(MODEL.atmosphere, lon, lat, z1)
+        n2 = MarsASPEN.density3(MODEL.atmosphere, lon, lat, z2)
+        n80 = MarsASPEN.density3(MODEL.atmosphere, lon, lat, 80.0)
+        weight = (80.0 - z1) / (z2 - z1)
+        expected = ntuple(
+            i -> exp(log(n1[i]) + weight * (log(n2[i]) - log(n1[i]))), 5,
+        )
+        @test all(isapprox.(n80, expected; rtol=2e-13))
+        @test MarsASPEN.density3(MODEL.atmosphere, lon, lat, 70.0) == n80
+
+        t1 = MarsASPEN.temperature3(MODEL.atmosphere, lon, lat, z1)
+        t2 = MarsASPEN.temperature3(MODEL.atmosphere, lon, lat, z2)
+        expected_t80 = t1 + weight * (t2 - t1)
+        @test MarsASPEN.temperature3(MODEL.atmosphere, lon, lat, 80.0) ≈
+              expected_t80 rtol=2e-13
+    end
+    @test MonteCarloConfig().min_altitude_km == 80.0
+end
+
 @testset "Python primitive parity" begin
     expected_density = (
         120.0 => (1.2113975782367725e17, 1.9307346587029375e15, 4.212254955721069e15),
@@ -77,6 +99,6 @@ end
     @test all(r -> isfinite(r.final_energy_ev) && r.final_energy_ev >= 0, a)
     @test all(r -> r.n_collisions ==
         r.n_elastic + r.n_ionization + r.n_lya + r.n_state_change, a)
-    binned = run_binned_ensemble(MODEL, cfg; altitude_edges_km=collect(100.0:10.0:1000.0))
+    binned = run_binned_ensemble(MODEL, cfg; altitude_edges_km=collect(80.0:10.0:1000.0))
     @test sum(binned.reaction_counts) == sum(r.n_collisions for r in binned.summaries)
 end

@@ -19,6 +19,11 @@ The package includes MGITM and MAMPS data for Ls = 0, 90, 180, and 270 degrees
 at F10.7 = 70, 130, and 200. MGITM supplies CO2, O, O2, N2, CO, and neutral
 temperature. MAMPS supplies hot O. Above the MGITM top altitude, densities are
 hydrostatically extrapolated using the local top-layer neutral temperature.
+The native MGITM grid begins at 98.75 km. From 98.75 down to the 80 km transport
+boundary, every longitude-latitude column is extrapolated linearly in log
+density using its lowest two MGITM layers. Neutral temperature is extrapolated
+linearly over the same interval. MAMPS hot O begins at 100 km and is zero below
+its native lower boundary.
 
 ```julia
 using MarsASPEN

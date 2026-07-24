@@ -10,7 +10,7 @@ bin_width_km = length(ARGS) >= 3 ? parse(Float64, ARGS[3]) : 10.0
 
 model = load_model(repo; solar="solar_min", ls=0)
 config = MonteCarloConfig(n_particles=n)
-edges = collect(100.0:bin_width_km:1000.0)
+edges = collect(80.0:bin_width_km:1000.0)
 
 run_binned_ensemble(
     model, MonteCarloConfig(n_particles=2);

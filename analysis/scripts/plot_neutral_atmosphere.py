@@ -29,6 +29,7 @@ def periodic_log_profile(
     lat_query: float,
     altitude: np.ndarray,
     log_values: bool = True,
+    extrapolate_lower: bool = False,
 ) -> np.ndarray:
     lon_extended = np.r_[lon[-1] - 360.0, lon, lon[0] + 360.0]
     values_extended = np.concatenate(
@@ -45,7 +46,9 @@ def periodic_log_profile(
         (
             np.full_like(altitude, query_lon),
             np.full_like(altitude, np.clip(lat_query, lat[0], lat[-1])),
-            np.clip(altitude, alt[0], alt[-1]),
+            np.minimum(altitude, alt[-1])
+            if extrapolate_lower
+            else np.clip(altitude, alt[0], alt[-1]),
         )
     )
     result = interpolator(points)
@@ -59,7 +62,7 @@ def main() -> None:
     parser.add_argument("--f107", type=int, default=70)
     parser.add_argument("--lon", type=float, default=0.0)
     parser.add_argument("--lat", type=float, default=0.0)
-    parser.add_argument("--altitude-range", type=float, nargs=2, default=(100, 1000))
+    parser.add_argument("--altitude-range", type=float, nargs=2, default=(80, 1000))
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
@@ -76,12 +79,14 @@ def main() -> None:
         cold[species] = periodic_log_profile(
             np.asarray(gitm[f"n{species}"], dtype=float),
             lon_g, lat_g, alt_g, args.lon, args.lat, z,
+            extrapolate_lower=True,
         )
 
     temperature = periodic_log_profile(
         np.asarray(gitm["Tn"], dtype=float),
         lon_g, lat_g, alt_g, args.lon, args.lat, z,
         log_values=False,
+        extrapolate_lower=True,
     )
     above = z > alt_g[-1]
     if np.any(above):
@@ -103,6 +108,8 @@ def main() -> None:
         args.lat,
         z,
     )
+    hot_alt = np.ravel(mamps["alt_km"])
+    hot_o[(z < hot_alt[0]) | (z > hot_alt[-1])] = 0.0
 
     fig, axes = plt.subplots(1, 2, figsize=(11, 7), sharey=True, constrained_layout=True)
     colors = {
@@ -111,7 +118,10 @@ def main() -> None:
     }
     for species in SPECIES:
         axes[0].plot(cold[species], z, lw=2, color=colors[species], label=species)
-    axes[0].plot(hot_o, z, lw=2.2, color="#2ca02c", label="Hot O, MAMPS")
+    axes[0].plot(
+        np.where(hot_o > 0, hot_o, np.nan), z,
+        lw=2.2, color="#2ca02c", label="Hot O, MAMPS",
+    )
     axes[0].plot(
         cold["O"] + hot_o, z, lw=2, color="black", ls="--", label="Total O"
     )
@@ -123,6 +133,10 @@ def main() -> None:
     axes[1].plot(temperature, z, lw=2, color="#e377c2")
     axes[1].set_xlabel("MGITM neutral temperature (K)")
     for ax in axes:
+        ax.axhline(
+            alt_g[0], color="0.5", lw=1.3, ls="--",
+            label="MGITM lower edge, extrapolation below" if ax is axes[1] else None,
+        )
         ax.axhline(
             alt_g[-1], color="0.35", lw=1.3, ls=":",
             label="MGITM top, extrapolation above" if ax is axes[1] else None,

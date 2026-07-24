@@ -133,7 +133,7 @@ def main() -> None:
                 label=REACTION_NAMES[code],
                 zorder=2 if code == 4 else 3,
             )
-        ax.axhline(100.0, color="#e41a1c", ls="--", lw=1.2, label="lower boundary")
+        ax.axhline(80.0, color="#e41a1c", ls="--", lw=1.2, label="lower boundary")
         ax.axhline(1000.0, color="#e41a1c", ls="--", lw=1.2, label="upper boundary")
         ax.set_xlabel("Time (s)")
         ax.set_ylabel("Altitude (km)")
