@@ -5,7 +5,7 @@ const REPO = normpath(joinpath(@__DIR__, ".."))
 const ATMOSPHERE_DIR = get(
     ENV,
     "MARSASPEN_ATMOSPHERE_DIR",
-    joinpath(REPO, "..", "py_aspen_github_package", "py_aspen", "neutral_density_model", "data"),
+    joinpath(REPO, "data", "atmosphere"),
 )
 const MODEL = load_model(REPO; atmosphere_data_dir=ATMOSPHERE_DIR)
 
@@ -17,7 +17,7 @@ const MODEL = load_model(REPO; atmosphere_data_dir=ATMOSPHERE_DIR)
     )
     for (altitude, expected) in expected_density
         actual = MarsASPEN.density3(MODEL.atmosphere, 0.0, 0.0, altitude)
-        @test all(isapprox.(actual, expected; rtol=2e-13))
+        @test all(isapprox.((actual[1], actual[2], actual[4]), expected; rtol=2e-13))
     end
     for charge in (0, 1), target in 1:3
         @test MarsASPEN.sigma_at(MODEL.cross_sections, charge, target, 4, 1000.0) ≈
@@ -32,6 +32,40 @@ const MODEL = load_model(REPO; atmosphere_data_dir=ATMOSPHERE_DIR)
     for (altitude, expected) in expected_hot_o
         @test MarsASPEN.hot_o_density(MODEL.hot_atmosphere, 0.0, 0.0, altitude) ≈
               expected rtol=2e-13
+    end
+end
+
+@testset "Complete neutral atmosphere interface" begin
+    expected = Dict(
+        70 => (
+            2.9749173651721215e13, 3.727931022111834e13, 2.9396504567373694e11,
+            1.380512797061012e13, 6.88442273662187e12, 194.91500000000002,
+        ),
+        130 => (
+            1.1856414049182955e14, 6.914716189193995e13, 6.777959515736403e11,
+            2.7057073784856965e13, 2.362370379565253e13, 267.1625,
+        ),
+        200 => (
+            2.2218918625745278e14, 8.940117230789566e13, 9.23033917676682e11,
+            3.3612170324763715e13, 4.46477869910226e13, 329.70125,
+        ),
+    )
+    for solar in (70, 130, 200)
+        model = load_model(REPO; solar=solar, ls=0)
+        rho = neutral_density(model, 0.0, 0.0, 200.0)
+        actual = (rho.CO2, rho.O, rho.O2, rho.N2, rho.CO, rho.Tn)
+        @test all(isapprox.(actual, expected[solar]; rtol=2e-13))
+        rho_xyz = neutral_density_xyz(
+            model, (3388.25 + 200.0) * 1000, 0.0, 0.0; position_unit=:m,
+        )
+        @test rho_xyz.CO2 ≈ rho.CO2 rtol=2e-13
+    end
+    @test length(available_atmosphere_cases()) == 12
+    for case in available_atmosphere_cases()
+        model = load_model(REPO; solar=case.f107, ls=case.ls)
+        rho = neutral_density(model, 27.5, 0.0, 200.0)
+        @test all(isfinite, (rho.CO2, rho.O, rho.O2, rho.N2, rho.CO, rho.Tn))
+        @test all(>(0), (rho.CO2, rho.O, rho.O2, rho.N2, rho.CO, rho.Tn))
     end
 end
 

@@ -1,7 +1,5 @@
 Manifest.toml
 output/
-data/atmosphere/
-*.mat
 *.png
 *.csv
 __pycache__/

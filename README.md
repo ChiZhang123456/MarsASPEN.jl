@@ -8,26 +8,30 @@ changes, H Ly-alpha production, and elastic scattering.
 The repository contains:
 
 * a typed Julia transport kernel under `src/`
-* MGITM cold atmosphere and MAMPS hot O interpolation
+* all 12 MGITM cold-atmosphere cases and all 12 MAMPS hot-O cases
 * H and H+ collision cross-section tables under `data/cross_sections/`
 * compact high-particle-count runs and detailed MAT v7.3 history output
 * the `marsaspen-analysis` Python package under `analysis/`
 
-## Atmosphere data
+## Neutral atmosphere
 
-The MGITM and MAMPS MAT files are not committed because the complete set is
-about 144 MB. Set the atmosphere directory before running:
+The package includes MGITM and MAMPS data for Ls = 0, 90, 180, and 270 degrees
+at F10.7 = 70, 130, and 200. MGITM supplies CO2, O, O2, N2, CO, and neutral
+temperature. MAMPS supplies hot O. Above the MGITM top altitude, densities are
+hydrostatically extrapolated using the local top-layer neutral temperature.
 
-```powershell
-$env:MARSASPEN_ATMOSPHERE_DIR = "F:\path\to\marsaspen_atmosphere"
+```julia
+using MarsASPEN
+
+model = load_model(solar="solar_min", ls=0)
+rho = neutral_density(model, 0.0, 0.0, 200.0)
+rho_xyz = neutral_density_xyz(
+    model, (3388.25 + 200.0) * 1000, 0.0, 0.0; position_unit=:m
+)
 ```
 
-The directory should contain files such as:
-
-```text
-gitm_ls000_f070.mat
-mamps_ls000_f070.mat
-```
+Returned densities are in m^-3 and `Tn` is in K. `O` is the sum of `O_cold`
+from MGITM and `O_hot` from MAMPS.
 
 ## Julia setup and tests
 
