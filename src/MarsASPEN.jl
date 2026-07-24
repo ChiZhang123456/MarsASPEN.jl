@@ -8,7 +8,7 @@ using Base.Threads
 export AspenModel, MonteCarloConfig, ParticleSummary, HistoryEvent, load_model,
        neutral_density, neutral_density_xyz, cartesian_to_lon_lat_alt,
        available_atmosphere_cases, run_ensemble, run_detailed_ensemble,
-       run_binned_ensemble, write_detailed_mat
+       run_binned_ensemble, run_phase_space_ensemble, write_detailed_mat
 
 const QE = 1.602176634e-19
 const AMU = 1.66053906660e-27
@@ -67,6 +67,7 @@ Base.@kwdef struct MonteCarloConfig
     max_collisions::Int = 2000
     max_steps_per_collision::Int = 100_000
     include_hot_o::Bool = true
+    particle_weight::Float64 = 1.0
 end
 
 struct ParticleSummary
@@ -413,6 +414,8 @@ function run_particle_core(
     model::AspenModel, cfg::MonteCarloConfig, id::Int, record::Bool;
     altitude_edges_km::Union{Nothing,Vector{Float64}}=nothing,
     reaction_counts::Union{Nothing,Matrix{Int64}}=nothing,
+    energy_edges_ev::Union{Nothing,Vector{Float64}}=nothing,
+    path_length_m::Union{Nothing,Array{Float64,3}}=nothing,
 )
     rng = Xoshiro(hash((cfg.seed, id)))
     x, y, z = (MARS_RADIUS_KM + cfg.initial_altitude_km) * 1000, 0.0, 0.0
@@ -445,6 +448,18 @@ function run_particle_core(
         candidate = alpha > 0 ? min(cfg.safety_factor / alpha, cfg.max_step_m) : cfg.max_step_m
         remaining = threshold - tau
         ds = alpha > 0 ? min(candidate, remaining / alpha) : candidate
+        if !isnothing(path_length_m)
+            mx = x + 0.5 * vx / speed * ds
+            my = y + 0.5 * vy / speed * ds
+            mz = z + 0.5 * vz / speed * ds
+            midpoint_altitude = sqrt(mx*mx + my*my + mz*mz)/1000 - MARS_RADIUS_KM
+            ia = searchsortedlast(altitude_edges_km, midpoint_altitude)
+            ie = searchsortedlast(energy_edges_ev, e)
+            if 1 <= ia < length(altitude_edges_km) &&
+               1 <= ie < length(energy_edges_ev)
+                path_length_m[ia, ie, charge + 1] += cfg.particle_weight * ds
+            end
+        end
         x += vx / speed * ds; y += vy / speed * ds; z += vz / speed * ds
         elapsed_time += ds / speed
         tau += alpha * ds
@@ -544,6 +559,47 @@ function run_binned_ensemble(
         altitude_edges_km=edges,
         reaction_names=REACTION_NAMES,
         reaction_counts=counts,
+    )
+end
+
+function run_phase_space_ensemble(
+    model::AspenModel,
+    cfg::MonteCarloConfig;
+    altitude_edges_km::AbstractVector{<:Real}=collect(80.0:1.0:600.0),
+    energy_edges_ev::AbstractVector{<:Real}=10.0 .^ range(1.0, 3.0, length=101),
+)
+    altitude_edges = Float64.(altitude_edges_km)
+    energy_edges = Float64.(energy_edges_ev)
+    length(altitude_edges) >= 2 ||
+        throw(ArgumentError("altitude_edges_km needs at least two edges"))
+    length(energy_edges) >= 2 ||
+        throw(ArgumentError("energy_edges_ev needs at least two edges"))
+    all(diff(altitude_edges) .> 0) ||
+        throw(ArgumentError("altitude_edges_km must increase"))
+    all(diff(energy_edges) .> 0) ||
+        throw(ArgumentError("energy_edges_ev must increase"))
+
+    summaries = Vector{ParticleSummary}(undef, cfg.n_particles)
+    thread_weights = [
+        zeros(
+            Float64, length(altitude_edges)-1, length(energy_edges)-1, 2,
+        ) for _ in 1:Base.Threads.maxthreadid()
+    ]
+    @threads for i in eachindex(summaries)
+        tid = threadid()
+        summaries[i] = first(run_particle_core(
+            model, cfg, i, false;
+            altitude_edges_km=altitude_edges,
+            energy_edges_ev=energy_edges,
+            path_length_m=thread_weights[tid],
+        ))
+    end
+    (
+        summaries=summaries,
+        altitude_edges_km=altitude_edges,
+        energy_edges_ev=energy_edges,
+        charge_state_names=("H_ENA", "Hplus"),
+        path_length_m=reduce(+, thread_weights),
     )
 end
 

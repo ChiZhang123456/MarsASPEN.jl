@@ -77,6 +77,19 @@ The CSV separates charge-state change, ionization, Lyman-alpha production, and
 elastic collisions. Counts are collision events, so one particle can contribute
 many events.
 
+## H ENA and H+ altitude-energy distributions
+
+```powershell
+julia --project=. -t auto scripts/run_phase_space_histogram.jl 1000000 output/phase_space_1000000p.mat 1 100 1
+C:\Users\Win\.conda\envs\mars\python.exe analysis/scripts/plot_phase_space_histogram.py output/phase_space_1000000p.mat
+```
+
+The final argument is the initial macro-particle weight, with a default of one.
+Each trajectory segment contributes `particle_weight * ds` to its altitude,
+energy, and charge-state bin. This path-length weighting avoids bias from the
+adaptive transport step. A physical incident flux can be applied by replacing
+the unit weight with the corresponding macro-particle weight.
+
 ## Python analysis
 
 ```powershell

@@ -102,3 +102,25 @@ end
     binned = run_binned_ensemble(MODEL, cfg; altitude_edges_km=collect(80.0:10.0:1000.0))
     @test sum(binned.reaction_counts) == sum(r.n_collisions for r in binned.summaries)
 end
+
+@testset "Altitude-energy path-length histogram" begin
+    cfg = MonteCarloConfig(n_particles=20, seed=17)
+    altitude_edges = collect(80.0:10.0:600.0)
+    energy_edges = 10.0 .^ range(1.0, 3.0, length=21)
+    phase = run_phase_space_ensemble(
+        MODEL, cfg;
+        altitude_edges_km=altitude_edges,
+        energy_edges_ev=energy_edges,
+    )
+    @test size(phase.path_length_m) ==
+          (length(altitude_edges)-1, length(energy_edges)-1, 2)
+    @test all(phase.path_length_m .>= 0)
+    @test sum(phase.path_length_m[:,:,1]) > 0
+    @test sum(phase.path_length_m[:,:,2]) > 0
+    weighted = run_phase_space_ensemble(
+        MODEL, MonteCarloConfig(n_particles=20, seed=17, particle_weight=3.0);
+        altitude_edges_km=altitude_edges,
+        energy_edges_ev=energy_edges,
+    )
+    @test weighted.path_length_m ≈ 3 .* phase.path_length_m
+end
