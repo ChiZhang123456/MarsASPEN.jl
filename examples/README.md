@@ -53,6 +53,20 @@ The figure compares the available solar longitude and F10.7 cases from 80 to
 
 `examples/figures/gitm_mamps_density_cases.png`.
 
+The corresponding longitude-latitude maps at 150 km are generated with:
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_atmosphere_maps_150km.py
+```
+
+The upper four rows show MGITM CO2 and the lower four rows show total O,
+defined as MGITM cold O plus MAMPS hot O. Density is interpolated in logarithmic
+space to 150 km on the native 5 degree longitude-latitude grid. Each species
+uses one common logarithmic color scale across all seasons and solar-activity
+conditions:
+
+`examples/figures/gitm_mamps_co2_o_maps_150km.png`.
+
 ## 4. Collision cross sections
 
 The collision tables distinguish neutral H and H+ projectiles and the CO2, O,
