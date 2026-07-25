@@ -90,7 +90,7 @@ def main() -> None:
         axis.set_xlabel("Energy (eV)")
         axis.set_xscale("log")
         axis.set_xlim(1, 10_000)
-        axis.set_ylim(80, 300)
+        axis.set_ylim(100, 600)
         axis.grid(False)
 
     axes[0].set_ylabel("Altitude (km)")
