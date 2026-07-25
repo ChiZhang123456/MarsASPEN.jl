@@ -545,29 +545,6 @@ result = run_density_crossing_ensemble(
 )
 ```
 
-When the sampling temperature differs from the physical temperature, each
-velocity receives dimensionless importance weight
-
-```text
-W_i = f(v_i; U, T) / f_s(v_i; U, T_sample).
-```
-
-The physical density weight follows the py_aspen convention:
-
-```text
-Wn_i = n_source W_i / sum(W).
-```
-
-For flux through the injection plane, MarsASPEN uses
-
-```text
-Wflux_i = Wn_i max(-v_x,i, 0).
-```
-
-`MonteCarloWeight(sampling_temperature_factor=1)` samples the physical
-Maxwellian directly, so all importance weights are one. Values above one
-oversample velocity tails.
-
 ## Why `test/` is retained
 
 The `test/` directory is not an example directory. It automatically verifies
