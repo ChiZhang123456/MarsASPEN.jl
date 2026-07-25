@@ -12,6 +12,8 @@ import numpy as np
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "analysis"))
+ALTITUDE_MIN_KM = 100.0
+ALTITUDE_MAX_KM = 300.0
 
 from marsaspen_analysis import load_history_mat  # noqa: E402
 
@@ -140,7 +142,8 @@ def main() -> None:
             label="Dayside mean",
         )
         axis.set(
-            ylim=(80, 600), title=title, xlabel=xlabel,
+            ylim=(ALTITUDE_MIN_KM, ALTITUDE_MAX_KM),
+            title=title, xlabel=xlabel,
         )
         if panel % 4 == 0:
             axis.set_ylabel("Altitude (km)")
@@ -153,6 +156,7 @@ def main() -> None:
     axes[0, 0].legend(loc="upper left", bbox_to_anchor=(0.08, 0.92), fontsize=6.5)
     fig.suptitle(
         "Uniform-dayside H$^+$ Monte Carlo altitude profiles\n"
+        f"{ALTITUDE_MIN_KM:.0f} to {ALTITUDE_MAX_KM:.0f} km, "
         r"100,000 particles, $\mathbf{U}=(-400,0,0)$ km/s, "
         r"$T=10$ eV, $n=5$ cm$^{-3}$, "
         r"5$^\circ\times$5$^\circ\times1$ km grid",
@@ -162,9 +166,16 @@ def main() -> None:
     fig.savefig(args.output, dpi=600, bbox_inches="tight")
     plt.close(fig)
     print(f"output={args.output.resolve()}")
+    displayed = (
+        (altitude >= ALTITUDE_MIN_KM) &
+        (altitude <= ALTITUDE_MAX_KM)
+    )
     for title, profile in zip(titles, dayside_profiles):
-        if np.any(np.isfinite(profile)):
-            index = int(np.nanargmax(np.abs(profile)))
+        if np.any(np.isfinite(profile[displayed])):
+            displayed_indices = np.flatnonzero(displayed)
+            index = displayed_indices[
+                int(np.nanargmax(np.abs(profile[displayed])))
+            ]
             print(
                 f"{title}: dayside_peak={profile[index]:.9g} "
                 f"at {altitude[index]:.1f} km"

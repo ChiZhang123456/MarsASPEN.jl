@@ -747,7 +747,8 @@ C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_altitude_profi
 
 The PNG is
 `examples/figures/dayside_hplus_100000_3d_altitude_profiles_8panel.png`.
-Each panel contains a global spherical-area mean and a dayside-area mean.
+The displayed altitude range is 100 to 300 km. Each panel contains a global
+spherical-area mean and a dayside-area mean.
 Latitude weighting uses the exact spherical factor
 `sin(lat_upper)-sin(lat_lower)`, rather than treating every latitude bin as
 having the same area. The signed radial-flux panel uses a symmetric logarithmic
