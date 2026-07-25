@@ -293,59 +293,156 @@ altitude range:         80 to 600 km
 
 ### Three-dimensional estimators
 
-The stored macro-particle weight remains $W_{n,i}$. For the stationary
-residence-time estimator only, its launch rate is derived from the total flux
-through the sampled dayside area,
+This section defines how the trajectory ensemble is converted into physical
+quantities in each three-dimensional grid cell. The stored macro-particle
+weight is
+
+```math
+W_{n,i}
+=
+n_{\mathrm{sw}}
+\frac{w_i}{\sum_{p=1}^{N_{\mathrm{MC}}}w_p}.
+```
+
+Its unit is m⁻³. It represents the physical number-density share carried by
+macro particle `i`. It contains no velocity factor.
+
+#### Symbols
+
+| Symbol | Meaning | Unit |
+|---|---|---|
+| $W_{n,i}$ | Physical density weight carried by macro particle `i` | m⁻³ |
+| $r_{\mathrm{inj}}$ | Radius of the 600 km injection sphere measured from the center of Mars | m |
+| $A_{\mathrm{day}}$ | Area of the sampled dayside hemisphere | m² |
+| $V_{r,i}^{\mathrm{inj}}$ | Signed radial velocity of particle `i` at injection | m s⁻¹ |
+| $\dot N_i$ | Physical surface-crossing rate represented by particle `i` | s⁻¹ |
+| $V_{\mathrm{cell}}$ | Exact spherical volume of one longitude, latitude, altitude cell | m³ |
+| $\Delta t_{i,s}$ | Time spent by trajectory segment `s` of particle `i` inside the cell | s |
+| $\boldsymbol V_{i,s}$ | Three-dimensional velocity of that trajectory segment | m s⁻¹ |
+| $V_{r,i,s}$ | Signed radial component of the segment velocity | m s⁻¹ |
+| $\Delta s_{i,s}$ | Path length traveled by that segment inside the cell | m |
+
+Positive radial velocity means upward motion, away from Mars. Negative radial
+velocity means downward motion, toward Mars.
+
+#### 1. Source-surface crossing rate
+
+The dayside hemisphere area is
+
+```math
+A_{\mathrm{day}}
+=
+2\pi r_{\mathrm{inj}}^2.
+```
+
+The physical crossing rate represented by macro particle `i` is
 
 ```math
 \dot N_i
 =
-A_{\mathrm{day}}W_{n,i}|V_{r,i}|,
-\qquad
-A_{\mathrm{day}}=2\pi r_{\mathrm{inj}}^2.
+A_{\mathrm{day}}
+W_{n,i}
+\left|V_{r,i}^{\mathrm{inj}}\right|.
 ```
 
-This derived rate does not replace or modify $W_{n,i}$.
+The absolute radial speed retains both inward and outward Maxwellian samples.
+This derived crossing rate is used by the stationary three-dimensional
+estimator. It does not replace or modify the stored density weight.
 
-For grid-cell volume $V_{\mathrm{cell}}$, trajectory residence time
-$\Delta t$, path length $\Delta s=|\boldsymbol{v}|\Delta t$, and
-macro-particle rate $\dot N_i$, MarsASPEN accumulates
+#### 2. Residence-time number density
+
+The number-density contribution is proportional to the time that each
+trajectory segment resides in the cell:
 
 ```math
 n
 =
-\sum_i
-\frac{\dot N_i\Delta t_i}{V_{\mathrm{cell}}},
+\frac{1}{V_{\mathrm{cell}}}
+\sum_i\sum_s
+\dot N_i\Delta t_{i,s}.
 ```
+
+The output unit is m⁻³.
+
+#### 3. Total scalar flux
+
+The path length of one segment is
+
+```math
+\Delta s_{i,s}
+=
+\left|\boldsymbol V_{i,s}\right|
+\Delta t_{i,s}.
+```
+
+The total scalar flux counts path length without a directional sign:
 
 ```math
 F_{\mathrm{total}}
 =
-\sum_i
-\frac{\dot N_i\Delta s_i}{V_{\mathrm{cell}}},
+\frac{1}{V_{\mathrm{cell}}}
+\sum_i\sum_s
+\dot N_i\Delta s_{i,s}.
 ```
+
+The output unit is m⁻² s⁻¹.
+
+#### 4. Radial flux
+
+The signed radial flux is
 
 ```math
 F_r
 =
-\sum_i
-\frac{\dot N_iV_{r,i}\Delta t_i}{V_{\mathrm{cell}}}.
+\frac{1}{V_{\mathrm{cell}}}
+\sum_i\sum_s
+\dot N_iV_{r,i,s}\Delta t_{i,s}.
 ```
 
-The corresponding units are m$^{-3}$, m$^{-2}$ s$^{-1}$, and
-m$^{-2}$ s$^{-1}$. Upward and downward radial fluxes are accumulated
-separately using $\max(V_r,0)$ and $\max(-V_r,0)$.
+Upward and downward radial fluxes are stored separately:
 
-Each realized reaction contributes
+```math
+F_{\mathrm{up}}
+=
+\frac{1}{V_{\mathrm{cell}}}
+\sum_i\sum_s
+\dot N_i
+\max\left(V_{r,i,s},0\right)
+\Delta t_{i,s},
+```
+
+```math
+F_{\mathrm{down}}
+=
+\frac{1}{V_{\mathrm{cell}}}
+\sum_i\sum_s
+\dot N_i
+\max\left(-V_{r,i,s},0\right)
+\Delta t_{i,s}.
+```
+
+All three radial-flux outputs have units of m⁻² s⁻¹, and they satisfy
+
+```math
+F_r=F_{\mathrm{up}}-F_{\mathrm{down}}.
+```
+
+#### 5. Reaction event rate
+
+If particle `i` undergoes a realized Monte Carlo reaction inside the cell,
+that event contributes its crossing rate to the volume reaction rate:
 
 ```math
 q_{\mathrm{event}}
 =
-\frac{\dot N_i}{V_{\mathrm{cell}}}
+\frac{1}{V_{\mathrm{cell}}}
+\sum_{\mathrm{events\ in\ cell}}
+\dot N_i.
 ```
 
-in m$^{-3}$ s$^{-1}$. Reactions are stored separately by projectile
-charge state, atmospheric target, and reaction channel.
+The output unit is m⁻³ s⁻¹. Events are stored separately by projectile charge
+state, atmospheric target, and reaction channel. The raw unweighted event
+counts are also retained for Monte Carlo convergence checks.
 
 ### MAT output files
 
