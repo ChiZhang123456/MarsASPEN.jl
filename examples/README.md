@@ -362,6 +362,17 @@ The reusable Python calculations are in
 velocity, single-particle `Wn * Vr`, and directional and net altitude
 profiles.
 
+The two source cases can also be combined into a 2 by 3 figure. Rows are H ENA
+source and H+ source. Columns are downward, upward, and signed net outward
+radial flux. The displayed altitude range is 100 to 400 km.
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_combined_radial_flux.py examples/output/h_ena_100000_radial_flux.mat examples/output/hplus_100000_radial_flux.mat
+```
+
+The combined PNG is stored at
+`examples/figures/h_ena_hplus_radial_flux_6panel.png`.
+
 ## 9. O and CO2 ionization-rate profiles
 
 The generic target-ionization example supports O, CO2, and N2. The current
@@ -421,6 +432,17 @@ The comparison PNG files are:
 
 Each panel shows the H ENA contribution, H+ contribution, and their total for
 one source simulation.
+
+All four cases can be combined into one 2 by 2 figure. Rows are O and CO2.
+Columns are H ENA source and H+ source. Every panel uses the 100 to 400 km
+altitude range.
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_combined_ionization_rates.py examples/output/h_ena_100000_oxygen_ionization_rate.mat examples/output/hplus_100000_oxygen_ionization_rate.mat examples/output/h_ena_100000_co2_ionization_rate.mat examples/output/hplus_100000_co2_ionization_rate.mat
+```
+
+The combined PNG is stored at
+`examples/figures/oxygen_co2_ionization_rate_4panel.png`.
 
 To inspect the H+ energy distribution at 550 km separately:
 
