@@ -550,12 +550,6 @@ The MAT files retain both `eV m^-3 s^-1` and `W m^-3`, using
 upper estimate of local heating because escaping Ly-alpha radiation and
 transport by secondary electrons are not yet subtracted.
 
-The resulting PNG is
-`examples/figures/point_source_surface_diagnostics_120km_6panel.png`.
-It contains total O plus CO2 ionization, Ly-alpha volume emission, and energy
-transfer for H ENA-source and H+-source simulations. It is a point-source
-footprint, not a globally normalized dayside map.
-
 To inspect the H+ energy distribution at 550 km separately:
 
 ```powershell
