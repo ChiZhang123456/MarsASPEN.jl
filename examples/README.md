@@ -10,7 +10,6 @@ fields, and limitations of the crossing-weight estimator.
 
 This case follows one monoenergetic 400 km/s H ENA from 600 km. It saves the
 complete trajectory, energy, charge state, velocity, and collision history.
-No physical source density or `MonteCarloWeight` object is needed.
 
 ```powershell
 julia --project=. examples/run_h_ena_trajectory.jl
@@ -24,7 +23,6 @@ and saves a 600 dpi PNG in `examples/figures`.
 
 This case uses the same altitude and speed but starts as H+. It is useful for
 seeing charge exchange from H+ to H ENA and subsequent state changes.
-No physical source density or `MonteCarloWeight` object is needed.
 
 ```powershell
 julia --project=. examples/run_hplus_trajectory.jl
@@ -57,17 +55,6 @@ represented by that trajectory:
 ```math
 [W_{n,i}] = \mathrm{m^{-3}}.
 ```
-
-If a physical source volume $\Delta V$, in $\mathrm{m^3}$, is specified,
-the number of real particles represented by macro particle $i$ in that
-volume is
-
-```math
-N_{\mathrm{real},i} = W_{n,i}\Delta V,
-```
-
-which is dimensionless because it is a particle count. MarsASPEN stores
-$W_{n,i}$, rather than assuming a particular source volume.
 
 ### Physical and sampling velocity distributions
 
@@ -339,16 +326,19 @@ optical depth rather than a complete energy-degrading Monte Carlo trajectory.
 
 This example injects 100,000 H+ particles at 600 km with 400 km/s bulk speed,
 10 eV temperature, and 5 cm^-3 density. At every one-kilometer spherical
-altitude surface, it evaluates the local radial velocity and accumulates
+altitude surface, it evaluates the local radial velocity and accumulates the
+vertical number flux. The macro-particle density weight $W_{n,i}$ is defined
+in Section 3.
 
-```text
-Vr_i = v_i dot r_hat
-Wn_i = n_source (f/fs)_i / sum_j(f/fs)_j       [m^-3]
-F_i = Wn_i abs(Vr_i)                           [m^-2 s^-1]
+```math
+V_{r,i}=\boldsymbol{v}_i\cdot\hat{\boldsymbol{r}}_i,
+\qquad
+F_i=W_{n,i}|V_{r,i}|.
 ```
 
 Downward and upward magnitudes are saved separately for H ENA and H+. The
-signed outward radial flux is `F_upward - F_downward`, so negative values
+flux unit is $\mathrm{m^{-2}\,s^{-1}}$. The signed outward radial flux is
+$F_{\mathrm{upward}}-F_{\mathrm{downward}}$, so negative values
 indicate net precipitation and positive values indicate net escape.
 
 ```powershell
