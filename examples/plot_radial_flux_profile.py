@@ -1,6 +1,6 @@
 """Plot local radial number-flux profiles for H ENA and H+.
 
-The input MAT file is produced by ``run_hplus_100000_radial_flux.jl``. At each
+The input MAT file is produced by either radial-flux Julia example. At each
 spherical altitude crossing, Julia accumulates
 
     F_i = Wn_i * abs(Vr_i)
@@ -32,7 +32,7 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "analysis"))
 
-from marsaspen_analysis.io import load_history_mat  # noqa: E402
+from marsaspen_analysis import load_history_mat, vertical_flux_from_mat  # noqa: E402
 
 mpl.rcParams.update({
     "font.family": "Arial",
@@ -61,22 +61,15 @@ def main() -> None:
     args = parser.parse_args()
 
     data = load_history_mat(args.mat_file)
-    altitude = vector(data, "altitude_surfaces_km")
-    radial_flux = np.asarray(data["radial_flux_m2_s"], dtype=float)
-    expected_shape = (altitude.size, 2, 2)
-    if radial_flux.shape == expected_shape[::-1]:
-        # MAT v7.3 reverses Julia dimensions when read directly with h5py.
-        radial_flux = radial_flux.transpose(2, 1, 0)
-    if radial_flux.shape != expected_shape:
-        raise ValueError(
-            f"Unexpected radial flux shape {radial_flux.shape}; "
-            f"expected {expected_shape}."
-        )
-
-    downward = radial_flux[:, :, 0]
-    upward = radial_flux[:, :, 1]
-    signed_outward = upward - downward
+    profiles = vertical_flux_from_mat(data)
+    altitude = profiles["altitude_km"]
+    downward = profiles["downward"]
+    upward = profiles["upward"]
+    signed_outward = profiles["signed_outward"]
     nominal_flux = float(vector(data, "nominal_bulk_flux_m2_s"))
+    initial_species_raw = np.asarray(data["initial_species"]).squeeze()
+    initial_species = str(initial_species_raw).replace("_", " ")
+    source_label = r"H$^+$" if "plus" in initial_species.lower() else "H ENA"
 
     fig, axes = plt.subplots(
         1, 3, figsize=(7.2, 4.4), sharey=True, constrained_layout=True
@@ -123,7 +116,7 @@ def main() -> None:
             ha="left", va="top", fontweight="bold", fontsize=9,
         )
     fig.suptitle(
-        "Local radial flux from 100,000 H+ source particles\n"
+        f"Local radial flux from 100,000 {source_label} source particles\n"
         r"600 km, 400 km/s, $T=10$ eV, $n=5$ cm$^{-3}$; "
         rf"$nU={nominal_flux:.2e}$ m$^{{-2}}$ s$^{{-1}}$",
         fontsize=9,

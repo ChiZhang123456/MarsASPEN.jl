@@ -194,4 +194,19 @@ C:\Users\Win\.conda\envs\mars\python.exe -m pip install -e analysis
 marsaspen-plot output/aspen_10p_detailed.mat
 ```
 
+The analysis package also includes reusable vertical-flux functions:
+
+```python
+from marsaspen_analysis import (
+    local_vertical_velocity,
+    particle_vertical_flux,
+    vertical_flux_from_mat,
+)
+```
+
+`local_vertical_velocity` evaluates `dot(r, v) / norm(r)`.
+`particle_vertical_flux` evaluates the signed contribution `Wn * Vr` in
+`m^-2 s^-1`. `vertical_flux_from_mat` returns downward, upward, signed
+outward, and net downward profiles for H ENA and H+.
+
 All non-mathematical figure text uses Arial.

@@ -160,6 +160,18 @@ C:\Users\Win\.conda\envs\mars\python.exe examples/plot_radial_flux_profile.py ex
 The PNG is stored at
 `examples/figures/hplus_100000_radial_flux_profile.png`.
 
+The equivalent initially neutral H ENA source uses the same density,
+temperature, bulk speed, altitude grid, and flux definition:
+
+```powershell
+julia --project=. -t auto examples/run_h_ena_100000_radial_flux.jl
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_radial_flux_profile.py examples/output/h_ena_100000_radial_flux.mat --output examples/figures/h_ena_100000_radial_flux_profile.png
+```
+
+The reusable Python calculations are in
+`analysis/marsaspen_analysis/flux.py`. They provide local vertical velocity,
+single-particle `Wn * Vr`, and directional and net altitude profiles.
+
 To inspect the H+ energy distribution at 550 km separately:
 
 ```powershell
