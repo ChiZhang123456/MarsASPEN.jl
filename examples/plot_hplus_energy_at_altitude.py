@@ -103,7 +103,7 @@ def main() -> None:
         where="mid",
         color="0.65",
         linewidth=0.8,
-        label=f"Native bins, {energy_widths[0]:g} eV",
+        label="Native logarithmic bins",
     )
     axis.step(
         rebinned_energy,
@@ -111,10 +111,7 @@ def main() -> None:
         where="mid",
         color="#d62728",
         linewidth=1.8,
-        label=(
-            f"Rebinned, "
-            f"{args.rebin * energy_widths[0]:g} eV"
-        ),
+        label=f"Combined every {args.rebin} bins",
     )
     axis.axvline(
         peak_energy,
@@ -123,7 +120,8 @@ def main() -> None:
         linewidth=1.0,
         label=f"Rebinned peak = {peak_energy:.1f} eV",
     )
-    axis.set_xlim(10, 1200)
+    axis.set_xscale("log")
+    axis.set_xlim(1, 10_000)
     axis.set_ylim(bottom=0)
     axis.set_xlabel("H+ energy (eV)")
     axis.set_ylabel(
@@ -147,7 +145,7 @@ def main() -> None:
 
     print(f"altitude_bin_km={altitude_low:.1f},{altitude_high:.1f}")
     print(f"nonzero_energy_bins={np.count_nonzero(positive)}")
-    print(f"rebinned_energy_width_ev={args.rebin * energy_widths[0]:.1f}")
+    print(f"combined_native_bins={args.rebin}")
     print(f"rebinned_peak_energy_ev={peak_energy:.1f}")
     print(f"weighted_track_length_m2={track_length[altitude_index, :, 1].sum():.9g}")
     print(f"output={output.resolve()}")

@@ -34,7 +34,9 @@ altitude and energy panels.
 This example injects 100,000 H ENA particles at 600 km with bulk velocity
 `[-400, 0, 0]` km/s, physical temperature 10 eV, and source density 1 cm^-3.
 It samples a broader 50 eV distribution and applies the importance weight
-`f/fs` to every particle.
+`f/fs` to every particle. The altitude-energy output uses 30 logarithmic
+energy bins from 1 to 10,000 eV. The lower bound is 1 eV because a logarithmic
+axis cannot include zero.
 
 ```powershell
 julia --project=. -t auto examples/run_h_ena_100000_monte_carlo.jl

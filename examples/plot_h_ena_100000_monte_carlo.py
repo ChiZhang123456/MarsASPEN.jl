@@ -60,10 +60,17 @@ def main() -> None:
             f"{weighted_track_length.shape}, expected {expected_shape}."
         )
 
+    # Logarithmic bins have unequal widths. Divide by dE before plotting so
+    # color represents a differential energy distribution rather than the
+    # integrated contribution accumulated in a wider bin.
+    differential_track_length = (
+        weighted_track_length / np.diff(energy_edges)[None, :, None]
+    )
+
     # A shared logarithmic color scale makes the H ENA and H+ panels directly
     # comparable. Empty bins are masked rather than assigned an artificial
     # floor.
-    positive = weighted_track_length[weighted_track_length > 0]
+    positive = differential_track_length[differential_track_length > 0]
     if positive.size == 0:
         raise ValueError("The MAT file contains no positive weighted bins.")
     color_norm = LogNorm(vmin=np.percentile(positive, 2), vmax=positive.max())
@@ -76,7 +83,7 @@ def main() -> None:
     image = None
     for charge_index, (axis, species) in enumerate(zip(axes, species_names)):
         values = np.ma.masked_less_equal(
-            weighted_track_length[:, :, charge_index], 0
+            differential_track_length[:, :, charge_index], 0
         )
         image = axis.pcolormesh(
             energy_edges,
@@ -88,13 +95,17 @@ def main() -> None:
         )
         axis.set_title(species)
         axis.set_xlabel("Energy (eV)")
-        axis.set_xlim(10, 1000)
+        axis.set_xscale("log")
+        axis.set_xlim(1, 10_000)
         axis.set_ylim(80, 300)
         axis.grid(False)
 
     axes[0].set_ylabel("Altitude (km)")
     colorbar = fig.colorbar(image, ax=axes, pad=0.02)
-    colorbar.set_label(r"Density-weighted track length (m$^{-2}$)")
+    colorbar.set_label(
+        r"Density-weighted track length / $\Delta E$ "
+        r"(m$^{-2}$ eV$^{-1}$)"
+    )
     fig.suptitle(
         "100,000 H ENA particles, 600 km, 400 km/s, "
         r"$T=10$ eV, $n=1$ cm$^{-3}$"

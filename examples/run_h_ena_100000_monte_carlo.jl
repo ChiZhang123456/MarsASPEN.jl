@@ -46,10 +46,11 @@ weighting = MonteCarloWeight(
     source_number_density_m3=1.0e6,
 )
 
-# One-kilometer altitude bins and 5 eV energy bins provide a detailed but
-# compact diagnostic for this 100,000-particle example.
+# One-kilometer altitude bins and 30 logarithmic energy bins cover 1 to
+# 10,000 eV. A logarithmic grid cannot begin at exactly zero. Because transport
+# stops below 10 eV, the lowest part of this requested range is normally empty.
 altitude_edges_km = collect(80.0:1.0:600.0)
-energy_edges_ev = collect(10.0:5.0:1200.0)
+energy_edges_ev = 10.0 .^ range(0.0, 4.0, length=31)
 
 elapsed = @elapsed result = run_phase_space_ensemble(
     model, config;
