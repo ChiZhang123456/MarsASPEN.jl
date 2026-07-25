@@ -1,5 +1,6 @@
 using MarsASPEN
 using Test
+using Statistics
 
 const REPO = normpath(joinpath(@__DIR__, ".."))
 const ATMOSPHERE_DIR = get(
@@ -29,6 +30,32 @@ const MODEL = load_model(REPO; atmosphere_data_dir=ATMOSPHERE_DIR)
               expected_t80 rtol=2e-13
     end
     @test MonteCarloConfig().min_altitude_km == 80.0
+end
+
+@testset "Uniform dayside injection geometry" begin
+    cfg = MonteCarloConfig(
+        n_particles=10_000,
+        seed=61,
+        injection_geometry=:dayside_uniform,
+        initial_charge_state=1,
+        initial_temperature_ev=10.0,
+    )
+    weighting = MonteCarloWeight(source_number_density_m3=5.0e6)
+    sample = sample_injection_ensemble(cfg; weighting=weighting)
+    radius_km = sqrt.(sum(sample.position_m .^ 2; dims=2))[:] ./ 1000
+    @test all(sample.position_m[:, 1] .>= 0)
+    @test all(isapprox.(
+        radius_km, MarsASPEN.MARS_RADIUS_KM + 600.0; atol=1e-9,
+    ))
+    @test minimum(sample.solar_zenith_angle_deg) >= 0
+    @test maximum(sample.solar_zenith_angle_deg) <= 90
+    @test abs(mean(sample.position_m[:, 1] ./ (radius_km .* 1000)) - 0.5) <
+          0.01
+    @test sum(sample.density_weight_m3) ≈ 5.0e6
+    @test abs(mean(sample.velocity_m_s[:, 1]) / 1000 + 400) < 1.0
+    @test abs(mean(sample.velocity_m_s[:, 2]) / 1000) < 1.0
+    @test abs(mean(sample.velocity_m_s[:, 3]) / 1000) < 1.0
+    @test all(sample.inward_flux_weight_m2_s .>= 0)
 end
 
 @testset "Local radial flux from density weights" begin

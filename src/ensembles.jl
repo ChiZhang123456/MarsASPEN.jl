@@ -27,6 +27,70 @@ function run_ensemble(
     end
     out
 end
+
+"""
+Sample source positions, velocities, and weights without transporting them.
+
+This diagnostic entry point uses exactly the same deterministic per-particle
+random stream and source routines as `run_particle_core`. For a dayside
+surface, the returned radial velocity is calculated separately at every
+sampled position. The physical inward flux weight is `Wn * max(-Vr, 0)`.
+"""
+function sample_injection_ensemble(
+    cfg::MonteCarloConfig;
+    weighting::MonteCarloWeight=MonteCarloWeight(),
+)
+    n = cfg.n_particles
+    position = zeros(Float64, n, 3)
+    velocity = zeros(Float64, n, 3)
+    longitude = zeros(Float64, n)
+    latitude = zeros(Float64, n)
+    sza = zeros(Float64, n)
+    radial_velocity = zeros(Float64, n)
+    density_weight = zeros(Float64, n)
+    flux_weight = zeros(Float64, n)
+    importance_weight = zeros(Float64, n)
+    total_importance_weight = initial_importance_weight_sum(cfg, weighting)
+    @threads for particle_id in 1:n
+        rng = Xoshiro(hash((cfg.seed, particle_id)))
+        charge, vx, vy, vz, wi =
+            sample_initial_velocity(cfg, weighting, rng)
+        x, y, z = sample_initial_position(cfg, rng)
+        radius = sqrt(x*x + y*y + z*z)
+        vr = (vx*x + vy*y + vz*z) / radius
+        wn = weighting.source_number_density_m3 > 0 ?
+            particle_density_weight(
+                wi, weighting.source_number_density_m3,
+                total_importance_weight,
+            ) : weighting.unit_particle_weight
+        coordinates = cartesian_to_lon_lat_alt(x, y, z)
+        position[particle_id, :] .= (x, y, z)
+        velocity[particle_id, :] .= (vx, vy, vz)
+        longitude[particle_id] =
+            mod(coordinates.lon_deg + 180.0, 360.0) - 180.0
+        latitude[particle_id] = coordinates.lat_deg
+        sza[particle_id] = rad2deg(acos(clamp(x / radius, -1.0, 1.0)))
+        radial_velocity[particle_id] = vr
+        density_weight[particle_id] = wn
+        flux_weight[particle_id] = wn * max(-vr, 0.0)
+        importance_weight[particle_id] = wi
+        charge == cfg.initial_charge_state ||
+            error("sampled charge state changed during injection")
+    end
+    (
+        position_m=position,
+        velocity_m_s=velocity,
+        longitude_deg=longitude,
+        latitude_deg=latitude,
+        solar_zenith_angle_deg=sza,
+        radial_velocity_m_s=radial_velocity,
+        density_weight_m3=density_weight,
+        inward_flux_weight_m2_s=flux_weight,
+        importance_weight=importance_weight,
+        total_importance_weight=total_importance_weight,
+        injection_geometry=String(cfg.injection_geometry),
+    )
+end
 """
 Run an ensemble and count collision events in altitude bins.
 

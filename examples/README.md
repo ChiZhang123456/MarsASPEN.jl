@@ -599,6 +599,62 @@ result = run_density_crossing_ensemble(
 )
 ```
 
+## Uniform dayside injection at 600 km
+
+Set `injection_geometry=:dayside_uniform` to distribute initial positions
+uniformly in spherical surface area over the complete MSO dayside hemisphere.
+For example:
+
+```julia
+config = MonteCarloConfig(
+    n_particles=100_000,
+    injection_geometry=:dayside_uniform,
+    initial_altitude_km=600.0,
+    initial_speed_m_s=400_000.0,
+    initial_charge_state=1,
+    initial_temperature_ev=10.0,
+)
+```
+
+MarsASPEN samples `x/r` uniformly on `[0, 1]` and the azimuth about the MSO X
+axis uniformly on `[0, 2 pi)`. This gives a uniform probability per spherical
+surface area. Velocity is sampled independently in the global MSO frame:
+
+```text
+Vx ~ Normal(-400 km/s, sigma)
+Vy ~ Normal(   0 km/s, sigma)
+Vz ~ Normal(   0 km/s, sigma)
+
+sigma = sqrt(kT / m_H+).
+```
+
+The local radial component is evaluated separately for every macro particle:
+
+```text
+Vr_i = V_i dot rhat_i.
+```
+
+The global `-Vx` drift is therefore radial only at the subsolar point. The
+physical inward crossing weight at the injection boundary is
+
+```text
+Wflux_i = Wn_i max(-Vr_i, 0).
+```
+
+Particles with `Vr >= 0` have zero inward flux weight. They remain part of the
+sampled Maxwellian source distribution but leave the outer boundary instead
+of entering the atmosphere.
+
+Generate and inspect 100,000 initial H+ macro particles with:
+
+```powershell
+julia --project=. -t auto examples/sample_dayside_injection_100000.jl
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_injection_100000.py examples/output/dayside_hplus_injection_100000.mat
+```
+
+The PNG is stored at
+`examples/figures/dayside_hplus_injection_100000_4panel.png`.
+
 ## Why `test/` is retained
 
 The `test/` directory is not an example directory. It automatically verifies

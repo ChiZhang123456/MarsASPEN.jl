@@ -99,6 +99,32 @@ is `f(T) / f(T_sample)`.
 end
 
 """
+Sample an initial position on the configured injection surface.
+
+For `:dayside_uniform`, `mu = x/r` is uniform on [0, 1] and the azimuth about
+the MSO X axis is uniform on [0, 2pi). This is uniform in spherical surface
+area over the complete dayside hemisphere, including the terminator.
+"""
+@inline function sample_initial_position(cfg::MonteCarloConfig, rng)
+    radius_m = (MARS_RADIUS_KM + cfg.initial_altitude_km) * 1000
+    if cfg.injection_geometry === :point
+        return radius_m, 0.0, 0.0
+    elseif cfg.injection_geometry === :dayside_uniform
+        mu = rand(rng)
+        azimuth = 2pi * rand(rng)
+        transverse = sqrt(max(1 - mu^2, 0.0))
+        return (
+            radius_m * mu,
+            radius_m * transverse * cos(azimuth),
+            radius_m * transverse * sin(azimuth),
+        )
+    end
+    throw(ArgumentError(
+        "injection_geometry must be :point or :dayside_uniform",
+    ))
+end
+
+"""
 Return initial state, density weight, and physical crossing-flux weight.
 
 When a source density is supplied, the density weight follows py_aspen:
@@ -179,9 +205,16 @@ function run_particle_core(
 )
     # A separate deterministic RNG per particle prevents thread-order effects.
     rng = Xoshiro(hash((cfg.seed, id)))
-    x, y, z = (MARS_RADIUS_KM + cfg.initial_altitude_km) * 1000, 0.0, 0.0
     charge, vx, vy, vz, particle_density_weight_m3, injection_flux_weight =
         initial_particle_state(cfg, weighting, rng, total_importance_weight)
+    x, y, z = sample_initial_position(cfg, rng)
+    if cfg.injection_geometry === :dayside_uniform &&
+       weighting.source_number_density_m3 > 0
+        radius_m = sqrt(x*x + y*y + z*z)
+        initial_vr = (vx*x + vy*y + vz*z) / radius_m
+        injection_flux_weight =
+            particle_density_weight_m3 * max(-initial_vr, 0.0)
+    end
     # `tau` is accumulated optical depth and
     # `threshold` is the exponentially distributed optical depth to collision.
     tau, threshold = 0.0, -log(rand(rng))

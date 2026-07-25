@@ -64,6 +64,9 @@ Base.@kwdef struct MonteCarloConfig
     n_particles::Int = 1000
     # All particles currently start at MSO (R_Mars + altitude, 0, 0).
     initial_altitude_km::Float64 = 600.0
+    # :point starts at lon=0, lat=0. :dayside_uniform samples the full
+    # sun-facing spherical surface uniformly in area.
+    injection_geometry::Symbol = :point
     # Default 400 km/s H ENA beam directed toward Mars.
     initial_speed_m_s::Float64 = 400_000.0
     # Initial projectile: 0 neutral H ENA, 1 proton.
