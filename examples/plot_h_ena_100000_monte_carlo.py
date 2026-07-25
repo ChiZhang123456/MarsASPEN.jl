@@ -37,14 +37,6 @@ def main() -> None:
     )
     parser.add_argument("mat_file", type=Path)
     parser.add_argument("--output", type=Path, default=None)
-    parser.add_argument(
-        "--color-min", type=float, default=1.0e2,
-        help="Lower logarithmic color limit in m^-3.",
-    )
-    parser.add_argument(
-        "--color-max", type=float, default=None,
-        help="Upper logarithmic color limit in m^-3. Default: source density.",
-    )
     args = parser.parse_args()
 
     # The shared reader supports both ordinary MAT files and MAT v7.3/HDF5.
@@ -73,19 +65,21 @@ def main() -> None:
     # floor.
     if not np.any(density_weight_sum > 0):
         raise ValueError("The MAT file contains no positive weighted bins.")
-    source_density = float(one_dimensional(data, "source_number_density_m3"))
-    color_max = args.color_max or source_density
-    if args.color_min <= 0 or color_max <= args.color_min:
-        raise ValueError("Color limits must satisfy 0 < color-min < color-max.")
-    color_norm = LogNorm(vmin=args.color_min, vmax=color_max, clip=True)
+    # Use separate physical display ranges because the H+ population is much
+    # smaller than the initially injected neutral H ENA population.
+    color_norms = (
+        LogNorm(vmin=1.0e1, vmax=1.0e6, clip=True),
+        LogNorm(vmin=1.0e1, vmax=1.0e5, clip=True),
+    )
 
     fig, axes = plt.subplots(
         1, 2, figsize=(12, 6), sharex=True, sharey=True,
         constrained_layout=True,
     )
     species_names = ("H ENA", r"H$^+$")
-    image = None
-    for charge_index, (axis, species) in enumerate(zip(axes, species_names)):
+    for charge_index, (axis, species, color_norm) in enumerate(
+        zip(axes, species_names, color_norms)
+    ):
         values = np.ma.masked_less_equal(
             density_weight_sum[:, :, charge_index], 0
         )
@@ -103,10 +97,10 @@ def main() -> None:
         axis.set_xlim(10, 3_000)
         axis.set_ylim(100, 600)
         axis.grid(False)
+        colorbar = fig.colorbar(image, ax=axis, pad=0.02)
+        colorbar.set_label(r"Sum of particle density weights (m$^{-3}$)")
 
     axes[0].set_ylabel("Altitude (km)")
-    colorbar = fig.colorbar(image, ax=axes, pad=0.02)
-    colorbar.set_label(r"Sum of particle density weights (m$^{-3}$)")
     fig.suptitle(
         "100,000 H ENA particles, 600 km, 400 km/s, "
         r"$T=10$ eV, $n=1$ cm$^{-3}$"
