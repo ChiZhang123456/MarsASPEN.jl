@@ -31,9 +31,11 @@ config = MonteCarloConfig(
     initial_speed_m_s=bulk_speed_m_s,
     initial_charge_state=1,
     initial_temperature_ev=temperature_ev,
-    sampling_temperature_factor=sampling_temperature_factor,
-    initial_number_density_m3=number_density_m3,
     seed=7,
+)
+weighting = MonteCarloWeight(
+    sampling_temperature_factor=sampling_temperature_factor,
+    source_number_density_m3=number_density_m3,
 )
 altitude_surfaces = collect(100.0:altitude_spacing_km:300.0)
 energy_edges = collect(10.0:energy_spacing_ev:2000.0)
@@ -44,15 +46,15 @@ run_directional_flux_ensemble(
         n_particles=2,
         initial_charge_state=1,
         initial_temperature_ev=temperature_ev,
-        sampling_temperature_factor=sampling_temperature_factor,
-        initial_number_density_m3=number_density_m3,
     );
+    weighting=weighting,
     altitude_surfaces_km=collect(100.0:20.0:300.0),
     energy_edges_ev=collect(10.0:100.0:2010.0),
 )
 
 elapsed = @elapsed result = run_directional_flux_ensemble(
     model, config;
+    weighting=weighting,
     altitude_surfaces_km=altitude_surfaces,
     energy_edges_ev=energy_edges,
 )

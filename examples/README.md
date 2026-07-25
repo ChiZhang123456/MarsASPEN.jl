@@ -25,6 +25,27 @@ and energy panels.
 
 Large ensembles use the routines in `src/monte_carlo_weight.jl`.
 
+Run settings and weights are separate objects:
+
+```julia
+config = MonteCarloConfig(
+    n_particles=1_000_000,
+    initial_speed_m_s=400_000.0,
+    initial_temperature_ev=10.0,
+)
+weighting = MonteCarloWeight(
+    sampling_temperature_factor=5.0,
+    source_number_density_m3=5.0e6,
+)
+
+result = run_directional_flux_ensemble(
+    model, config; weighting=weighting,
+)
+```
+
+The two single-particle examples also construct a `MonteCarloWeight()` object
+explicitly, even though their default unit weight is one.
+
 When the sampling temperature differs from the physical temperature, each
 velocity receives dimensionless importance weight
 
@@ -44,6 +65,6 @@ For flux through the injection plane, MarsASPEN uses
 Wflux_i = Wn_i max(-v_x,i, 0).
 ```
 
-`sampling_temperature_factor = 1` samples the physical Maxwellian directly,
+`MonteCarloWeight(sampling_temperature_factor=1)` samples the physical Maxwellian directly,
 so all importance weights are one. Values above one oversample velocity tails.
 The solar-wind production script uses a factor of five.

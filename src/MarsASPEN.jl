@@ -8,7 +8,8 @@ using Random
 using Statistics
 using Base.Threads
 
-export AspenModel, MonteCarloConfig, ParticleSummary, HistoryEvent, load_model,
+export AspenModel, MonteCarloConfig, MonteCarloWeight, ParticleSummary,
+       HistoryEvent, load_model,
        neutral_density, neutral_density_xyz, cartesian_to_lon_lat_alt,
        available_atmosphere_cases, run_ensemble, run_detailed_ensemble,
        run_binned_ensemble, run_phase_space_ensemble,

@@ -11,10 +11,16 @@ threaded = length(ARGS) < 2 || ARGS[2] != "single"
 atmosphere_dir = get(ENV, "MARSASPEN_ATMOSPHERE_DIR", joinpath(repo, "data", "atmosphere"))
 model = load_model(repo; atmosphere_data_dir=atmosphere_dir)
 cfg = MonteCarloConfig(n_particles=n)
+weighting = MonteCarloWeight()
 
 # Compile with a small run before measuring steady-state transport.
-run_ensemble(model, MonteCarloConfig(n_particles=2); threaded=false)
-elapsed = @elapsed rows = run_ensemble(model, cfg; threaded=threaded)
+run_ensemble(
+    model, MonteCarloConfig(n_particles=2);
+    weighting=weighting, threaded=false,
+)
+elapsed = @elapsed rows = run_ensemble(
+    model, cfg; weighting=weighting, threaded=threaded,
+)
 
 @printf("implementation=julia\n")
 @printf("n_particles=%d\n", n)

@@ -12,8 +12,13 @@ output = length(ARGS) >= 2 ? ARGS[2] :
 atmosphere_dir = get(ENV, "MARSASPEN_ATMOSPHERE_DIR", joinpath(repo, "data", "atmosphere"))
 model = load_model(repo; atmosphere_data_dir=atmosphere_dir)
 config = MonteCarloConfig(n_particles=n, seed=21, include_hot_o=true)
-elapsed = @elapsed summaries, histories = run_detailed_ensemble(model, config)
-write_detailed_mat(output, summaries, histories; config=config)
+weighting = MonteCarloWeight()
+elapsed = @elapsed summaries, histories = run_detailed_ensemble(
+    model, config; weighting=weighting,
+)
+write_detailed_mat(
+    output, summaries, histories; config=config, weighting=weighting,
+)
 
 @printf("n_particles=%d\n", n)
 @printf("elapsed_s=%.6f\n", elapsed)

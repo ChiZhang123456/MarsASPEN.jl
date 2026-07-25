@@ -67,11 +67,6 @@ Base.@kwdef struct MonteCarloConfig
     initial_charge_state::Int = 0
     # Isotropic drifting-Maxwellian temperature expressed as kT in eV.
     initial_temperature_ev::Float64 = 0.0
-    # Sampling temperature divided by physical temperature. Values above one
-    # oversample distribution tails and require importance weights f / fs.
-    sampling_temperature_factor::Float64 = 1.0
-    # Set above zero to derive physical injection flux weights from n * |vx|.
-    initial_number_density_m3::Float64 = 0.0
     # A particle-specific RNG is derived from (seed, particle id).
     seed::Int = 7
     # Maximum optical-depth increment allowed in one transport step.
@@ -86,8 +81,6 @@ Base.@kwdef struct MonteCarloConfig
     max_collisions::Int = 2000
     max_steps_per_collision::Int = 100_000
     include_hot_o::Bool = true
-    # Macro-particle weight. Unit weight gives raw Monte Carlo statistics.
-    particle_weight::Float64 = 1.0
 end
 
 struct ParticleSummary

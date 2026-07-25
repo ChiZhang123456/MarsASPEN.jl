@@ -13,14 +13,16 @@ bin_width_km = length(ARGS) >= 3 ? parse(Float64, ARGS[3]) : 10.0
 
 model = load_model(repo; solar="solar_min", ls=0)
 config = MonteCarloConfig(n_particles=n)
+weighting = MonteCarloWeight()
 edges = collect(80.0:bin_width_km:1000.0)
 
 run_binned_ensemble(
     model, MonteCarloConfig(n_particles=2);
+    weighting=weighting,
     altitude_edges_km=edges,
 )
 elapsed = @elapsed result = run_binned_ensemble(
-    model, config; altitude_edges_km=edges,
+    model, config; weighting=weighting, altitude_edges_km=edges,
 )
 
 mkpath(dirname(abspath(output)))

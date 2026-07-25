@@ -10,13 +10,13 @@
 
 1. `load_model` 读取一组 MGITM 冷大气、对应的 MAMPS hot O，以及 H 和 H⁺
    碰撞截面。
-2. `MonteCarloConfig` 定义粒子数、初始高度、初始速度、随机种子、终止条件
-   和宏粒子权重。
-3. `run_particle_core` 为每个粒子产生独立随机数流，并从 600 km 开始输运。
-4. 每个自由飞行段计算局地中性密度、总碰撞系数和到下一次碰撞的距离。
-5. 碰撞发生时，根据各通道的 `n × sigma` 权重选择靶粒子和反应。
-6. 立即更新能量、速度方向和电荷态，然后重新计算下一段的碰撞概率。
-7. ensemble driver 将单粒子结果汇总为 summary、反应高度 histogram、
+2. `MonteCarloConfig` 定义粒子数、初始高度、初始速度、随机种子和终止条件。
+3. `MonteCarloWeight` 独立定义采样温度、源区数密度和宏粒子权重。
+4. `run_particle_core` 为每个粒子产生独立随机数流，并从 600 km 开始输运。
+5. 每个自由飞行段计算局地中性密度、总碰撞系数和到下一次碰撞的距离。
+6. 碰撞发生时，根据各通道的 `n × sigma` 权重选择靶粒子和反应。
+7. 立即更新能量、速度方向和电荷态，然后重新计算下一段的碰撞概率。
+8. ensemble driver 将单粒子结果汇总为 summary、反应高度 histogram、
    高度能量 histogram，或详细逐步轨迹。
 
 核心调用关系为：
@@ -108,14 +108,16 @@ run_ensemble / run_binned_ensemble / run_phase_space_ensemble
 * `HotAtmosphere`：MAMPS hot O 网格和 log density。
 * `CrossSections`：统一能量网格、截面、固定能量损失和散射角表。
 * `AspenModel`：将冷大气、hot O 和碰撞数据库组合为完整模型。
-* `MonteCarloConfig`：定义一次模拟的全部粒子和数值参数。
+* `MonteCarloConfig`：仅定义粒子初态、数值参数和终止条件。
+* `MonteCarloWeight`：定义重要性采样、源区密度和宏粒子权重。
 * `ParticleSummary`：每个粒子的最终能量、高度、碰撞数和终止原因。
 * `HistoryEvent`：详细轨迹模式下的一行事件记录。
 
 当前默认粒子为 600 km 处、速度 400 km s⁻¹、朝向 Mars 的 neutral H ENA。
 对应初始能量约为 835 eV。
 
-`particle_weight` 默认为 1。它是宏粒子权重，不是自动计算得到的物理通量。
+权重不再保存在 `MonteCarloConfig` 中。无物理源密度时，
+`MonteCarloWeight().unit_particle_weight` 默认为 1。
 
 ### 3.3 `src/initialization.jl`
 
@@ -206,6 +208,23 @@ Wn_i = n_source W_i / sum(W)
 
 因此所有粒子的密度权重之和严格等于输入数密度。穿过注入面的向下通量
 权重为 `Wn_i max(-v_x,i, 0)`。
+
+标准调用方式为：
+
+```julia
+config = MonteCarloConfig(
+    n_particles=1_000_000,
+    initial_speed_m_s=400_000.0,
+    initial_temperature_ev=10.0,
+)
+weighting = MonteCarloWeight(
+    sampling_temperature_factor=5.0,
+    source_number_density_m3=5.0e6,
+)
+result = run_directional_flux_ensemble(
+    model, config; weighting=weighting,
+)
+```
 
 ### 3.7 `src/transport.jl`
 
@@ -343,7 +362,8 @@ julia --project=. -t auto scripts/run_phase_space_histogram.jl 1000000 output/ph
 julia --project=. -t auto scripts/run_solar_wind_flux.jl 10000000 output/solar_wind_flux.mat 0.5 2
 ```
 
-脚本默认令 `sampling_temperature_factor = 5`，也就是从 50 eV 的较宽
+脚本通过 `MonteCarloWeight(sampling_temperature_factor=5,
+source_number_density_m3=5e6)` 设置权重，也就是从 50 eV 的较宽
 采样分布产生速度，再用 `f/fs` 恢复 10 eV 的物理太阳风分布。每个粒子的
 密度权重和 flux weight 分别为：
 

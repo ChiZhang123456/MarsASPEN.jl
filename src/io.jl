@@ -12,7 +12,8 @@ Collision rows include the state before and after the event, target code,
 reaction code, energy loss, position, velocity, and charge state.
 """
 function write_detailed_mat(filename::AbstractString, summaries, histories;
-                            config::MonteCarloConfig)
+                            config::MonteCarloConfig,
+                            weighting::MonteCarloWeight=MonteCarloWeight())
     # Flatten variable-length per-particle vectors into a table-like layout.
     events = reduce(vcat, histories; init=HistoryEvent[])
     starts = cumsum(vcat(1, length.(histories)[1:end-1]))
@@ -54,8 +55,11 @@ function write_detailed_mat(filename::AbstractString, summaries, histories;
         "config_initial_speed_m_s" => config.initial_speed_m_s,
         "config_initial_charge_state" => config.initial_charge_state,
         "config_initial_temperature_ev" => config.initial_temperature_ev,
-        "config_sampling_temperature_factor" => config.sampling_temperature_factor,
-        "config_initial_number_density_m3" => config.initial_number_density_m3,
+        "weight_sampling_temperature_factor" =>
+            weighting.sampling_temperature_factor,
+        "weight_source_number_density_m3" =>
+            weighting.source_number_density_m3,
+        "weight_unit_particle_weight" => weighting.unit_particle_weight,
         "config_max_step_m" => config.max_step_m,
     )
     mkpath(dirname(abspath(filename)))

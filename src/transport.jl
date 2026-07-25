@@ -34,14 +34,17 @@ The bulk velocity is along MSO -X. Thermal components are sampled at
 `T_sample = sampling_temperature_factor * T`. The returned importance weight
 is `f(T) / f(T_sample)`.
 """
-@inline function sample_initial_velocity(cfg::MonteCarloConfig, rng)
+@inline function sample_initial_velocity(
+    cfg::MonteCarloConfig, weighting::MonteCarloWeight, rng,
+)
     charge = cfg.initial_charge_state
     charge in (0, 1) || throw(ArgumentError("initial_charge_state must be 0 or 1"))
     mass = charge == 1 ? HP_MASS : H_MASS
-    cfg.sampling_temperature_factor > 0 ||
+    weighting.sampling_temperature_factor > 0 ||
         throw(ArgumentError("sampling_temperature_factor must be positive"))
     sampled_temperature_ev =
-        max(cfg.initial_temperature_ev, 0.0) * cfg.sampling_temperature_factor
+        max(cfg.initial_temperature_ev, 0.0) *
+        weighting.sampling_temperature_factor
     thermal_sigma = sqrt(sampled_temperature_ev * QE / mass)
     if thermal_sigma > 0
         vx = -cfg.initial_speed_m_s + thermal_sigma * randn(rng)
@@ -68,19 +71,23 @@ When a source density is supplied, the density weight follows py_aspen:
 speed gives the particle crossing-flux weight in m^-2 s^-1.
 """
 @inline function initial_particle_state(
-    cfg::MonteCarloConfig, rng, total_importance_weight::Float64,
+    cfg::MonteCarloConfig,
+    weighting::MonteCarloWeight,
+    rng,
+    total_importance_weight::Float64,
 )
-    charge, vx, vy, vz, importance_weight = sample_initial_velocity(cfg, rng)
-    density_weight = if cfg.initial_number_density_m3 > 0
+    charge, vx, vy, vz, importance_weight =
+        sample_initial_velocity(cfg, weighting, rng)
+    density_weight = if weighting.source_number_density_m3 > 0
         density_weight = particle_density_weight(
-            importance_weight, cfg.initial_number_density_m3,
+            importance_weight, weighting.source_number_density_m3,
             total_importance_weight,
         )
         density_weight
     else
-        cfg.particle_weight
+        weighting.unit_particle_weight
     end
-    flux_weight = cfg.initial_number_density_m3 > 0 ?
+    flux_weight = weighting.source_number_density_m3 > 0 ?
                   density_weight * max(-vx, 0.0) : density_weight
     charge, vx, vy, vz, density_weight, flux_weight
 end
@@ -92,7 +99,7 @@ physics kernel:
 
 * `record=true` stores full step and collision history.
 * `reaction_counts` accumulates collision events by altitude and reaction.
-* `path_length_m` accumulates `particle_weight * ds` by altitude, energy,
+* `path_length_m` accumulates the particle density weight times `ds` by altitude, energy,
   and charge state.
 * `directional_flux` counts weighted upward and downward crossings of altitude
   surfaces by energy and charge state.
@@ -110,13 +117,14 @@ function run_particle_core(
     flux_altitude_km::Union{Nothing,Vector{Float64}}=nothing,
     flux_energy_edges_ev::Union{Nothing,Vector{Float64}}=nothing,
     directional_flux::Union{Nothing,Array{Float64,4}}=nothing,
+    weighting::MonteCarloWeight=MonteCarloWeight(),
     total_importance_weight::Float64=Float64(cfg.n_particles),
 )
     # A separate deterministic RNG per particle prevents thread-order effects.
     rng = Xoshiro(hash((cfg.seed, id)))
     x, y, z = (MARS_RADIUS_KM + cfg.initial_altitude_km) * 1000, 0.0, 0.0
     charge, vx, vy, vz, particle_density_weight_m3, injection_flux_weight =
-        initial_particle_state(cfg, rng, total_importance_weight)
+        initial_particle_state(cfg, weighting, rng, total_importance_weight)
     # `tau` is accumulated optical depth and
     # `threshold` is the exponentially distributed optical depth to collision.
     tau, threshold = 0.0, -log(rand(rng))

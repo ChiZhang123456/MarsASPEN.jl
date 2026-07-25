@@ -6,6 +6,22 @@
 # Physical density weights are Wn_i = n_source * W_i / sum(W), so their sum is
 # exactly the prescribed source number density.
 
+"""
+Settings for Monte Carlo importance sampling and physical particle weights.
+
+This object is intentionally separate from `MonteCarloConfig`. The config
+controls particle transport, while this object controls how sampled
+trajectories represent the physical source population.
+"""
+Base.@kwdef struct MonteCarloWeight
+    # Sampling temperature divided by the physical source temperature.
+    sampling_temperature_factor::Float64 = 1.0
+    # Physical source number density. Zero selects unitless macro-particles.
+    source_number_density_m3::Float64 = 0.0
+    # Weight used when no physical source density is supplied.
+    unit_particle_weight::Float64 = 1.0
+end
+
 """Return Maxwellian thermal speed `sqrt(2 kT / m)` in m/s."""
 @inline function thermal_speed_from_temperature_ev(
     temperature_ev::Real, mass_kg::Real=H_MASS,

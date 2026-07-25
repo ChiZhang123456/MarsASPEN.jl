@@ -118,7 +118,8 @@ end
     @test sum(phase.path_length_m[:,:,1]) > 0
     @test sum(phase.path_length_m[:,:,2]) > 0
     weighted = run_phase_space_ensemble(
-        MODEL, MonteCarloConfig(n_particles=20, seed=17, particle_weight=3.0);
+        MODEL, MonteCarloConfig(n_particles=20, seed=17);
+        weighting=MonteCarloWeight(unit_particle_weight=3.0),
         altitude_edges_km=altitude_edges,
         energy_edges_ev=energy_edges,
     )
@@ -133,10 +134,11 @@ end
         seed=31,
         initial_charge_state=1,
         initial_temperature_ev=10.0,
-        initial_number_density_m3=5.0e6,
     )
+    weighting = MonteCarloWeight(source_number_density_m3=5.0e6)
     flux = run_directional_flux_ensemble(
         MODEL, cfg;
+        weighting=weighting,
         altitude_surfaces_km=altitude_surfaces,
         energy_edges_ev=energy_edges,
     )
@@ -154,8 +156,8 @@ end
             seed=31,
             initial_charge_state=1,
             initial_temperature_ev=10.0,
-            initial_number_density_m3=1.0e7,
         );
+        weighting=MonteCarloWeight(source_number_density_m3=1.0e7),
         altitude_surfaces_km=altitude_surfaces,
         energy_edges_ev=energy_edges,
     )
@@ -163,6 +165,14 @@ end
 end
 
 @testset "Maxwellian importance and physical particle weights" begin
+    @test !hasfield(MonteCarloConfig, :sampling_temperature_factor)
+    @test !hasfield(MonteCarloConfig, :source_number_density_m3)
+    @test !hasfield(MonteCarloConfig, :unit_particle_weight)
+    default_weighting = MonteCarloWeight()
+    @test default_weighting.sampling_temperature_factor == 1.0
+    @test default_weighting.source_number_density_m3 == 0.0
+    @test default_weighting.unit_particle_weight == 1.0
+
     bulk = (-400_000.0, 0.0, 0.0)
     velocity = (-380_000.0, 12_000.0, -8_000.0)
     @test maxwellian_importance_weight_3d(
@@ -190,11 +200,14 @@ end
         seed=31,
         initial_charge_state=1,
         initial_temperature_ev=10.0,
+    )
+    weighting = MonteCarloWeight(
         sampling_temperature_factor=5.0,
-        initial_number_density_m3=5.0e6,
+        source_number_density_m3=5.0e6,
     )
     flux = run_directional_flux_ensemble(
         MODEL, cfg;
+        weighting=weighting,
         altitude_surfaces_km=collect(100.0:20.0:300.0),
         energy_edges_ev=collect(10.0:40.0:2010.0),
     )

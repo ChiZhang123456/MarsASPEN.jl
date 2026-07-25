@@ -27,6 +27,27 @@ The Julia package is separated by responsibility:
 * `src/ensembles.jl`: threaded ensembles and low-memory diagnostic histograms
 * `src/io.jl`: detailed MAT output
 
+Simulation controls and source weights are deliberately separate:
+
+```julia
+config = MonteCarloConfig(
+    n_particles=1_000_000,
+    initial_speed_m_s=400_000.0,
+    initial_temperature_ev=10.0,
+)
+weighting = MonteCarloWeight(
+    sampling_temperature_factor=5.0,
+    source_number_density_m3=5.0e6,
+)
+result = run_directional_flux_ensemble(
+    model, config; weighting=weighting,
+)
+```
+
+`MonteCarloConfig` controls trajectories and numerical stopping conditions.
+`MonteCarloWeight` controls importance sampling, source density normalization,
+and the weight represented by each macro-particle.
+
 A detailed Chinese guide to every source file, data convention, run script, and
 analysis program is available in [`docs/CODE_GUIDE_ZH.md`](docs/CODE_GUIDE_ZH.md).
 
@@ -115,7 +136,8 @@ C:\Users\Win\.conda\envs\mars\python.exe analysis/scripts/plot_phase_space_histo
 ```
 
 The final argument is the initial macro-particle weight, with a default of one.
-Each trajectory segment contributes `particle_weight * ds` to its altitude,
+It is stored in `MonteCarloWeight(unit_particle_weight=...)`. Each trajectory
+segment contributes `unit_particle_weight * ds` to its altitude,
 energy, and charge-state bin. This path-length weighting avoids bias from the
 adaptive transport step. A physical incident flux can be applied by replacing
 the unit weight with the corresponding macro-particle weight.

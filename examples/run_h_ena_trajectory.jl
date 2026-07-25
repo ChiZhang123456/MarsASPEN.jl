@@ -18,6 +18,11 @@ config = MonteCarloConfig(
     initial_temperature_ev=0.0,
     seed=21,
 )
-summaries, histories = run_detailed_ensemble(model, config)
-write_detailed_mat(output, summaries, histories; config=config)
+weighting = MonteCarloWeight()
+summaries, histories = run_detailed_ensemble(
+    model, config; weighting=weighting,
+)
+write_detailed_mat(
+    output, summaries, histories; config=config, weighting=weighting,
+)
 println("output=$(abspath(output))")
