@@ -75,8 +75,7 @@ The requested source is a drifting three-dimensional Maxwellian. Its
 normalized velocity probability density is
 
 $$
-p(\boldsymbol{v};\boldsymbol{U},T)
-=
+p(\boldsymbol{v};\boldsymbol{U},T)=
 \left(\frac{m}{2\pi k_{\mathrm{B}}T}\right)^{3/2}
 \exp\left[
 -\frac{m|\boldsymbol{v}-\boldsymbol{U}|^2}
@@ -96,8 +95,8 @@ where
 The physical phase-space number-density distribution is therefore
 
 $$
-f_n(\boldsymbol{v})
-=n_{\mathrm{source}}p(\boldsymbol{v};\boldsymbol{U},T),
+f_n(\boldsymbol{v})=
+n_{\mathrm{source}}p(\boldsymbol{v};\boldsymbol{U},T),
 $$
 
 with units $\mathrm{m^{-3}}(\mathrm{m\,s^{-1}})^{-3}=\mathrm{s^3\,m^{-6}}$.
@@ -114,8 +113,8 @@ so that the velocity tails contain more numerical trajectories. Let the
 normalized sampling probability density be
 
 $$
-p_{\mathrm{s}}(\boldsymbol{v})
-=p(\boldsymbol{v};\boldsymbol{U},T_{\mathrm{s}}).
+p_{\mathrm{s}}(\boldsymbol{v})=
+p(\boldsymbol{v};\boldsymbol{U},T_{\mathrm{s}}).
 $$
 
 ### Importance weight
@@ -124,16 +123,15 @@ For a sampled velocity $\boldsymbol{v}_i$, the dimensionless importance
 weight is
 
 $$
-w_i
-=\frac{p(\boldsymbol{v}_i;\boldsymbol{U},T)}
+w_i=
+\frac{p(\boldsymbol{v}_i;\boldsymbol{U},T)}
        {p_{\mathrm{s}}(\boldsymbol{v}_i;\boldsymbol{U},T_{\mathrm{s}})}.
 $$
 
 For the two drifting Maxwellians used here, MarsASPEN evaluates this as
 
 $$
-w_i
-=
+w_i=
 \left(\frac{v_{\mathrm{th,s}}}{v_{\mathrm{th}}}\right)^3
 \exp\left[
 \frac{|\boldsymbol{v}_i-\boldsymbol{U}|^2}{v_{\mathrm{th,s}}^2}
@@ -167,8 +165,7 @@ the physical density weight
 
 $$
 \boxed{
-W_{n,i}
-=
+W_{n,i}=
 n_{\mathrm{source}}
 \frac{w_i}{\displaystyle\sum_{j=1}^{N_{\mathrm{MC}}}w_j}
 }
@@ -183,8 +180,8 @@ $$
 This normalization guarantees
 
 $$
-\sum_{i=1}^{N_{\mathrm{MC}}}W_{n,i}
-=n_{\mathrm{source}}.
+\sum_{i=1}^{N_{\mathrm{MC}}}W_{n,i}=
+n_{\mathrm{source}}.
 $$
 
 Thus, the 100,000 numerical trajectories collectively represent the complete
@@ -199,8 +196,8 @@ $$
 For the present example, this equal-weight reference value would be
 
 $$
-\frac{10^6~\mathrm{m^{-3}}}{10^5}
-=10~\mathrm{m^{-3}}
+\frac{10^6~\mathrm{m^{-3}}}{10^5}=
+10~\mathrm{m^{-3}}
 $$
 
 per macro particle. Because importance sampling is used, the actual
@@ -214,8 +211,7 @@ added to its corresponding altitude, energy, and charge-state bin using
 $W_{n,i}$:
 
 $$
-H_{a,e,q}
-=
+H_{a,e,q}=
 \sum_{i\in(a,e,q)}W_{n,i},
 \qquad
 [H_{a,e,q}]=\mathrm{m^{-3}}.
@@ -230,8 +226,8 @@ For a vertical number-flux diagnostic, the local radial velocity must also be
 included:
 
 $$
-V_{r,i}
-=\frac{\boldsymbol{r}_i\cdot\boldsymbol{v}_i}
+V_{r,i}=
+\frac{\boldsymbol{r}_i\cdot\boldsymbol{v}_i}
        {|\boldsymbol{r}_i|},
 \qquad
 [V_{r,i}]=\mathrm{m\,s^{-1}},
