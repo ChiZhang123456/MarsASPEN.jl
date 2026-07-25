@@ -44,27 +44,27 @@ This example injects 100,000 numerical H ENA particles at 600 km with bulk
 velocity `[-400, 0, 0]` km/s, physical temperature 10 eV, and source number
 density
 
-$$
+```math
 n_{\mathrm{source}} = 1~\mathrm{cm^{-3}}
                     = 10^{6}~\mathrm{m^{-3}}.
-$$
+```
 
 Each simulated trajectory is a **macro particle**, not one individual
 physical hydrogen atom. Macro particle $i$ carries a density weight
 $W_{n,i}$, which specifies the share of the physical source number density
 represented by that trajectory:
 
-$$
+```math
 [W_{n,i}] = \mathrm{m^{-3}}.
-$$
+```
 
 If a physical source volume $\Delta V$, in $\mathrm{m^3}$, is specified,
 the number of real particles represented by macro particle $i$ in that
 volume is
 
-$$
+```math
 N_{\mathrm{real},i} = W_{n,i}\Delta V,
-$$
+```
 
 which is dimensionless because it is a particle count. MarsASPEN stores
 $W_{n,i}$, rather than assuming a particular source volume.
@@ -74,14 +74,14 @@ $W_{n,i}$, rather than assuming a particular source volume.
 The requested source is a drifting three-dimensional Maxwellian. Its
 normalized velocity probability density is
 
-$$
+```math
 p(\boldsymbol{v};\boldsymbol{U},T)=
 \left(\frac{m}{2\pi k_{\mathrm{B}}T}\right)^{3/2}
 \exp\left[
 -\frac{m|\boldsymbol{v}-\boldsymbol{U}|^2}
        {2k_{\mathrm{B}}T}
 \right],
-$$
+```
 
 where
 
@@ -94,10 +94,10 @@ where
 
 The physical phase-space number-density distribution is therefore
 
-$$
+```math
 f_n(\boldsymbol{v})=
 n_{\mathrm{source}}p(\boldsymbol{v};\boldsymbol{U},T),
-$$
+```
 
 with units $\mathrm{m^{-3}}(\mathrm{m\,s^{-1}})^{-3}=\mathrm{s^3\,m^{-6}}$.
 
@@ -105,32 +105,32 @@ Sampling every numerical particle directly from the physical 10 eV
 distribution is valid. However, this example deliberately samples from a
 broader Maxwellian with
 
-$$
+```math
 T_{\mathrm{s}}=50~\mathrm{eV},
-$$
+```
 
 so that the velocity tails contain more numerical trajectories. Let the
 normalized sampling probability density be
 
-$$
+```math
 p_{\mathrm{s}}(\boldsymbol{v})=
 p(\boldsymbol{v};\boldsymbol{U},T_{\mathrm{s}}).
-$$
+```
 
 ### Importance weight
 
 For a sampled velocity $\boldsymbol{v}_i$, the dimensionless importance
 weight is
 
-$$
+```math
 w_i=
 \frac{p(\boldsymbol{v}_i;\boldsymbol{U},T)}
        {p_{\mathrm{s}}(\boldsymbol{v}_i;\boldsymbol{U},T_{\mathrm{s}})}.
-$$
+```
 
 For the two drifting Maxwellians used here, MarsASPEN evaluates this as
 
-$$
+```math
 w_i=
 \left(\frac{v_{\mathrm{th,s}}}{v_{\mathrm{th}}}\right)^3
 \exp\left[
@@ -138,22 +138,22 @@ w_i=
 -
 \frac{|\boldsymbol{v}_i-\boldsymbol{U}|^2}{v_{\mathrm{th}}^2}
 \right],
-$$
+```
 
 where
 
-$$
+```math
 v_{\mathrm{th}}=\sqrt{\frac{2T_{\mathrm{eV}}q_{\mathrm{e}}}{m}},
 \qquad
 v_{\mathrm{th,s}}=
 \sqrt{\frac{2T_{\mathrm{s,eV}}q_{\mathrm{e}}}{m}}.
-$$
+```
 
 Both probability densities have the same units, so
 
-$$
+```math
 [w_i]=1.
-$$
+```
 
 The importance weight corrects the deliberately broadened sampling
 distribution back to the requested physical 10 eV distribution.
@@ -163,42 +163,42 @@ distribution back to the requested physical 10 eV distribution.
 For $N_{\mathrm{MC}}$ simulated particles, MarsASPEN converts $w_i$ into
 the physical density weight
 
-$$
+```math
 \boxed{
 W_{n,i}=
 n_{\mathrm{source}}
 \frac{w_i}{\displaystyle\sum_{j=1}^{N_{\mathrm{MC}}}w_j}
 }
-$$
+```
 
 with
 
-$$
+```math
 [W_{n,i}]=\mathrm{m^{-3}}.
-$$
+```
 
 This normalization guarantees
 
-$$
+```math
 \sum_{i=1}^{N_{\mathrm{MC}}}W_{n,i}=
 n_{\mathrm{source}}.
-$$
+```
 
 Thus, the 100,000 numerical trajectories collectively represent the complete
 physical source density. They do not represent only 100,000 real atoms. If
 the sampling and physical temperatures are identical, all $w_i=1$, and the
 formula reduces to
 
-$$
+```math
 W_{n,i}=\frac{n_{\mathrm{source}}}{N_{\mathrm{MC}}}.
-$$
+```
 
 For the present example, this equal-weight reference value would be
 
-$$
+```math
 \frac{10^6~\mathrm{m^{-3}}}{10^5}=
 10~\mathrm{m^{-3}}
-$$
+```
 
 per macro particle. Because importance sampling is used, the actual
 $W_{n,i}$ values are unequal, but their sum remains exactly
@@ -210,12 +210,12 @@ For an altitude-energy histogram, every crossing of macro particle $i$ is
 added to its corresponding altitude, energy, and charge-state bin using
 $W_{n,i}$:
 
-$$
+```math
 H_{a,e,q}=
 \sum_{i\in(a,e,q)}W_{n,i},
 \qquad
 [H_{a,e,q}]=\mathrm{m^{-3}}.
-$$
+```
 
 This example directly plots that accumulated density weight. It does not
 multiply by trajectory path length and does not divide by energy-bin width.
@@ -225,19 +225,19 @@ altitude-energy bin, not differential density per eV.
 For a vertical number-flux diagnostic, the local radial velocity must also be
 included:
 
-$$
+```math
 V_{r,i}=
 \frac{\boldsymbol{r}_i\cdot\boldsymbol{v}_i}
        {|\boldsymbol{r}_i|},
 \qquad
 [V_{r,i}]=\mathrm{m\,s^{-1}},
-$$
+```
 
-$$
+```math
 F_i=W_{n,i}|V_{r,i}|,
 \qquad
 [F_i]=\mathrm{m^{-2}\,s^{-1}}.
-$$
+```
 
 Downward and upward crossings are accumulated separately. The signed outward
 flux is $F_{\mathrm{up}}-F_{\mathrm{down}}$.
