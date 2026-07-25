@@ -45,37 +45,67 @@ def main() -> None:
     data = load_history_mat(args.input_mat)
     longitude = np.ravel(data["longitude_deg"])
     latitude = np.ravel(data["latitude_deg"])
+    position = np.asarray(data["position_m"], dtype=float) / 1000.0
+    if position.shape[0] == 3 and position.shape[1] == longitude.size:
+        position = position.T
     velocity = np.asarray(data["velocity_m_s"], dtype=float) / 1000.0
     if velocity.shape[0] == 3 and velocity.shape[1] == longitude.size:
         velocity = velocity.T
     weights = np.ravel(data["density_weight_m3"])
 
-    fig, axes = plt.subplots(
-        2, 2, figsize=(7.2, 5.4), constrained_layout=True
+    fig = plt.figure(figsize=(7.2, 5.4), constrained_layout=True)
+    position_axis = fig.add_subplot(2, 2, 1, projection="3d")
+    velocity_axes = (
+        fig.add_subplot(2, 2, 2),
+        fig.add_subplot(2, 2, 3),
+        fig.add_subplot(2, 2, 4),
     )
 
-    # Divide raw bin counts by spherical-bin solid angle. A uniform surface
-    # distribution should then appear spatially uniform despite convergence
-    # of longitude lines toward the poles.
-    lon_edges = np.linspace(-90.0, 90.0, 73)
-    lat_edges = np.linspace(-90.0, 90.0, 37)
-    counts, _, _ = np.histogram2d(
-        longitude, latitude, bins=(lon_edges, lat_edges)
+    # Draw Mars at the origin and a deterministic subset of the 100,000
+    # injection positions on the 600 km dayside spherical surface.
+    mars_radius_km = 3388.25
+    theta = np.linspace(0.0, 2.0 * np.pi, 80)
+    polar = np.linspace(0.0, np.pi, 40)
+    sphere_x = mars_radius_km * np.outer(
+        np.cos(theta), np.sin(polar)
     )
-    dlon = np.deg2rad(np.diff(lon_edges))[:, None]
-    dsinlat = np.diff(np.sin(np.deg2rad(lat_edges)))[None, :]
-    particles_per_sr = counts / (dlon * dsinlat)
-    mesh = axes[0, 0].pcolormesh(
-        lon_edges, lat_edges, particles_per_sr.T,
-        cmap="turbo", shading="flat", rasterized=True,
+    sphere_y = mars_radius_km * np.outer(
+        np.sin(theta), np.sin(polar)
     )
-    axes[0, 0].set(
-        xlim=(-90, 90), ylim=(-90, 90),
-        xlabel="MSO longitude (deg)", ylabel="MSO latitude (deg)",
-        title="Initial position at 600 km",
+    sphere_z = mars_radius_km * np.outer(
+        np.ones_like(theta), np.cos(polar)
     )
-    colorbar = fig.colorbar(mesh, ax=axes[0, 0], pad=0.02)
-    colorbar.set_label(r"Sample density (particles sr$^{-1}$)")
+    position_axis.plot_surface(
+        sphere_x, sphere_y, sphere_z, color="#C96D3B",
+        alpha=0.82, linewidth=0, shade=True, rasterized=True,
+    )
+    rng = np.random.default_rng(61)
+    selected = rng.choice(position.shape[0], size=3000, replace=False)
+    position_axis.scatter(
+        position[selected, 0], position[selected, 1], position[selected, 2],
+        s=1.0, color="#277DA1", alpha=0.28, depthshade=False,
+        rasterized=True, label="H$^+$ at 600 km",
+    )
+    limit = mars_radius_km + 900.0
+    position_axis.set(
+        xlim=(-limit, limit), ylim=(-limit, limit), zlim=(-limit, limit),
+        xlabel="MSO X (km)", ylabel="MSO Y (km)", zlabel="MSO Z (km)",
+        title="Initial positions on the dayside",
+    )
+    position_axis.set_box_aspect((1, 1, 1))
+    # Look approximately from the Sun toward Mars so the selected dayside
+    # hemisphere and its 600 km stand-off from the planet are immediately
+    # visible.
+    position_axis.view_init(elev=18, azim=0)
+    position_axis.legend(loc="upper left", fontsize=6.5)
+    position_axis.text2D(
+        0.69, 0.91, "Sunward\n+X", transform=position_axis.transAxes,
+        ha="center", va="center", color="#B8860B", fontweight="bold",
+    )
+    position_axis.quiver(
+        0, 0, 0, limit, 0, 0, color="#E3B341",
+        arrow_length_ratio=0.08, linewidth=1.2,
+    )
 
     labels = (r"$V_x$", r"$V_y$", r"$V_z$")
     colors = ("#C44E52", "#4C72B0", "#55A868")
@@ -84,7 +114,6 @@ def main() -> None:
     sigma_expected = np.sqrt(
         10.0 * 1.602176634e-19 / mass_hplus
     ) / 1000.0
-    velocity_axes = (axes[0, 1], axes[1, 0], axes[1, 1])
     for component, axis in enumerate(velocity_axes):
         values = velocity[:, component]
         mean = np.average(values, weights=weights)
@@ -115,7 +144,11 @@ def main() -> None:
         )
         axis.legend(loc="upper left", fontsize=6.5)
 
-    for label, axis in zip("abcd", axes.flat):
+    position_axis.text2D(
+        0.025, 0.975, "a", transform=position_axis.transAxes,
+        ha="left", va="top", fontsize=8, fontweight="bold",
+    )
+    for label, axis in zip("bcd", velocity_axes):
         axis.text(
             0.025, 0.975, label, transform=axis.transAxes,
             ha="left", va="top", fontsize=8, fontweight="bold",

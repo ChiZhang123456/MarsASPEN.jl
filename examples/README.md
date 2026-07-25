@@ -653,7 +653,10 @@ C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_injection_100000.
 ```
 
 The PNG is stored at
-`examples/figures/dayside_hplus_injection_100000_4panel.png`.
+`examples/figures/dayside_hplus_injection_100000_4panel.png`. Its first panel
+shows Mars and the sampled 600 km dayside positions in the three-dimensional
+MSO X, Y, Z coordinate system. The remaining panels show the three MSO
+velocity-component distributions.
 
 ## Why `test/` is retained
 
