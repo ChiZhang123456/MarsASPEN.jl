@@ -50,16 +50,16 @@ n_{\mathrm{source}} = 1~\mathrm{cm^{-3}}
 $$
 
 Each simulated trajectory is a **macro particle**, not one individual
-physical hydrogen atom. Macro particle \(i\) carries a density weight
-\(W_{n,i}\), which specifies the share of the physical source number density
+physical hydrogen atom. Macro particle $i$ carries a density weight
+$W_{n,i}$, which specifies the share of the physical source number density
 represented by that trajectory:
 
 $$
 [W_{n,i}] = \mathrm{m^{-3}}.
 $$
 
-If a physical source volume \(\Delta V\), in \(\mathrm{m^3}\), is specified,
-the number of real particles represented by macro particle \(i\) in that
+If a physical source volume $\Delta V$, in $\mathrm{m^3}$, is specified,
+the number of real particles represented by macro particle $i$ in that
 volume is
 
 $$
@@ -67,7 +67,7 @@ N_{\mathrm{real},i} = W_{n,i}\Delta V,
 $$
 
 which is dimensionless because it is a particle count. MarsASPEN stores
-\(W_{n,i}\), rather than assuming a particular source volume.
+$W_{n,i}$, rather than assuming a particular source volume.
 
 ### Physical and sampling velocity distributions
 
@@ -86,14 +86,12 @@ $$
 
 where
 
-* \(\boldsymbol{v}\) is particle velocity, in \(\mathrm{m\,s^{-1}}\);
-* \(\boldsymbol{U}\) is bulk velocity, in \(\mathrm{m\,s^{-1}}\);
-* \(T\) is expressed in the input as eV, with \(k_{\mathrm{B}}T =
-  T_{\mathrm{eV}}q_{\mathrm{e}}\), in J;
-* \(m\) is the hydrogen mass, in kg;
-* \(p(\boldsymbol{v})\) has units
-  \((\mathrm{m\,s^{-1}})^{-3}=\mathrm{s^3\,m^{-3}}\);
-* \(\int p(\boldsymbol{v})\,d^3v=1\).
+* $\boldsymbol{v}$ is particle velocity, in $\mathrm{m\,s^{-1}}$;
+* $\boldsymbol{U}$ is bulk velocity, in $\mathrm{m\,s^{-1}}$;
+* $T$ is expressed in the input as eV, with $k_{\mathrm{B}}T=T_{\mathrm{eV}}q_{\mathrm{e}}$, in J;
+* $m$ is the hydrogen mass, in kg;
+* $p(\boldsymbol{v})$ has units $(\mathrm{m\,s^{-1}})^{-3}=\mathrm{s^3\,m^{-3}}$;
+* $\int p(\boldsymbol{v})\,d^3v=1$.
 
 The physical phase-space number-density distribution is therefore
 
@@ -102,9 +100,7 @@ f_n(\boldsymbol{v})
 =n_{\mathrm{source}}p(\boldsymbol{v};\boldsymbol{U},T),
 $$
 
-with units
-\(\mathrm{m^{-3}}(\mathrm{m\,s^{-1}})^{-3}
-=\mathrm{s^3\,m^{-6}}\).
+with units $\mathrm{m^{-3}}(\mathrm{m\,s^{-1}})^{-3}=\mathrm{s^3\,m^{-6}}$.
 
 Sampling every numerical particle directly from the physical 10 eV
 distribution is valid. However, this example deliberately samples from a
@@ -124,7 +120,7 @@ $$
 
 ### Importance weight
 
-For a sampled velocity \(\boldsymbol{v}_i\), the dimensionless importance
+For a sampled velocity $\boldsymbol{v}_i$, the dimensionless importance
 weight is
 
 $$
@@ -166,7 +162,7 @@ distribution back to the requested physical 10 eV distribution.
 
 ### Density weight carried by each macro particle
 
-For \(N_{\mathrm{MC}}\) simulated particles, MarsASPEN converts \(w_i\) into
+For $N_{\mathrm{MC}}$ simulated particles, MarsASPEN converts $w_i$ into
 the physical density weight
 
 $$
@@ -193,7 +189,7 @@ $$
 
 Thus, the 100,000 numerical trajectories collectively represent the complete
 physical source density. They do not represent only 100,000 real atoms. If
-the sampling and physical temperatures are identical, all \(w_i=1\), and the
+the sampling and physical temperatures are identical, all $w_i=1$, and the
 formula reduces to
 
 $$
@@ -208,14 +204,14 @@ $$
 $$
 
 per macro particle. Because importance sampling is used, the actual
-\(W_{n,i}\) values are unequal, but their sum remains exactly
-\(10^6~\mathrm{m^{-3}}\).
+$W_{n,i}$ values are unequal, but their sum remains exactly
+$10^6~\mathrm{m^{-3}}$.
 
-### Using \(W_n\) in model diagnostics
+### Using Wn in model diagnostics
 
-For an altitude-energy histogram, every crossing of macro particle \(i\) is
+For an altitude-energy histogram, every crossing of macro particle $i$ is
 added to its corresponding altitude, energy, and charge-state bin using
-\(W_{n,i}\):
+$W_{n,i}$:
 
 $$
 H_{a,e,q}
@@ -248,7 +244,7 @@ F_i=W_{n,i}|V_{r,i}|,
 $$
 
 Downward and upward crossings are accumulated separately. The signed outward
-flux is \(F_{\mathrm{up}}-F_{\mathrm{down}}\).
+flux is $F_{\mathrm{up}}-F_{\mathrm{down}}$.
 
 ### Running the example
 
@@ -288,7 +284,7 @@ A rendered reference figure is stored at
 ## 5. MGITM and MAMPS density profiles
 
 This Nature-style 4 by 3 panel figure compares all packaged atmosphere cases:
-four seasons, \(L_s=0,90,180,270\) degrees, and three F10.7 values, 70, 130,
+four seasons, $L_s=0,90,180,270$ degrees, and three F10.7 values, 70, 130,
 and 200. Profiles are evaluated at 0 degrees longitude and 0 degrees latitude
 from 80 to 1000 km. The five cold species use MGITM, including the same lower
 log-density and upper hydrostatic extrapolations as the Julia model. Hot O uses
