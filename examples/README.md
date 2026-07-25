@@ -476,7 +476,7 @@ Output:
 
 `examples/figures/dayside_hplus_injection_100000_4panel.png`
 
-### Particle-motion animation in the MSO X-R plane
+### Particle-motion animation in four MSO projections
 
 The animation uses
 
@@ -484,10 +484,11 @@ The animation uses
 R=\sqrt{Y^2+Z^2}
 ```
 
-and resamples every detailed trajectory at 0.1 s intervals. H+ and H ENA are
-shown with different colors, so charge exchange is visible during transport.
-The diagnostic uses 1,000 particles to keep individual positions readable and
-the detailed trajectory file manageable.
+and resamples every detailed trajectory at 0.1 s intervals. The four panels
+show X-R, X-Y, X-Z, and Y-Z. H+ and H ENA are shown with different colors, so
+charge exchange is visible during transport. The diagnostic uses 1,000
+particles to keep individual positions readable and the detailed trajectory
+file manageable.
 
 ```powershell
 julia --project=. -t auto examples/run_dayside_animation_1000.jl
