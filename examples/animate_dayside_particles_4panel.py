@@ -291,7 +291,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=REPO / "examples" / "figures" / "dayside_particles_xr.gif",
+        default=REPO / "examples" / "figures" / "dayside_particles_4panel.gif",
     )
     parser.add_argument("--time-step", type=float, default=0.1)
     parser.add_argument("--playback-ms", type=int, default=120)

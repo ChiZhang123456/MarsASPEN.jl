@@ -493,12 +493,12 @@ file manageable.
 
 ```powershell
 julia --project=. -t auto examples/run_dayside_animation_1000.jl
-C:\Users\Win\.conda\envs\mars\python.exe examples/animate_dayside_particles_xr.py
+C:\Users\Win\.conda\envs\mars\python.exe examples/animate_dayside_particles_4panel.py
 ```
 
 Output:
 
-`examples/figures/dayside_particles_xr.gif`
+`examples/figures/dayside_particles_4panel.gif`
 
 ### Longitude and latitude maps at 120 km
 
