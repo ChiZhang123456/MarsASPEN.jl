@@ -44,6 +44,15 @@ C:\Users\Win\.conda\envs\mars\python.exe examples/plot_h_ena_100000_monte_carlo.
 The resulting figure shows density-weighted track length versus altitude and
 energy, separately for neutral H ENA and H+ created by electron stripping.
 
+To inspect the H+ energy distribution at 550 km separately:
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_hplus_energy_at_altitude.py examples/output/h_ena_100000_monte_carlo.mat --altitude 550
+```
+
+The diagnostic shows both the native 5 eV bins and a less noisy 25 eV
+rebinned curve.
+
 The Julia code keeps transport settings and source weights separate:
 
 ```julia
