@@ -12,7 +12,7 @@ All commands below are run from the MarsASPEN.jl repository root.
 ## 1. Single H ENA trajectory
 
 This example follows one neutral H particle with an initial speed of
-400 km s\(^{-1}\). It records altitude, charge state, energy, reaction type,
+400 km s$^{-1}$. It records altitude, charge state, energy, reaction type,
 scattering angle, and cumulative collision probability.
 
 ```powershell
@@ -28,7 +28,7 @@ timeline and event-count convention as the H+ example.
 
 ## 2. Single H+ trajectory
 
-This example follows one proton with an initial speed of 400 km s\(^{-1}\).
+This example follows one proton with an initial speed of 400 km s$^{-1}$.
 Charge exchange can convert H+ into H ENA, and electron stripping can convert
 H ENA back into H+.
 
@@ -88,13 +88,13 @@ C:\Users\Win\.conda\envs\mars\python.exe examples/plot_cross_sections.py
 The PNG is stored at
 `examples/figures/collision_cross_sections.png`.
 
-Cross sections are converted from cm\(^{2}\) to m\(^{2}\) before they are
+Cross sections are converted from cm$^{2}$ to m$^{2}$ before they are
 used in SI collision rates.
 
 ## 5. Collision probability for a 1000 eV projectile
 
 The following example selects the representative atmosphere case
-\(L_s=0^\circ\), F10.7 = 130 at longitude and latitude zero. It combines
+$L_s=0^\circ$, F10.7 = 130 at longitude and latitude zero. It combines
 the neutral atmosphere, local collision probability every 1 km, and
 cumulative collision probability into one three-panel figure:
 
@@ -110,10 +110,10 @@ The local collision coefficient is
 \sum_j n_j(z)\sum_k \sigma_{j,k}(E),
 ```
 
-where \(n_j\) is in m\(^{-3}\), \(\sigma_{j,k}\) is in m\(^{2}\), and
-\(\alpha\) is in m\(^{-1}\). The targets included in the collision sum are
+where $n_j$ is in m$^{-3}$, $\sigma_{j,k}$ is in m$^{2}$, and
+$\alpha$ is in m$^{-1}$. The targets included in the collision sum are
 CO2, total O, and N2. Total O is MGITM cold O plus MAMPS hot O. For a path
-length \(\Delta s=1\) km,
+length $\Delta s=1$ km,
 
 ```math
 P_{\mathrm{local}}
@@ -174,9 +174,9 @@ Here
 r_{\mathrm{inj}}=R_{\mathrm{Mars}}+600~\mathrm{km}.
 ```
 
-Uniform \(\mu\) and azimuth give a uniform probability per unit spherical
-surface area. All sampled positions satisfy \(x\geq0\) and
-\(0\leq\mathrm{SZA}\leq90^\circ\).
+Uniform $\mu$ and azimuth give a uniform probability per unit spherical
+surface area. All sampled positions satisfy $x\geq0$ and
+$0\leq\mathrm{SZA}\leq90^\circ$.
 
 ### Velocity distribution
 
@@ -209,16 +209,8 @@ radial. Near the terminator, the same MSO velocity is nearly tangent to the
 
 ### Macro-particle normalization
 
-The uniform-dayside simulation represents a stationary particle injection
-rate through the spherical source surface. The area of the dayside hemisphere
-is
-
-```math
-A_{\mathrm{day}}=2\pi r_{\mathrm{inj}}^2.
-```
-
-For physical distribution \(f(\boldsymbol{v})\), sampling distribution
-\(f_s(\boldsymbol{v})\), and importance ratio
+For physical distribution $f(\boldsymbol{v})$, sampling distribution
+$f_s(\boldsymbol{v})$, and importance ratio
 
 ```math
 w_i
@@ -227,38 +219,38 @@ w_i
 {f_s(\boldsymbol{v}_i)},
 ```
 
-the inward number flux represented by the sampled ensemble is normalized with
-the local inward speed
+the density weight carried by macro particle $i$ is
 
 ```math
-V_{\mathrm{in},i}
+W_{n,i}
 =
-\max(-V_{r,i},0).
-```
-
-The physical particle rate represented by macro particle \(i\) is
-
-```math
-\dot{N}_i
-=
-A_{\mathrm{day}}\,
 n_{\mathrm{sw}}\,
-\frac{w_iV_{\mathrm{in},i}}
+\frac{w_i}
 {\sum_{p=1}^{N_{\mathrm{MC}}}w_p}.
 ```
 
-Units are
+No velocity factor is included in $W_{n,i}$. The radial and total flux
+contributions are evaluated later from
+
+```math
+F_{r,i}=W_{n,i}V_{r,i},
+\qquad
+F_{\mathrm{total},i}=W_{n,i}|\boldsymbol{V}_i|.
+```
+
+The sign of $V_{r,i}$ distinguishes inward and outward motion. Neither
+direction is removed from the drifting Maxwellian sample.
+
+The weight units are
 
 ```text
-A_day:       m^2
-n_sw:        m^-3
-V_in:        m s^-1
-w_i:         dimensionless
-Ndot_i:      s^-1
+n_sw:   m^-3
+w_i:    dimensionless
+Wn_i:   m^-3
 ```
 
 Thus each simulated trajectory is a macro particle carrying a physical
-particle rate, not one real proton and not a fixed point-source density.
+density weight, not one real proton.
 
 ### Inspecting the injection distribution
 
@@ -271,7 +263,7 @@ C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_injection_100000.
 ```
 
 The resulting figure contains a three-dimensional Mars and injection-position
-view together with the MSO \(V_x\), \(V_y\), and \(V_z\) distributions:
+view together with the MSO $V_x$, $V_y$, and $V_z$ distributions:
 
 `examples/figures/dayside_hplus_injection_100000_4panel.png`.
 
@@ -301,9 +293,23 @@ altitude range:         80 to 600 km
 
 ### Three-dimensional estimators
 
-For grid-cell volume \(V_{\mathrm{cell}}\), trajectory residence time
-\(\Delta t\), path length \(\Delta s=|\boldsymbol{v}|\Delta t\), and
-macro-particle rate \(\dot N_i\), MarsASPEN accumulates
+The stored macro-particle weight remains $W_{n,i}$. For the stationary
+residence-time estimator only, its launch rate is derived from the total flux
+through the sampled dayside area,
+
+```math
+\dot N_i
+=
+A_{\mathrm{day}}W_{n,i}|V_{r,i}|,
+\qquad
+A_{\mathrm{day}}=2\pi r_{\mathrm{inj}}^2.
+```
+
+This derived rate does not replace or modify $W_{n,i}$.
+
+For grid-cell volume $V_{\mathrm{cell}}$, trajectory residence time
+$\Delta t$, path length $\Delta s=|\boldsymbol{v}|\Delta t$, and
+macro-particle rate $\dot N_i$, MarsASPEN accumulates
 
 ```math
 n
@@ -326,9 +332,9 @@ F_r
 \frac{\dot N_iV_{r,i}\Delta t_i}{V_{\mathrm{cell}}}.
 ```
 
-The corresponding units are m\(^{-3}\), m\(^{-2}\) s\(^{-1}\), and
-m\(^{-2}\) s\(^{-1}\). Upward and downward radial fluxes are accumulated
-separately using \(\max(V_r,0)\) and \(\max(-V_r,0)\).
+The corresponding units are m$^{-3}$, m$^{-2}$ s$^{-1}$, and
+m$^{-2}$ s$^{-1}$. Upward and downward radial fluxes are accumulated
+separately using $\max(V_r,0)$ and $\max(-V_r,0)$.
 
 Each realized reaction contributes
 
@@ -338,7 +344,7 @@ q_{\mathrm{event}}
 \frac{\dot N_i}{V_{\mathrm{cell}}}
 ```
 
-in m\(^{-3}\) s\(^{-1}\). Reactions are stored separately by projectile
+in m$^{-3}$ s$^{-1}$. Reactions are stored separately by projectile
 charge state, atmospheric target, and reaction channel.
 
 ### MAT output files
@@ -354,7 +360,7 @@ The simulation writes four MAT v7.3 files:
   Monte Carlo event counts by charge, target, and channel. It also stores
   target-resolved ionization rates and total H Ly-alpha volume emission.
 * `dayside_hplus_100000_3d_energy.mat` contains collision energy transfer,
-  sub-10 eV thermalization, and their sum in W m\(^{-3}\).
+  sub-10 eV thermalization, and their sum in W m$^{-3}$.
 
 Julia writes arrays in longitude, latitude, altitude order followed by any
 component dimensions. Some HDF5 readers expose dimensions in reverse order.
@@ -420,7 +426,7 @@ The MSO solar zenith angle is
 
 The script uses 5 degree SZA bins, 1 km altitude bins, and the 100 to 300 km
 altitude range. Every SZA annulus is averaged with exact spherical cell-area
-weights. The dotted line at SZA \(=90^\circ\) marks the terminator.
+weights. The dotted line at SZA $=90^\circ$ marks the terminator.
 
 Output:
 

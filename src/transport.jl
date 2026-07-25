@@ -125,11 +125,12 @@ area over the complete dayside hemisphere, including the terminator.
 end
 
 """
-Return initial state, density weight, and physical crossing-flux weight.
+Return initial state and the velocity-independent density weight.
 
 When a source density is supplied, the density weight follows py_aspen:
-`Wn_i = n_source * (f/fs)_i / sum(f/fs)`. Multiplying by the inward normal
-speed gives the particle crossing-flux weight in m^-2 s^-1.
+`Wn_i = n_source * (f/fs)_i / sum(f/fs)`. The macro-particle weight does not
+contain a velocity factor. Flux estimators multiply `Wn_i` by the relevant
+velocity only when the requested diagnostic is accumulated.
 """
 @inline function initial_particle_state(
     cfg::MonteCarloConfig,
@@ -148,9 +149,7 @@ speed gives the particle crossing-flux weight in m^-2 s^-1.
     else
         weighting.unit_particle_weight
     end
-    flux_weight = weighting.source_number_density_m3 > 0 ?
-                  density_weight * max(-vx, 0.0) : density_weight
-    charge, vx, vy, vz, density_weight, flux_weight
+    charge, vx, vy, vz, density_weight
 end
 """
 Transport one particle until a physical or numerical stopping condition.
@@ -206,19 +205,14 @@ function run_particle_core(
 )
     # A separate deterministic RNG per particle prevents thread-order effects.
     rng = Xoshiro(hash((cfg.seed, id)))
-    charge, vx, vy, vz, particle_density_weight_m3, injection_flux_weight =
+    charge, vx, vy, vz, particle_density_weight_m3 =
         initial_particle_state(cfg, weighting, rng, total_importance_weight)
     x, y, z = sample_initial_position(cfg, rng)
-    if cfg.injection_geometry === :dayside_uniform &&
-       weighting.source_number_density_m3 > 0
-        radius_m = sqrt(x*x + y*y + z*z)
-        initial_vr = (vx*x + vy*y + vz*z) / radius_m
-        injection_flux_weight =
-            particle_density_weight_m3 * max(-initial_vr, 0.0)
-    end
     particle_rate_s1 = if !isnothing(spatial_grid)
         injection_radius_m = (MARS_RADIUS_KM + cfg.initial_altitude_km) * 1000
-        injection_flux_weight * (2pi * injection_radius_m^2)
+        initial_vr = (vx*x + vy*y + vz*z) / sqrt(x*x + y*y + z*z)
+        particle_density_weight_m3 * abs(initial_vr) *
+        (2pi * injection_radius_m^2)
     else
         0.0
     end
@@ -308,7 +302,7 @@ function run_particle_core(
                     if valid_energy
                         if !isnothing(directional_flux)
                             directional_flux[ia, ie, charge + 1, 1] +=
-                                injection_flux_weight
+                                particle_density_weight_m3
                         end
                         if !isnothing(density_crossings)
                             density_crossings[ia, ie, charge + 1] +=
@@ -349,7 +343,7 @@ function run_particle_core(
                     if valid_energy
                         if !isnothing(directional_flux)
                             directional_flux[ia, ie, charge + 1, 2] +=
-                                injection_flux_weight
+                                particle_density_weight_m3
                         end
                         if !isnothing(density_crossings)
                             density_crossings[ia, ie, charge + 1] +=
@@ -520,7 +514,7 @@ function run_particle_core(
                 thermalization_shell_edges_km[1]
             )
             thermalization_energy_map[ilon, ilat] +=
-                injection_flux_weight * energy(vx, vy, vz, charge) /
+                particle_density_weight_m3 * energy(vx, vy, vz, charge) /
                 shell_thickness_m
         end
     end

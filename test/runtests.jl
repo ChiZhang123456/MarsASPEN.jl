@@ -55,7 +55,7 @@ end
     @test abs(mean(sample.velocity_m_s[:, 1]) / 1000 + 400) < 1.0
     @test abs(mean(sample.velocity_m_s[:, 2]) / 1000) < 1.0
     @test abs(mean(sample.velocity_m_s[:, 3]) / 1000) < 1.0
-    @test all(sample.inward_flux_weight_m2_s .>= 0)
+    @test !hasproperty(sample, :total_speed_flux_weight_m2_s)
 end
 
 @testset "Three-dimensional spatial diagnostics" begin

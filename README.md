@@ -118,8 +118,9 @@ julia --project=. -e "using Pkg; Pkg.instantiate(); Pkg.test()"
 
 The production example injects 100,000 H+ macro particles uniformly in
 spherical area over the 600 km MSO dayside hemisphere. Velocities are sampled
-from a drifting Maxwellian with density 5 cm\(^{-3}\), temperature 10 eV, and
-MSO bulk velocity \((-400,0,0)\) km s\(^{-1}\).
+from a drifting Maxwellian with density $5~\mathrm{cm}^{-3}$, temperature
+$10~\mathrm{eV}$, and MSO bulk velocity
+$(-400,0,0)~\mathrm{km\,s}^{-1}$.
 
 The simulation accumulates longitude, latitude, and 1 km altitude cells and
 writes separate grid, moment, reaction, and energy MAT v7.3 files:

@@ -3,7 +3,9 @@
 # The 100,000 initial H+ macro particles are uniformly distributed in surface
 # area over the 600 km dayside hemisphere. Their MSO velocity distribution is
 # a drifting 3D Maxwellian with bulk velocity (-400, 0, 0) km/s and kT=10 eV.
-# Local radial velocity is evaluated independently at every position.
+# The macro-particle weight is Wn and contains no velocity factor. Local
+# radial velocity is evaluated independently at every position and retained
+# for later radial-flux diagnostics.
 #
 # Usage:
 #
@@ -54,7 +56,6 @@ matwrite(output, Dict(
     "solar_zenith_angle_deg" => sample.solar_zenith_angle_deg,
     "radial_velocity_m_s" => sample.radial_velocity_m_s,
     "density_weight_m3" => sample.density_weight_m3,
-    "inward_flux_weight_m2_s" => sample.inward_flux_weight_m2_s,
     "importance_weight" => sample.importance_weight,
 ))
 
@@ -72,5 +73,7 @@ matwrite(output, Dict(
         maximum(sample.solar_zenith_angle_deg))
 @printf("inward_fraction=%.9f\n",
         mean(sample.radial_velocity_m_s .< 0))
+@printf("outward_fraction=%.9f\n",
+        mean(sample.radial_velocity_m_s .> 0))
 @printf("sum_density_weight_m3=%.9g\n", sum(sample.density_weight_m3))
 @printf("output=%s\n", abspath(output))

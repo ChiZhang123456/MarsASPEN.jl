@@ -34,7 +34,9 @@ Sample source positions, velocities, and weights without transporting them.
 This diagnostic entry point uses exactly the same deterministic per-particle
 random stream and source routines as `run_particle_core`. For a dayside
 surface, the returned radial velocity is calculated separately at every
-sampled position. The physical inward flux weight is `Wn * max(-Vr, 0)`.
+sampled position. The macro-particle weight is the density weight `Wn`; it
+does not include any velocity factor. Velocity is retained separately so that
+radial and total fluxes can be evaluated from `Wn * Vr` and `Wn * speed`.
 """
 function sample_injection_ensemble(
     cfg::MonteCarloConfig;
@@ -48,7 +50,6 @@ function sample_injection_ensemble(
     sza = zeros(Float64, n)
     radial_velocity = zeros(Float64, n)
     density_weight = zeros(Float64, n)
-    flux_weight = zeros(Float64, n)
     importance_weight = zeros(Float64, n)
     total_importance_weight = initial_importance_weight_sum(cfg, weighting)
     @threads for particle_id in 1:n
@@ -72,7 +73,6 @@ function sample_injection_ensemble(
         sza[particle_id] = rad2deg(acos(clamp(x / radius, -1.0, 1.0)))
         radial_velocity[particle_id] = vr
         density_weight[particle_id] = wn
-        flux_weight[particle_id] = wn * max(-vr, 0.0)
         importance_weight[particle_id] = wi
         charge == cfg.initial_charge_state ||
             error("sampled charge state changed during injection")
@@ -85,7 +85,6 @@ function sample_injection_ensemble(
         solar_zenith_angle_deg=sza,
         radial_velocity_m_s=radial_velocity,
         density_weight_m3=density_weight,
-        inward_flux_weight_m2_s=flux_weight,
         importance_weight=importance_weight,
         total_importance_weight=total_importance_weight,
         injection_geometry=String(cfg.injection_geometry),
@@ -95,12 +94,14 @@ end
 """
 Run a dayside ensemble and accumulate complete three-dimensional diagnostics.
 
-The macro-particle rate is obtained from the local inward injection flux and
-the full dayside injection area. Within each spatial cell, residence time
-gives number density, path length gives total scalar flux, and radial
-displacement gives signed, upward, and downward radial flux. Realized
-collisions give physical reaction rates resolved by charge, target, and
-reaction channel.
+The velocity-independent macro-particle weight is `Wn`. Spatial diagnostics
+combine this density weight with the relevant velocity only when evaluating a
+flux or a steady source rate. Radial velocity does not alter `Wn`; its sign is
+used only to distinguish inward and outward transport. Within each spatial
+cell, residence time gives number density, path length gives total scalar
+flux, and radial displacement gives signed, upward, and downward radial flux.
+Realized collisions give physical reaction rates resolved by charge, target,
+and reaction channel.
 """
 function run_spatial_grid_ensemble(
     model::AspenModel,
