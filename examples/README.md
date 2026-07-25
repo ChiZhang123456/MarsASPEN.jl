@@ -346,9 +346,6 @@ julia --project=. -t auto examples/run_hplus_100000_radial_flux.jl
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_radial_flux_profile.py examples/output/hplus_100000_radial_flux.mat --output examples/figures/hplus_100000_radial_flux_profile.png
 ```
 
-The PNG is stored at
-`examples/figures/hplus_100000_radial_flux_profile.png`.
-
 The equivalent initially neutral H ENA source uses the same density,
 temperature, bulk speed, altitude grid, and flux definition:
 
@@ -424,14 +421,6 @@ julia --project=. -t auto examples/run_target_ionization_rate.jl h_ena CO2
 julia --project=. -t auto examples/run_target_ionization_rate.jl hplus CO2
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_target_ionization_rate.py examples/output/h_ena_100000_co2_ionization_rate.mat examples/output/hplus_100000_co2_ionization_rate.mat
 ```
-
-The comparison PNG files are:
-
-- `examples/figures/oxygen_ionization_rate_profiles.png`
-- `examples/figures/co2_ionization_rate_profiles.png`
-
-Each panel shows the H ENA contribution, H+ contribution, and their total for
-one source simulation.
 
 All four cases can be combined into one 2 by 2 figure. Rows are O and CO2.
 Columns are H ENA source and H+ source. Every panel uses the 100 to 400 km
