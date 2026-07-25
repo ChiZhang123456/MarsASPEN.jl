@@ -14,7 +14,7 @@
 3. `MonteCarloWeight` 独立定义采样温度、源区数密度和宏粒子权重。
 4. `run_particle_core` 为每个粒子产生独立随机数流，并从 600 km 开始输运。
 5. 每个自由飞行段计算局地中性密度、总碰撞系数和到下一次碰撞的距离。
-6. 碰撞发生时，根据各通道的 `n × sigma` 权重选择靶粒子和反应。
+6. 碰撞发生时，根据各通道的 $n_j\sigma_{j,k}$ 权重选择靶粒子和反应。
 7. 立即更新能量、速度方向和电荷态，然后重新计算下一段的碰撞概率。
 8. ensemble driver 将单粒子结果汇总为 summary、反应高度 histogram、
    高度能量 histogram，或详细逐步轨迹。
@@ -126,7 +126,7 @@ run_ensemble / run_binned_ensemble / run_phase_space_ensemble
 `normalize_f107` 将 `solar_min`、`solar_moderate`、`solar_max` 或数字形式统一为
 70、130、200。
 
-`available_atmosphere_cases` 返回 12 组可用的 `Ls × F10.7` 条件。
+`available_atmosphere_cases` 返回 12 组可用的 $L_s\times\mathrm{F10.7}$ 条件。
 
 `load_atmospheres` 读取：
 
@@ -182,40 +182,58 @@ state change, ionization, Ly-alpha, elastic
 
 `local_state` 计算局地总碰撞系数：
 
-```text
-alpha = sum(n_target × sigma_target,reaction)
+```math
+\alpha
+=
+\sum_j n_j
+\sum_k \sigma_{j,k}.
 ```
 
-`alpha` 的单位是 m⁻¹，表示单位路径长度的碰撞概率。
+$\alpha$ 的单位是 m$^{-1}$，表示单位路径长度的碰撞概率。
 
-`choose_event` 使用所有通道的 `n × sigma` 作为权重，随机选择靶粒子和反应。
+`choose_event` 使用所有通道的 $n_j\sigma_{j,k}$ 作为权重，随机选择靶粒子和反应。
 
 ### 3.6 `src/monte_carlo_weight.jl`
 
 这个文件负责漂移 Maxwellian 的重要性采样和物理宏粒子权重。物理速度
-分布为 `f(v; U, T)`，采样时可以使用更宽的分布 `fs(v; U, Ts)`。每个
+分布为 $f(\boldsymbol v;\boldsymbol U,T)$，采样时可以使用更宽的分布
+$f_s(\boldsymbol v;\boldsymbol U,T_s)$。每个
 随机粒子的无量纲重要性权重为：
 
-```text
-W_i = f(v_i; U, T) / fs(v_i; U, Ts)
+```math
+W_i
+=
+\frac{
+f(\boldsymbol v_i;\boldsymbol U,T)
+}{
+f_s(\boldsymbol v_i;\boldsymbol U,T_s)
+}.
 ```
 
 给定源区数密度 `n_source` 后，粒子密度权重为：
 
-```text
-Wn_i = n_source W_i / sum(W)
+```math
+W_{n,i}
+=
+n_{\mathrm{source}}
+\frac{W_i}{\sum_{p=1}^{N_{\mathrm{MC}}}W_p}.
 ```
 
 因此所有粒子的密度权重之和严格等于输入数密度。初始宏粒子权重就是
-`Wn_i`，不乘任何速度。需要计算通量时，再根据所需分量使用：
+$W_{n,i}$，单位是 m$^{-3}$，不乘任何速度。需要计算通量时，再根据所需
+分量使用：
 
-```text
-F_r,i = Wn_i v_r,i
-F_total,i = Wn_i sqrt(v_x,i^2 + v_y,i^2 + v_z,i^2)
+```math
+F_{r,i}=W_{n,i}V_{r,i},
+\qquad
+F_{\mathrm{total},i}
+=
+W_{n,i}
+\sqrt{V_{x,i}^{2}+V_{y,i}^{2}+V_{z,i}^{2}}.
 ```
 
-径向速度的正负用于区分上行和下行。两个方向的粒子都保留在麦氏分布
-样本中。
+$F_r$ 和 $F_{\mathrm{total}}$ 的单位均为 m$^{-2}$ s$^{-1}$。径向速度
+的正负用于区分上行和下行。两个方向的粒子都保留在 Maxwellian 样本中。
 
 标准调用方式为：
 
@@ -246,14 +264,14 @@ result = run_directional_flux_ensemble(
 
 对每个粒子，先抽取下一次碰撞的光学深度：
 
-```text
-tau_collision = -log(U)
+```math
+\tau_{\mathrm{collision}}=-\ln U.
 ```
 
 然后沿轨迹累计：
 
-```text
-tau = integral(alpha ds)
+```math
+\tau=\int\alpha\,\mathrm{d}s.
 ```
 
 当累计光学深度达到抽样阈值时发生碰撞。
@@ -272,7 +290,8 @@ tau = integral(alpha ds)
 
 * `record=true`：保存所有 step 和 collision。
 * `reaction_counts`：只累计不同高度和反应类型的事件数。
-* `path_length_m`：累计高度、能量和电荷态中的 `particle_weight × ds`。
+* `path_length_m`：累计高度、能量和电荷态中的
+  $\mathtt{particle\_weight}\times\mathrm{d}s$。
 
 ### 3.9 `src/ensembles.jl`
 
@@ -297,15 +316,15 @@ reaction_counts[altitude_bin, reaction]
 path_length_m[altitude_bin, energy_bin, charge_state]
 ```
 
-每段贡献为 `particle_weight × ds`。使用路径长度而不是 step count，可以避免
-自适应步长造成的统计偏差。
+每段贡献为 $\mathtt{particle\_weight}\times\mathrm{d}s$。使用路径长度而不是
+step count，可以避免自适应步长造成的统计偏差。
 
 `run_detailed_ensemble` 保存完整轨迹，只适合少量粒子。
 
 为了避免线程锁，histogram 模式为每个 Julia thread 分配独立矩阵，模拟结束
 后再统一相加。
 
-### 3.8 `src/io.jl`
+### 3.10 `src/io.jl`
 
 `write_detailed_mat` 将变长粒子历史展平为列数组，并写入压缩 MAT v7.3。
 
@@ -335,9 +354,10 @@ julia --project=. -t auto scripts/run_detailed.jl 10 output/detailed.mat
 
 ### 4.2 `examples/sample_dayside_injection_100000.jl`
 
-在600 km高度的完整MSO日侧半球上按球面面积均匀采样10万个初始位置。
-太阳风速度在MSO坐标系中取 `[-400, 0, 0] km s⁻¹`，而不是在每个位置旋转到
-局地径向方向。该脚本只保存注入位置、速度、SZA和权重，不运行输运。
+在 600 km 高度的完整 MSO 日侧半球上按球面面积均匀采样 10 万个初始位置。
+太阳风速度在 MSO 坐标系中取 $[-400,0,0]$ km s$^{-1}$，而不是在每个位置
+旋转到局地径向方向。该脚本只保存注入位置、速度、SZA 和 $W_n$，不运行
+输运。
 
 ```powershell
 julia --project=. -t auto examples/sample_dayside_injection_100000.jl
@@ -345,15 +365,16 @@ julia --project=. -t auto examples/sample_dayside_injection_100000.jl
 
 ### 4.3 `examples/run_dayside_3d_100000.jl`
 
-这是当前的大粒子数标准示例。它使用均匀日侧半球源运行10万个H⁺ macro
-particles，并在经度、纬度和1 km高度网格中累计粒子矩、反应率和能量转移率。
+这是当前的大粒子数标准示例。它使用均匀日侧半球源运行 10 万个 H⁺
+macro particles，并在经度、纬度和 1 km 高度网格中累计粒子矩、反应率和
+能量转移率。
 
 ```powershell
 julia --project=. -t auto examples/run_dayside_3d_100000.jl
 ```
 
-输出分成grid、moments、reactions和energy四个MAT v7.3文件。详细的
-macro-particle归一化、单位和变量说明见 `examples/README.md`。
+输出分成 grid、moments、reactions 和 energy 四个 MAT v7.3 文件。详细的
+macro-particle 归一化、单位和变量说明见 `examples/README.md`。
 
 ## 5. Python 分析代码
 
@@ -401,15 +422,59 @@ macro-particle归一化、单位和变量说明见 `examples/README.md`。
 3. Track-length estimator，它给出total scalar flux。
 4. Event-rate estimator，它给出电离率和Ly-alpha体发射率。
 
-均匀日侧半球面积为
+宏粒子首先携带与速度无关的密度权重：
 
-```text
-A_day = 2 pi r_inj^2.
+```math
+W_{n,i}
+=
+n_{\mathrm{source}}
+\frac{W_i}{\sum_p W_p},
+\qquad
+[W_{n,i}]=\mathrm{m}^{-3}.
 ```
 
-每个macro particle携带物理粒子率 `Ndot_i`，单位s⁻¹。网格内数密度贡献为
-`Ndot_i dt / Vcell`，通量贡献为 `Ndot_i ds / Vcell`，实现的反应事件贡献为
-`Ndot_i / Vcell`。
+因此，$W_{n,i}$ 本身不乘 $V_r$ 或 $|\boldsymbol V|$。对于高度面通量，
+代码直接根据所需方向计算 $W_{n,i}V_{r,i}$，或者根据速度模长计算
+$W_{n,i}|\boldsymbol V_i|$。
+
+三维稳态 residence-time estimator 需要把源面密度权重转换为穿过日侧球面
+的粒子率。这个派生量只用于三维稳态累计：
+
+```math
+\dot N_i
+=
+A_{\mathrm{day}}W_{n,i}|V_{r,i}|,
+\qquad
+A_{\mathrm{day}}=2\pi r_{\mathrm{inj}}^2,
+\qquad
+[\dot N_i]=\mathrm{s}^{-1}.
+```
+
+这里使用绝对值，因此 inward 和 outward 样本都保留。$\dot N_i$ 不会写回
+或改变 $W_{n,i}$。
+
+对于网格体积 $V_{\mathrm{cell}}$、驻留时间 $\Delta t_i$ 和路径长度
+$\Delta s_i=|\boldsymbol V_i|\Delta t_i$，三个主要估计量为：
+
+```math
+n
+=
+\frac{\sum_i\dot N_i\Delta t_i}{V_{\mathrm{cell}}},
+```
+
+```math
+F_{\mathrm{total}}
+=
+\frac{\sum_i\dot N_i\Delta s_i}{V_{\mathrm{cell}}},
+```
+
+```math
+q_{\mathrm{event}}
+=
+\frac{\sum_{\mathrm{events}}\dot N_i}{V_{\mathrm{cell}}}.
+```
+
+它们的单位依次为 m$^{-3}$、m$^{-2}$ s$^{-1}$ 和 m$^{-3}$ s$^{-1}$。
 
 ## 7. 修改代码后的验证
 
