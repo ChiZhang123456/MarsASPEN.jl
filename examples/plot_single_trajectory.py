@@ -12,8 +12,7 @@ on the atmospheric interaction region. The four panels provide complementary
 evidence: reaction altitude, kinetic-energy evolution, charge state, and
 particle speed.
 
-The output argument specifies the PNG preview. The same stem is also exported
-as SVG and PDF so labels remain editable for later manuscript preparation.
+The output argument specifies the PNG file saved for the example.
 """
 
 from __future__ import annotations
@@ -33,8 +32,6 @@ from marsaspen_analysis.io import load_history_mat  # noqa: E402
 
 mpl.rcParams["font.family"] = "Arial"
 mpl.rcParams["mathtext.fontset"] = "dejavusans"
-mpl.rcParams["svg.fonttype"] = "none"
-mpl.rcParams["pdf.fonttype"] = 42
 mpl.rcParams["font.size"] = 8
 mpl.rcParams["axes.linewidth"] = 0.8
 mpl.rcParams["axes.spines.top"] = False
@@ -153,16 +150,11 @@ def main() -> None:
 
     output = args.output or args.mat_file.with_suffix(".png")
     output.parent.mkdir(parents=True, exist_ok=True)
-    # PNG is convenient for README previews. SVG and PDF retain vector lines
-    # and editable text for publication layout.
+    # Save one high-resolution PNG for the example and README preview.
     output_stem = output.with_suffix("")
     fig.savefig(output_stem.with_suffix(".png"), dpi=600, bbox_inches="tight")
-    fig.savefig(output_stem.with_suffix(".svg"), bbox_inches="tight")
-    fig.savefig(output_stem.with_suffix(".pdf"), bbox_inches="tight")
     plt.close(fig)
     print(f"png={output_stem.with_suffix('.png').resolve()}")
-    print(f"svg={output_stem.with_suffix('.svg').resolve()}")
-    print(f"pdf={output_stem.with_suffix('.pdf').resolve()}")
 
 
 if __name__ == "__main__":
