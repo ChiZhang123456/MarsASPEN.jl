@@ -53,6 +53,18 @@ To inspect the H+ energy distribution at 550 km separately:
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_hplus_energy_at_altitude.py examples/output/h_ena_100000_monte_carlo.mat --altitude 550
 ```
 
+To compare the highest saved altitude layer with the analytical 10 eV
+drifting Maxwellian injection distribution, run:
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_energy_at_600km.py examples/output/h_ena_100000_monte_carlo.mat
+```
+
+The highest row represents the 599.5 km crossing surface. Its current
+density-weight histogram combines downward and upward crossings, so returned
+particles can produce a low-energy tail even this close to the injection
+boundary.
+
 The diagnostic shows both the native 5 eV bins and a less noisy 25 eV
 rebinned curve.
 
