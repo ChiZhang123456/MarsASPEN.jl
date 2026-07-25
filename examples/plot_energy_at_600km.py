@@ -93,7 +93,7 @@ def main() -> None:
     axis.set_ylabel(r"Sum of particle density weights (m$^{-3}$)")
     axis.set_title(
         "Energy distribution at the 599.5 km crossing surface\n"
-        "100,000 particles, native 30 logarithmic energy bins"
+        f"100,000 particles, native {energy_edges.size - 1} logarithmic energy bins"
     )
     axis.grid(True, which="both", color="0.88", linewidth=0.6)
     axis.legend(fontsize=9)

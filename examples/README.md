@@ -34,9 +34,9 @@ altitude and energy panels.
 This example injects 100,000 H ENA particles at 600 km with bulk velocity
 `[-400, 0, 0]` km/s, physical temperature 10 eV, and source density 1 cm^-3.
 It samples a broader 50 eV distribution and applies the importance weight
-`f/fs` to every particle. The altitude-energy output uses 30 logarithmic
+`f/fs` to every particle. The altitude-energy output uses 100 logarithmic
 energy bins from 1 to 10,000 eV. The lower bound is 1 eV because a logarithmic
-axis cannot include zero.
+axis cannot include zero. The example figure displays 10 to 3,000 eV.
 
 ```powershell
 julia --project=. -t auto examples/run_h_ena_100000_monte_carlo.jl
@@ -46,6 +46,8 @@ C:\Users\Win\.conda\envs\mars\python.exe examples/plot_h_ena_100000_monte_carlo.
 The resulting figure directly sums particle density weights in each altitude
 and energy bin, separately for neutral H ENA and H+ created by electron
 stripping. It does not multiply by path length or divide by energy-bin width.
+A rendered reference figure is stored at
+`examples/figures/h_ena_100000_altitude_energy.png`.
 
 To inspect the H+ energy distribution at 550 km separately:
 

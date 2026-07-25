@@ -219,9 +219,9 @@ end
         MODEL, cfg;
         weighting=weighting,
         altitude_surfaces_km=collect(100.5:20.0:280.5),
-        energy_edges_ev=10.0 .^ range(0.0, 4.0, length=31),
+        energy_edges_ev=10.0 .^ range(0.0, 4.0, length=101),
     )
-    @test size(density.density_weight_sum_m3) == (10, 30, 2)
+    @test size(density.density_weight_sum_m3) == (10, 100, 2)
     @test all(isfinite, density.density_weight_sum_m3)
     @test all(density.density_weight_sum_m3 .>= 0)
     @test sum(density.density_weight_sum_m3) > 0

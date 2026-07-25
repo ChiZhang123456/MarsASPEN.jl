@@ -46,14 +46,14 @@ weighting = MonteCarloWeight(
     source_number_density_m3=1.0e6,
 )
 
-# One-kilometer altitude bins and 30 logarithmic energy bins cover 1 to
+# One-kilometer altitude bins and 100 logarithmic energy bins cover 1 to
 # 10,000 eV. A logarithmic grid cannot begin at exactly zero. Because transport
 # stops below 10 eV, the lowest part of this requested range is normally empty.
 altitude_edges_km = collect(80.0:1.0:600.0)
 altitude_centers_km = 0.5 .* (
     altitude_edges_km[1:end-1] .+ altitude_edges_km[2:end]
 )
-energy_edges_ev = 10.0 .^ range(0.0, 4.0, length=31)
+energy_edges_ev = 10.0 .^ range(0.0, 4.0, length=101)
 
 elapsed = @elapsed result = run_density_crossing_ensemble(
     model, config;

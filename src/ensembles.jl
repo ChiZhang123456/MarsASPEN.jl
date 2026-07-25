@@ -148,7 +148,7 @@ function run_density_crossing_ensemble(
     cfg::MonteCarloConfig;
     weighting::MonteCarloWeight=MonteCarloWeight(),
     altitude_surfaces_km::AbstractVector{<:Real}=collect(80.5:1.0:599.5),
-    energy_edges_ev::AbstractVector{<:Real}=10.0 .^ range(0.0, 4.0, length=31),
+    energy_edges_ev::AbstractVector{<:Real}=10.0 .^ range(0.0, 4.0, length=101),
 )
     altitude_surfaces = Float64.(altitude_surfaces_km)
     energy_edges = Float64.(energy_edges_ev)

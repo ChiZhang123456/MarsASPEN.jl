@@ -100,7 +100,7 @@ def main() -> None:
         axis.set_title(species)
         axis.set_xlabel("Energy (eV)")
         axis.set_xscale("log")
-        axis.set_xlim(1, 10_000)
+        axis.set_xlim(10, 3_000)
         axis.set_ylim(100, 600)
         axis.grid(False)
 
