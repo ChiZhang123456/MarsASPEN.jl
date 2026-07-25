@@ -17,13 +17,14 @@ scattering angle, and cumulative collision probability.
 
 ```powershell
 julia --project=. examples/run_h_ena_trajectory.jl
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py examples/output/single_h_ena_400kms.mat --altitude-min 100 --altitude-max 200 --output examples/figures/single_h_ena_400kms.png
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py examples/output/single_h_ena_400kms.mat --altitude-min 100 --altitude-max 200 --panel-d reactions --output examples/figures/single_h_ena_400kms.png
 ```
 
 The PNG is stored at
 `examples/figures/single_h_ena_400kms.png`. All four panels use the portion
 of the trajectory lying between 100 and 200 km so reactions and associated
-energy, charge-state, and speed changes remain visible.
+energy and charge-state changes remain visible. Panel d uses the same reaction
+timeline and event-count convention as the H+ example.
 
 ## 2. Single H+ trajectory
 
