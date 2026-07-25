@@ -187,7 +187,10 @@ def plot_grid(values_by_case: dict, cumulative: bool, output: Path) -> None:
     altitude = np.arange(80.0, 1001.0, 1.0)
     fig, axes = plt.subplots(
         4, 3, figsize=(7.2, 8.5), sharex=True, sharey=True,
-        constrained_layout=True,
+    )
+    fig.subplots_adjust(
+        left=0.08, right=0.99, bottom=0.06, top=0.90,
+        wspace=0.11, hspace=0.18,
     )
     for row, ls in enumerate(LS_VALUES):
         for col, f107 in enumerate(F107_VALUES):
@@ -220,12 +223,29 @@ def plot_grid(values_by_case: dict, cumulative: bool, output: Path) -> None:
     for axis in axes[:, 0]:
         axis.set_ylabel("Altitude (km)")
     axes[0, 0].legend(ncol=2, fontsize=6, loc="lower left")
+    if cumulative:
+        formula = (
+            r"$\tau(z)=\int_z^{1000\,\mathrm{km}}\alpha(s)\,\mathrm{d}s,"
+            r"\qquad P_{\mathrm{cum}}(z)=1-\exp[-\tau(z)]$"
+        )
+    else:
+        formula = (
+            r"$\alpha(z,E)=\sum_j n_j(z)\sum_k\sigma_{j,k}(E),"
+            r"\qquad P_{\mathrm{local}}(z)=1-\exp[-\alpha(z,E)\Delta s],"
+            r"\quad \Delta s=1\,\mathrm{km}$"
+        )
     fig.suptitle(
-        f"Fixed {ENERGY_EV:.0f} eV projectile at lon=0°, lat=0°",
-        fontsize=9,
+        rf"Fixed {ENERGY_EV:.0f} eV projectile at "
+        r"lon=$0^\circ$, lat=$0^\circ$",
+        fontsize=8.5,
+        y=0.985,
+    )
+    fig.text(
+        0.5, 0.955, formula,
+        ha="center", va="top", fontsize=8.5,
     )
     output.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output, dpi=600, bbox_inches="tight")
+    fig.savefig(output, dpi=600, bbox_inches="tight", pad_inches=0.12)
     plt.close(fig)
     print(f"output={output.resolve()}")
 
