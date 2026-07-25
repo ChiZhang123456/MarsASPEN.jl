@@ -78,6 +78,64 @@ color range is 1e1 to 1e6 m^-3 and the dominant H+ range is 1e1 to 1e7 m^-3.
 A rendered reference figure is stored at
 `examples/figures/hplus_100000_altitude_energy.png`.
 
+## 5. MGITM and MAMPS density profiles
+
+This Nature-style 4 by 3 panel figure compares all packaged atmosphere cases:
+four seasons, \(L_s=0,90,180,270\) degrees, and three F10.7 values, 70, 130,
+and 200. Profiles are evaluated at 0 degrees longitude and 0 degrees latitude
+from 80 to 1000 km. The five cold species use MGITM, including the same lower
+log-density and upper hydrostatic extrapolations as the Julia model. Hot O uses
+MAMPS only inside its native altitude range.
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_atmosphere_cases.py
+```
+
+The PNG is stored at
+`examples/figures/gitm_mamps_density_cases.png`.
+
+## 6. Collision cross sections
+
+The cross-section figure has one row for H ENA and one row for H+, with columns
+for CO2, O, and N2. Every panel shows state change, target ionization,
+Ly-alpha production, and elastic scattering. Cross sections are converted from
+the source-table unit cm^2 to the model SI unit m^2.
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_cross_sections.py
+```
+
+The PNG is stored at
+`examples/figures/collision_cross_sections.png`.
+
+## 7. Fixed 1000 eV collision probability every 1 km
+
+This diagnostic holds the projectile energy fixed at 1000 eV and computes the
+total collision coefficient for H ENA and H+ at every 1 km altitude:
+
+```text
+alpha(z) = sum_j n_j(z) sum_k sigma_jk(1000 eV)
+P_local(z) = 1 - exp[-alpha(z) 1000 m]
+P_cumulative(z) = 1 - exp[-integral_z^1000km alpha(s) ds]
+```
+
+The Python calculation reproduces Julia's longitude and latitude interpolation,
+lower and upper atmosphere extrapolation, MAMPS range handling, and internal
+768-point cross-section interpolation. It was checked directly against
+`MarsASPEN.local_state` at 100, 200, 600, and 1000 km.
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_1000ev_collision_probability.py
+```
+
+The two PNG outputs are:
+
+- `examples/figures/collision_probability_1000ev_local.png`
+- `examples/figures/collision_probability_1000ev_cumulative.png`
+
+Because energy is deliberately fixed, these curves describe first-collision
+optical depth rather than a complete energy-degrading Monte Carlo trajectory.
+
 To inspect the H+ energy distribution at 550 km separately:
 
 ```powershell
