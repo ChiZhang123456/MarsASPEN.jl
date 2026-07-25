@@ -6,11 +6,9 @@ target ionization, Ly-alpha production, and elastic scattering. Identical
 reaction colors are used in the altitude and energy panels so each event can
 be followed between physical quantities.
 
-Only the portion of the history between 80 and 400 km is displayed. This
-removes the collision-free source segment above 400 km and focuses the figure
-on the atmospheric interaction region. The four panels provide complementary
-evidence: reaction altitude, kinetic-energy evolution, charge state, and
-particle speed.
+The displayed altitude interval is configurable. The four panels provide
+complementary evidence: reaction altitude, kinetic-energy evolution, charge
+state, and particle speed over the same selected time interval.
 
 The output argument specifies the PNG file saved for the example.
 """
@@ -63,7 +61,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("mat_file", type=Path)
     parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument("--altitude-min", type=float, default=80.0)
+    parser.add_argument("--altitude-max", type=float, default=400.0)
     args = parser.parse_args()
+    if args.altitude_min >= args.altitude_max:
+        raise ValueError("--altitude-min must be smaller than --altitude-max.")
 
     # The loader supports classic MAT and HDF5-backed MAT v7.3. Event columns
     # remain aligned row by row.
@@ -86,9 +88,15 @@ def main() -> None:
     # Restrict every panel to the same atmospheric part of the trajectory.
     # Applying one common mask preserves alignment among time, position,
     # velocity, charge, and reaction columns.
-    altitude_window = (altitude >= 80.0) & (altitude <= 400.0)
+    altitude_window = (
+        (altitude >= args.altitude_min)
+        & (altitude <= args.altitude_max)
+    )
     if not np.any(altitude_window):
-        raise ValueError("This trajectory contains no samples from 80 to 400 km.")
+        raise ValueError(
+            "This trajectory contains no samples from "
+            f"{args.altitude_min:g} to {args.altitude_max:g} km."
+        )
     time_s = time_s[altitude_window]
     altitude = altitude[altitude_window]
     energy = energy[altitude_window]
@@ -126,7 +134,7 @@ def main() -> None:
         )
 
     axes[0].set_ylabel("Altitude (km)")
-    axes[0].set_ylim(80, 400)
+    axes[0].set_ylim(args.altitude_min, args.altitude_max)
     axes[1].set_ylabel("Energy (eV)")
     axes[2].set_ylabel("Charge state")
     axes[2].set_yticks([0, 1], ["H ENA", "H+"])
