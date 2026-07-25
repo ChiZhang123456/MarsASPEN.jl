@@ -33,11 +33,15 @@ H ENA back into H+.
 
 ```powershell
 julia --project=. examples/run_hplus_trajectory.jl
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py examples/output/single_hplus_400kms.mat
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py examples/output/single_hplus_400kms.mat --altitude-min 100 --altitude-max 200 --panel-d reactions --output examples/figures/single_hplus_400kms.png
 ```
 
 The PNG is stored at
-`examples/figures/single_hplus_400kms.png`.
+`examples/figures/single_hplus_400kms.png`. Panels a to c show altitude,
+energy, and charge state between 100 and 200 km. Panel d places every
+collision on a reaction timeline with Elastic = 0, Ionization = 1,
+Ly-alpha = 2, and State change = 3, and reports the number of events in each
+category over the displayed altitude interval.
 
 ## 3. Atmospheric density cases
 

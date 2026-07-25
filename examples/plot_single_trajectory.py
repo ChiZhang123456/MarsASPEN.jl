@@ -50,6 +50,12 @@ REACTION_COLORS = {
     3: "#55A868",
     4: "#6B6B6B",
 }
+REACTION_TIMELINE_LEVELS = {
+    4: 0,  # Elastic
+    2: 1,  # Target ionization
+    3: 2,  # Ly-alpha emission
+    1: 3,  # Projectile charge-state change
+}
 
 
 def vector(data: dict[str, np.ndarray], key: str) -> np.ndarray:
@@ -63,6 +69,12 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--altitude-min", type=float, default=80.0)
     parser.add_argument("--altitude-max", type=float, default=400.0)
+    parser.add_argument(
+        "--panel-d",
+        choices=("speed", "reactions"),
+        default="speed",
+        help="Quantity shown in panel d.",
+    )
     args = parser.parse_args()
     if args.altitude_min >= args.altitude_max:
         raise ValueError("--altitude-min must be smaller than --altitude-max.")
@@ -115,7 +127,8 @@ def main() -> None:
     axes[0].plot(time_s, altitude, color="#222222", lw=1.1)
     axes[1].plot(time_s, energy, color="#4C72B0", lw=1.1)
     axes[2].step(time_s, charge, where="post", color="#8172B2", lw=1.1)
-    axes[3].plot(time_s, speed, color="#937860", lw=1.1)
+    if args.panel_d == "speed":
+        axes[3].plot(time_s, speed, color="#937860", lw=1.1)
 
     # Elastic collisions are often numerous, so their markers are smaller.
     for code, label in REACTION_LABELS.items():
@@ -138,7 +151,47 @@ def main() -> None:
     axes[1].set_ylabel("Energy (eV)")
     axes[2].set_ylabel("Charge state")
     axes[2].set_yticks([0, 1], ["H ENA", "H+"])
-    axes[3].set_ylabel("Speed (km/s)")
+    if args.panel_d == "speed":
+        axes[3].set_ylabel("Speed (km/s)")
+    else:
+        counts = {}
+        for code, level in REACTION_TIMELINE_LEVELS.items():
+            mask = collision & (reaction == code)
+            counts[code] = int(np.count_nonzero(mask))
+            if np.any(mask):
+                axes[3].scatter(
+                    time_s[mask],
+                    np.full(np.count_nonzero(mask), level),
+                    s=18 if code == 4 else 28,
+                    color=REACTION_COLORS[code],
+                    edgecolors="none",
+                    zorder=3,
+                )
+        axes[3].set_ylabel("Reaction type")
+        axes[3].set_yticks(
+            [0, 1, 2, 3],
+            ["Elastic", "Ionization", "Ly-alpha", "State change"],
+        )
+        axes[3].set_ylim(-0.45, 3.45)
+        count_text = "\n".join((
+            f"Elastic: {counts[4]}",
+            f"Ionization: {counts[2]}",
+            f"Ly-alpha: {counts[3]}",
+            f"State change: {counts[1]}",
+        ))
+        axes[3].text(
+            0.98, 0.97,
+            f"Counts in {args.altitude_min:g}-{args.altitude_max:g} km\n"
+            + count_text,
+            transform=axes[3].transAxes,
+            ha="right", va="top", fontsize=7,
+            bbox={
+                "boxstyle": "round,pad=0.25",
+                "facecolor": "white",
+                "edgecolor": "0.75",
+                "alpha": 0.90,
+            },
+        )
     axes[2].set_xlabel("Time (s)")
     axes[3].set_xlabel("Time (s)")
     axes[0].legend(ncol=2, fontsize=7, loc="best")
