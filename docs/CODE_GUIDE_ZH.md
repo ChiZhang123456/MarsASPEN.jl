@@ -226,7 +226,13 @@ result = run_directional_flux_ensemble(
 )
 ```
 
-### 3.7 `src/transport.jl`
+### 3.7 `src/spatial_grid.jl`
+
+该文件负责完整的三维经纬度和高度网格统计。水平网格与MGITM一致，高度网格可由调用者设置，标准example使用1 km。它根据宏粒子的真实粒子率权重和每段轨迹的驻留时间计算局地数密度，根据路径长度计算总通量，根据径向位移计算上行、下行和带符号径向通量。
+
+碰撞发生后，该文件按照碰撞位置、入射粒子电荷态、背景目标种类和反应种类累计体积反应率。它还负责把三维结果拆分写入grid、moments、reactions和energy四个MAT文件，避免把所有大型数组集中到单一文件中。
+
+### 3.8 `src/transport.jl`
 
 这是单粒子输运核心。
 
@@ -260,7 +266,7 @@ tau = integral(alpha ds)
 * `reaction_counts`：只累计不同高度和反应类型的事件数。
 * `path_length_m`：累计高度、能量和电荷态中的 `particle_weight × ds`。
 
-### 3.7 `src/ensembles.jl`
+### 3.9 `src/ensembles.jl`
 
 负责多粒子并行运行。
 

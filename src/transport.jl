@@ -200,6 +200,7 @@ function run_particle_core(
     elastic_loss_fraction::Union{Nothing,Matrix{Float64}}=nothing,
     thermalization_energy_map::Union{Nothing,Matrix{Float64}}=nothing,
     thermalization_shell_edges_km::NTuple{2,Float64}=(119.5, 120.5),
+    spatial_grid::Union{Nothing,SpatialGridAccumulator}=nothing,
     weighting::MonteCarloWeight=MonteCarloWeight(),
     total_importance_weight::Float64=Float64(cfg.n_particles),
 )
@@ -214,6 +215,12 @@ function run_particle_core(
         initial_vr = (vx*x + vy*y + vz*z) / radius_m
         injection_flux_weight =
             particle_density_weight_m3 * max(-initial_vr, 0.0)
+    end
+    particle_rate_s1 = if !isnothing(spatial_grid)
+        injection_radius_m = (MARS_RADIUS_KM + cfg.initial_altitude_km) * 1000
+        injection_flux_weight * (2pi * injection_radius_m^2)
+    else
+        0.0
     end
     # `tau` is accumulated optical depth and
     # `threshold` is the exponentially distributed optical depth to collision.
@@ -264,6 +271,12 @@ function run_particle_core(
         xnew = x + vx / speed * ds
         ynew = y + vy / speed * ds
         znew = z + vz / speed * ds
+        if !isnothing(spatial_grid)
+            accumulate_spatial_segment!(
+                spatial_grid, x, y, z, xnew, ynew, znew,
+                vx, vy, vz, speed, charge, particle_rate_s1, ds,
+            )
+        end
         if !isnothing(directional_flux) || !isnothing(density_crossings) ||
            !isnothing(radial_flux) || !isnothing(ionization_flux_sigma) ||
            !isnothing(lya_rate_coefficient) || !isnothing(surface_diagnostics)
@@ -439,6 +452,7 @@ function run_particle_core(
         if alpha > 0 && tau >= threshold - 8eps(threshold)
             target, reaction = choose_event(rng, model, charge, e, n)
             counts[reaction] += 1
+            charge_before = charge
             vx_before, vy_before, vz_before = vx, vy, vz
             theta = deg2rad(interp1(rand(rng), model.cross_sections.scatter_r,
                                     model.cross_sections.scatter_theta))
@@ -459,6 +473,13 @@ function run_particle_core(
             end
             vx, vy, vz = rotate_velocity(vx, vy, vz, speed_after, theta, phi)
             collisions += 1
+            energy_after = energy(vx, vy, vz, charge)
+            if !isnothing(spatial_grid)
+                accumulate_spatial_reaction!(
+                    spatial_grid, x, y, z, charge_before, target, reaction,
+                    energy_before - energy_after, particle_rate_s1,
+                )
+            end
             if !isnothing(reaction_counts)
                 collision_altitude = sqrt(x*x+y*y+z*z)/1000 - MARS_RADIUS_KM
                 ibin = searchsortedlast(altitude_edges_km, collision_altitude)
@@ -468,7 +489,6 @@ function run_particle_core(
             end
             if record
                 alt_collision = sqrt(x*x+y*y+z*z)/1000 - MARS_RADIUS_KM
-                energy_after = energy(vx,vy,vz,charge)
                 push!(history, HistoryEvent(id, 2, steps, collisions, elapsed_time,
                     x,y,z,vx,vy,vz,alt_collision,energy_before,energy_after,
                     vx_before,vy_before,vz_before,Int8(charge),
@@ -480,6 +500,12 @@ function run_particle_core(
     end
     collisions == cfg.max_collisions && (stop = 5)
     final_alt = sqrt(x*x+y*y+z*z)/1000 - MARS_RADIUS_KM
+    if !isnothing(spatial_grid) && stop == 1
+        accumulate_spatial_thermalization!(
+            spatial_grid, x, y, z, charge, energy(vx, vy, vz, charge),
+            particle_rate_s1,
+        )
+    end
     if !isnothing(thermalization_energy_map) && stop == 1 &&
        thermalization_shell_edges_km[1] <= final_alt <
        thermalization_shell_edges_km[2]

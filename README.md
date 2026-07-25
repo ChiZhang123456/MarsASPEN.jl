@@ -25,6 +25,7 @@ The Julia package is separated by responsibility:
 * `src/monte_carlo_weight.jl`: Maxwellian importance sampling and physical particle weights
 * `src/transport.jl`: one-particle propagation, collision kinematics, and state changes
 * `src/ensembles.jl`: threaded ensembles and low-memory diagnostic histograms
+* `src/spatial_grid.jl`: three-dimensional MSO lon-lat-alt diagnostics and multi-file MAT output
 * `src/io.jl`: detailed MAT output
 
 Simulation controls and source weights are deliberately separate:

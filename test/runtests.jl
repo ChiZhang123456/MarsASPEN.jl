@@ -58,6 +58,40 @@ end
     @test all(sample.inward_flux_weight_m2_s .>= 0)
 end
 
+@testset "Three-dimensional spatial diagnostics" begin
+    cfg = MonteCarloConfig(
+        n_particles=8,
+        seed=62,
+        injection_geometry=:dayside_uniform,
+        initial_charge_state=1,
+        initial_temperature_ev=10.0,
+        min_altitude_km=590.0,
+        max_step_m=1000.0,
+    )
+    result = run_spatial_grid_ensemble(
+        MODEL, cfg;
+        weighting=MonteCarloWeight(source_number_density_m3=5.0e6),
+        altitude_edges_km=collect(590.0:1.0:600.0),
+    )
+    grid = result.grid
+    @test size(grid.number_density_m3) == (72, 36, 10, 2)
+    @test size(grid.reaction_rate_m3_s1) == (72, 36, 10, 2, 3, 4)
+    @test all(grid.number_density_m3 .>= 0)
+    @test all(grid.total_flux_m2_s .>= 0)
+    @test all(grid.upward_radial_flux_m2_s .>= 0)
+    @test all(grid.downward_radial_flux_m2_s .>= 0)
+    @test grid.signed_radial_flux_m2_s ≈
+          grid.upward_radial_flux_m2_s .-
+          grid.downward_radial_flux_m2_s
+    @test all(
+        grid.total_flux_m2_s .+ 1e-12 .>=
+        grid.upward_radial_flux_m2_s .+
+        grid.downward_radial_flux_m2_s
+    )
+    @test sum(grid.number_density_m3) > 0
+    @test sum(result.stop_counts) == cfg.n_particles
+end
+
 @testset "Local radial flux from density weights" begin
     cfg = MonteCarloConfig(
         n_particles=128,

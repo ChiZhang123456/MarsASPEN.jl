@@ -658,6 +658,74 @@ shows Mars and the sampled 600 km dayside positions in the three-dimensional
 MSO X, Y, Z coordinate system. The remaining panels show the three MSO
 velocity-component distributions.
 
+## Full three-dimensional Monte Carlo output
+
+`run_spatial_grid_ensemble` is the standard driver for simulations that need
+reusable three-dimensional physical outputs. The horizontal cell width is the
+native MGITM spacing, 5 degrees longitude by 5 degrees latitude. The example
+uses 1 km altitude cells from 80 to 600 km:
+
+```powershell
+julia --project=. -t auto examples/run_dayside_3d_100000.jl
+```
+
+The source contains 100,000 H+ macro particles uniformly distributed over the
+600 km dayside sphere, with MSO bulk velocity `(-400, 0, 0) km/s`, physical
+temperature 10 eV, and number density `5e6 m^-3`.
+
+For a uniformly sampled dayside area `A_day`, each macro particle has physical
+particle-rate weight
+
+```text
+Ndot_i = Wn_i max(-Vr_i, 0) A_day                  [s^-1].
+```
+
+For a trajectory segment of duration `dt`, path length `ds`, and cell volume
+`Vcell`, the accumulated moments are
+
+```text
+number density:       Ndot_i dt / Vcell            [m^-3]
+total scalar flux:    Ndot_i ds / Vcell            [m^-2 s^-1]
+signed radial flux:   Ndot_i Vr_i dt / Vcell       [m^-2 s^-1]
+upward radial flux:   Ndot_i max(Vr_i,0) dt/Vcell  [m^-2 s^-1]
+downward radial flux: Ndot_i max(-Vr_i,0)dt/Vcell  [m^-2 s^-1].
+```
+
+This residence-time estimator is required for a three-dimensional grid.
+Simply summing `Wn` whenever a trajectory enters a cell would depend on step
+size and would not produce a physical local density.
+
+Each realized collision contributes
+
+```text
+reaction rate = Ndot_i / Vcell                     [m^-3 s^-1]
+```
+
+to its projectile charge, target species, and reaction channel. The saved
+reaction channels are state change, target ionization, Ly-alpha production,
+and elastic scattering. The target order is CO2, O, and N2. Consequently, the
+reaction output can directly produce O or CO2 ionization maps, total
+Ly-alpha volume emission, elastic collision rates, and charge-resolved rates.
+
+The simulation writes four MAT v7.3 files:
+
+* `dayside_hplus_100000_3d_grid.mat` contains MSO coordinate edges, centers,
+  and exact spherical cell volumes.
+* `dayside_hplus_100000_3d_moments.mat` contains total and charge-resolved
+  density, scalar flux, signed radial flux, upward flux, and downward flux.
+* `dayside_hplus_100000_3d_reactions.mat` contains charge-target-reaction
+  volume rates and raw Monte Carlo event counts. It also includes convenient
+  channel totals, target-resolved ionization rates, and total Ly-alpha volume
+  emission so common plots do not need to reduce the full six-dimensional
+  array first.
+* `dayside_hplus_100000_3d_energy.mat` contains collision energy transfer,
+  sub-10 eV cutoff thermalization, and their sum in `W m^-3`.
+
+The declared Julia array order is longitude, latitude, altitude, followed by
+optional component dimensions. HDF5-based Python readers may expose the
+dimensions in reverse order, so analysis code should identify axes from the
+saved coordinate lengths rather than assuming NumPy axis order.
+
 ## Why `test/` is retained
 
 The `test/` directory is not an example directory. It automatically verifies

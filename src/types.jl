@@ -126,3 +126,29 @@ struct HistoryEvent
     reaction::UInt8 # 0 none, 1 state change, 2 ionization, 3 Ly-alpha, 4 elastic
     energy_loss_ev::Float64
 end
+
+"""
+Shared three-dimensional diagnostics for a spherical lon-lat-alt grid.
+
+The first three dimensions are longitude, latitude, and altitude. Charge
+dimension order is H ENA then H+. Reaction arrays additionally use target
+order CO2, O, N2 and reaction order state change, ionization, Ly-alpha,
+elastic. Longitude locks make updates from threaded particle trajectories
+safe without allocating a complete grid for every Julia thread.
+"""
+mutable struct SpatialGridAccumulator
+    longitude_edges_deg::Vector{Float64}
+    latitude_edges_deg::Vector{Float64}
+    altitude_edges_km::Vector{Float64}
+    cell_volume_m3::Matrix{Float64} # latitude, altitude
+    number_density_m3::Array{Float64,4}
+    total_flux_m2_s::Array{Float64,4}
+    signed_radial_flux_m2_s::Array{Float64,4}
+    upward_radial_flux_m2_s::Array{Float64,4}
+    downward_radial_flux_m2_s::Array{Float64,4}
+    reaction_rate_m3_s1::Array{Float64,6}
+    reaction_event_count::Array{UInt32,4}
+    collision_energy_transfer_w_m3::Array{Float64,4}
+    cutoff_thermalization_w_m3::Array{Float64,4}
+    longitude_locks::Vector{ReentrantLock}
+end

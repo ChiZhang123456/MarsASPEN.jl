@@ -91,6 +91,66 @@ function sample_injection_ensemble(
         injection_geometry=String(cfg.injection_geometry),
     )
 end
+
+"""
+Run a dayside ensemble and accumulate complete three-dimensional diagnostics.
+
+The macro-particle rate is obtained from the local inward injection flux and
+the full dayside injection area. Within each spatial cell, residence time
+gives number density, path length gives total scalar flux, and radial
+displacement gives signed, upward, and downward radial flux. Realized
+collisions give physical reaction rates resolved by charge, target, and
+reaction channel.
+"""
+function run_spatial_grid_ensemble(
+    model::AspenModel,
+    cfg::MonteCarloConfig;
+    weighting::MonteCarloWeight,
+    altitude_edges_km::AbstractVector{<:Real}=collect(80.0:1.0:600.0),
+)
+    cfg.injection_geometry === :dayside_uniform ||
+        throw(ArgumentError(
+            "3D spatial grids require injection_geometry=:dayside_uniform",
+        ))
+    weighting.source_number_density_m3 > 0 ||
+        throw(ArgumentError(
+            "3D spatial grids require a positive source_number_density_m3",
+        ))
+    minimum(diff(Float64.(altitude_edges_km))) >= cfg.max_step_m / 1000 ||
+        throw(ArgumentError(
+            "max_step_m must not exceed the smallest altitude-bin width",
+        ))
+    grid = create_spatial_grid(
+        model; altitude_edges_km=altitude_edges_km,
+    )
+    nslots = Base.Threads.maxthreadid()
+    thread_stop_counts = [zeros(Int64, 5) for _ in 1:nslots]
+    thread_collisions = zeros(Int64, nslots)
+    thread_steps = zeros(Int64, nslots)
+    total_importance_weight = initial_importance_weight_sum(cfg, weighting)
+    @threads for particle_id in 1:cfg.n_particles
+        tid = threadid()
+        summary = first(run_particle_core(
+            model, cfg, particle_id, false;
+            spatial_grid=grid,
+            weighting=weighting,
+            total_importance_weight=total_importance_weight,
+        ))
+        1 <= summary.stop_code <= 5 &&
+            (thread_stop_counts[tid][summary.stop_code] += 1)
+        thread_collisions[tid] += summary.n_collisions
+        thread_steps[tid] += summary.n_steps
+    end
+    injection_radius_m = (MARS_RADIUS_KM + cfg.initial_altitude_km) * 1000
+    (
+        grid=grid,
+        stop_counts=reduce(+, thread_stop_counts),
+        total_collisions=sum(thread_collisions),
+        total_steps=sum(thread_steps),
+        total_importance_weight=total_importance_weight,
+        dayside_injection_area_m2=2pi * injection_radius_m^2,
+    )
+end
 """
 Run an ensemble and count collision events in altitude bins.
 

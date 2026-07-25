@@ -19,6 +19,7 @@ export AspenModel, MonteCarloConfig, MonteCarloWeight, ParticleSummary,
        run_lya_volume_emission_ensemble,
        run_surface_diagnostic_map_ensemble,
        sample_injection_ensemble,
+       run_spatial_grid_ensemble, write_spatial_grid_mats,
        thermal_speed_from_temperature_ev,
        maxwellian_importance_weight_3d, particle_density_weight,
        write_detailed_mat
@@ -28,6 +29,7 @@ include("monte_carlo_weight.jl")
 include("cross_sections.jl")
 include("initialization.jl")
 include("atmosphere.jl")
+include("spatial_grid.jl")
 include("transport.jl")
 include("ensembles.jl")
 include("io.jl")
