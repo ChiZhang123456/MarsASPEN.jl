@@ -754,6 +754,33 @@ Latitude weighting uses the exact spherical factor
 having the same area. The signed radial-flux panel uses a symmetric logarithmic
 axis; the other seven panels use logarithmic horizontal axes.
 
+Create solar zenith angle and altitude maps from the same three-dimensional
+output with:
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_sza_altitude.py
+```
+
+The MSO solar zenith angle at each grid center is
+
+```math
+\mathrm{SZA}
+=
+\cos^{-1}\left(\cos\phi\cos\lambda\right),
+```
+
+where \(\phi\) is latitude and \(\lambda\) is longitude. The script uses
+5 degree SZA bins and 1 km altitude bins from 100 to 300 km. It averages
+cells in each SZA annulus using their exact spherical areas, so polar and
+equatorial cells receive physically appropriate weights.
+
+The resulting PNG is
+`examples/figures/dayside_hplus_100000_3d_sza_altitude_8panel.png`.
+Its eight panels show number density, total scalar flux, downward and upward
+radial flux, signed outward radial flux, total target ionization rate,
+H Ly-alpha volume emission rate, and projectile energy transfer rate. The
+dotted line at SZA = 90 degrees marks the terminator.
+
 ## Why `test/` is retained
 
 The `test/` directory is not an example directory. It automatically verifies
