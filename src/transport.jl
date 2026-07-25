@@ -103,6 +103,8 @@ physics kernel:
   and charge state.
 * `directional_flux` counts weighted upward and downward crossings of altitude
   surfaces by energy and charge state.
+* `density_crossings` sums particle density weights at altitude-surface
+  crossings, without multiplying by path length or energy-bin width.
 
 Particles begin at 600 km with the configured charge state and drifting
 Maxwellian velocity. The random stream is derived from `(cfg.seed, id)`, which
@@ -117,6 +119,7 @@ function run_particle_core(
     flux_altitude_km::Union{Nothing,Vector{Float64}}=nothing,
     flux_energy_edges_ev::Union{Nothing,Vector{Float64}}=nothing,
     directional_flux::Union{Nothing,Array{Float64,4}}=nothing,
+    density_crossings::Union{Nothing,Array{Float64,3}}=nothing,
     weighting::MonteCarloWeight=MonteCarloWeight(),
     total_importance_weight::Float64=Float64(cfg.n_particles),
 )
@@ -174,7 +177,7 @@ function run_particle_core(
         xnew = x + vx / speed * ds
         ynew = y + vy / speed * ds
         znew = z + vz / speed * ds
-        if !isnothing(directional_flux)
+        if !isnothing(directional_flux) || !isnothing(density_crossings)
             # Count crossings of fixed spherical altitude surfaces. Direction
             # 1 is downward and direction 2 is upward.
             altitude_after = sqrt(xnew*xnew + ynew*ynew + znew*znew)/1000 -
@@ -185,15 +188,27 @@ function run_particle_core(
                     first_surface = searchsortedlast(flux_altitude_km, altitude_after) + 1
                     last_surface = searchsortedlast(flux_altitude_km, alt)
                     for ia in first_surface:last_surface
-                        directional_flux[ia, ie, charge + 1, 1] +=
-                            injection_flux_weight
+                        if !isnothing(directional_flux)
+                            directional_flux[ia, ie, charge + 1, 1] +=
+                                injection_flux_weight
+                        end
+                        if !isnothing(density_crossings)
+                            density_crossings[ia, ie, charge + 1] +=
+                                particle_density_weight_m3
+                        end
                     end
                 elseif altitude_after > alt
                     first_surface = searchsortedlast(flux_altitude_km, alt) + 1
                     last_surface = searchsortedlast(flux_altitude_km, altitude_after)
                     for ia in first_surface:last_surface
-                        directional_flux[ia, ie, charge + 1, 2] +=
-                            injection_flux_weight
+                        if !isnothing(directional_flux)
+                            directional_flux[ia, ie, charge + 1, 2] +=
+                                injection_flux_weight
+                        end
+                        if !isnothing(density_crossings)
+                            density_crossings[ia, ie, charge + 1] +=
+                                particle_density_weight_m3
+                        end
                     end
                 end
             end

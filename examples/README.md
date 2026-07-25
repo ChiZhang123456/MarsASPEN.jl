@@ -43,8 +43,9 @@ julia --project=. -t auto examples/run_h_ena_100000_monte_carlo.jl
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_h_ena_100000_monte_carlo.py examples/output/h_ena_100000_monte_carlo.mat
 ```
 
-The resulting figure shows density-weighted track length versus altitude and
-energy, separately for neutral H ENA and H+ created by electron stripping.
+The resulting figure directly sums particle density weights in each altitude
+and energy bin, separately for neutral H ENA and H+ created by electron
+stripping. It does not multiply by path length or divide by energy-bin width.
 
 To inspect the H+ energy distribution at 550 km separately:
 

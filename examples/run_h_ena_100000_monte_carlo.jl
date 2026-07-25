@@ -16,9 +16,9 @@
 #   exactly to 1e6 m^-3.
 #
 # Output:
-#   A compact MAT file containing weighted track length as a function of
-#   altitude, energy, and charge state. Full trajectories are intentionally not
-#   saved because ensemble diagnostics should remain memory efficient.
+#   A compact MAT file containing the sum of particle density weights in each
+#   altitude and energy bin. No path-length factor and no division by energy
+#   width are applied. Full trajectories are intentionally not saved.
 
 using MarsASPEN
 using MAT
@@ -50,12 +50,15 @@ weighting = MonteCarloWeight(
 # 10,000 eV. A logarithmic grid cannot begin at exactly zero. Because transport
 # stops below 10 eV, the lowest part of this requested range is normally empty.
 altitude_edges_km = collect(80.0:1.0:600.0)
+altitude_centers_km = 0.5 .* (
+    altitude_edges_km[1:end-1] .+ altitude_edges_km[2:end]
+)
 energy_edges_ev = 10.0 .^ range(0.0, 4.0, length=31)
 
-elapsed = @elapsed result = run_phase_space_ensemble(
+elapsed = @elapsed result = run_density_crossing_ensemble(
     model, config;
     weighting=weighting,
-    altitude_edges_km=altitude_edges_km,
+    altitude_surfaces_km=altitude_centers_km,
     energy_edges_ev=energy_edges_ev,
 )
 
@@ -80,7 +83,7 @@ matwrite(output, Dict(
     "altitude_edges_km" => altitude_edges_km,
     "energy_edges_ev" => energy_edges_ev,
     "charge_state_names" => ["H_ENA", "Hplus"],
-    "weighted_track_length_m4" => result.path_length_m,
+    "density_weight_sum_m3" => result.density_weight_sum_m3,
 ))
 
 @printf("n_particles=%d\n", config.n_particles)

@@ -13,6 +13,7 @@ export AspenModel, MonteCarloConfig, MonteCarloWeight, ParticleSummary,
        neutral_density, neutral_density_xyz, cartesian_to_lon_lat_alt,
        available_atmosphere_cases, run_ensemble, run_detailed_ensemble,
        run_binned_ensemble, run_phase_space_ensemble,
+       run_density_crossing_ensemble,
        run_directional_flux_ensemble, thermal_speed_from_temperature_ev,
        maxwellian_importance_weight_3d, particle_density_weight,
        write_detailed_mat

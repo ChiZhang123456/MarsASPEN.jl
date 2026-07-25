@@ -136,6 +136,53 @@ function initial_importance_weight_sum(
 end
 
 """
+Sum density weights when particles cross fixed altitude surfaces.
+
+The returned array has dimensions `(altitude surface, energy bin, charge)`.
+Every upward or downward crossing contributes the particle density weight
+exactly once. No path-length factor and no division by energy-bin width are
+applied. Charge order is H ENA then H+.
+"""
+function run_density_crossing_ensemble(
+    model::AspenModel,
+    cfg::MonteCarloConfig;
+    weighting::MonteCarloWeight=MonteCarloWeight(),
+    altitude_surfaces_km::AbstractVector{<:Real}=collect(80.5:1.0:599.5),
+    energy_edges_ev::AbstractVector{<:Real}=10.0 .^ range(0.0, 4.0, length=31),
+)
+    altitude_surfaces = Float64.(altitude_surfaces_km)
+    energy_edges = Float64.(energy_edges_ev)
+    all(diff(altitude_surfaces) .> 0) ||
+        throw(ArgumentError("altitude_surfaces_km must increase"))
+    all(diff(energy_edges) .> 0) ||
+        throw(ArgumentError("energy_edges_ev must increase"))
+
+    thread_density = [
+        zeros(Float64, length(altitude_surfaces), length(energy_edges)-1, 2)
+        for _ in 1:Base.Threads.maxthreadid()
+    ]
+    total_importance_weight = initial_importance_weight_sum(cfg, weighting)
+    @threads for particle_id in 1:cfg.n_particles
+        tid = threadid()
+        run_particle_core(
+            model, cfg, particle_id, false;
+            flux_altitude_km=altitude_surfaces,
+            flux_energy_edges_ev=energy_edges,
+            density_crossings=thread_density[tid],
+            weighting=weighting,
+            total_importance_weight=total_importance_weight,
+        )
+    end
+    (
+        altitude_surfaces_km=altitude_surfaces,
+        energy_edges_ev=energy_edges,
+        charge_state_names=("H_ENA", "Hplus"),
+        density_weight_sum_m3=reduce(+, thread_density),
+        total_importance_weight=total_importance_weight,
+    )
+end
+
+"""
 Accumulate upward and downward differential-flux numerators.
 
 `flux[altitude surface, energy bin, charge, direction]` contains the sum of

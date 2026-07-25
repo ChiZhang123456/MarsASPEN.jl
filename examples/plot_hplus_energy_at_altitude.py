@@ -1,9 +1,9 @@
 """Plot the weighted H+ energy distribution at one selected altitude.
 
 This diagnostic reads the compact altitude-energy MAT output produced by
-``run_h_ena_100000_monte_carlo.jl``. The plotted quantity is density-weighted
-track length divided by the energy-bin width, evaluated in the one-kilometer
-altitude bin containing the requested altitude.
+``run_h_ena_100000_monte_carlo.jl``. The plotted quantity is the direct sum of
+particle density weights, evaluated in the one-kilometer altitude bin
+containing the requested altitude.
 """
 
 from __future__ import annotations
@@ -46,18 +46,18 @@ def main() -> None:
     data = load_history_mat(args.mat_file)
     altitude_edges = vector(data, "altitude_edges_km")
     energy_edges = vector(data, "energy_edges_ev")
-    track_length = np.asarray(data["weighted_track_length_m4"], dtype=float)
+    density_weight_sum = np.asarray(data["density_weight_sum_m3"], dtype=float)
 
     expected_shape = (
         altitude_edges.size - 1,
         energy_edges.size - 1,
         2,
     )
-    if track_length.shape == expected_shape[::-1]:
-        track_length = track_length.transpose(2, 1, 0)
-    if track_length.shape != expected_shape:
+    if density_weight_sum.shape == expected_shape[::-1]:
+        density_weight_sum = density_weight_sum.transpose(2, 1, 0)
+    if density_weight_sum.shape != expected_shape:
         raise ValueError(
-            f"Unexpected histogram shape {track_length.shape}; "
+            f"Unexpected histogram shape {density_weight_sum.shape}; "
             f"expected {expected_shape}."
         )
 
@@ -68,9 +68,8 @@ def main() -> None:
         raise ValueError("Requested altitude is outside the MAT altitude grid.")
 
     energy_centers = 0.5 * (energy_edges[:-1] + energy_edges[1:])
-    energy_widths = np.diff(energy_edges)
-    # Charge index 1 is H+. Division by dE gives a differential distribution.
-    distribution = track_length[altitude_index, :, 1] / energy_widths
+    # Charge index 1 is H+. Each bin is already the requested direct sum.
+    distribution = density_weight_sum[altitude_index, :, 1]
     positive = distribution > 0
     if not np.any(positive):
         raise ValueError("No H+ contribution exists in the selected altitude bin.")
@@ -79,13 +78,9 @@ def main() -> None:
         raise ValueError("--rebin must be at least one.")
     usable_bins = distribution.size // args.rebin * args.rebin
     rebinned_distribution = (
-        track_length[altitude_index, :usable_bins, 1]
+        density_weight_sum[altitude_index, :usable_bins, 1]
         .reshape(-1, args.rebin)
         .sum(axis=1)
-        / (
-            energy_edges[args.rebin:usable_bins + 1:args.rebin]
-            - energy_edges[:usable_bins:args.rebin]
-        )
     )
     rebinned_energy = 0.5 * (
         energy_edges[:usable_bins:args.rebin]
@@ -124,10 +119,7 @@ def main() -> None:
     axis.set_xlim(1, 10_000)
     axis.set_ylim(bottom=0)
     axis.set_xlabel("H+ energy (eV)")
-    axis.set_ylabel(
-        r"Density-weighted track length / $\Delta E$ "
-        r"(m$^{-2}$ eV$^{-1}$)"
-    )
+    axis.set_ylabel(r"Sum of particle density weights (m$^{-3}$)")
     axis.set_title(
         f"H+ energy distribution at {altitude_low:.0f}–"
         f"{altitude_high:.0f} km\n"
@@ -147,7 +139,10 @@ def main() -> None:
     print(f"nonzero_energy_bins={np.count_nonzero(positive)}")
     print(f"combined_native_bins={args.rebin}")
     print(f"rebinned_peak_energy_ev={peak_energy:.1f}")
-    print(f"weighted_track_length_m2={track_length[altitude_index, :, 1].sum():.9g}")
+    print(
+        "density_weight_sum_m3="
+        f"{density_weight_sum[altitude_index, :, 1].sum():.9g}"
+    )
     print(f"output={output.resolve()}")
 
 

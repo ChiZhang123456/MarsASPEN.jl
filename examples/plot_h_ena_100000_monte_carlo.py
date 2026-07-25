@@ -1,8 +1,8 @@
-"""Plot the weighted altitude-energy distribution from the 100,000 H ENA run.
+"""Plot the density-weight altitude-energy distribution from 100,000 H ENAs.
 
-The Julia example stores density-weighted track length in each altitude,
-energy, and charge-state bin. This script plots H ENA and H+ separately. H+
-appears when the initially neutral projectile undergoes electron stripping.
+Each color bin is the direct sum of particle density weights for crossings in
+that altitude and energy bin. No path length or energy-width normalization is
+applied. H+ appears when neutral H ENA undergoes electron stripping.
 """
 
 from __future__ import annotations
@@ -43,34 +43,27 @@ def main() -> None:
     data = load_history_mat(args.mat_file)
     altitude_edges = one_dimensional(data, "altitude_edges_km")
     energy_edges = one_dimensional(data, "energy_edges_ev")
-    weighted_track_length = np.asarray(
-        data["weighted_track_length_m4"], dtype=float
+    density_weight_sum = np.asarray(
+        data["density_weight_sum_m3"], dtype=float
     )
     expected_shape = (
         altitude_edges.size - 1,
         energy_edges.size - 1,
         2,
     )
-    if weighted_track_length.shape == expected_shape[::-1]:
+    if density_weight_sum.shape == expected_shape[::-1]:
         # HDF5 exposes Julia/MATLAB dimensions in reverse order.
-        weighted_track_length = weighted_track_length.transpose(2, 1, 0)
-    if weighted_track_length.shape != expected_shape:
+        density_weight_sum = density_weight_sum.transpose(2, 1, 0)
+    if density_weight_sum.shape != expected_shape:
         raise ValueError(
-            "Unexpected weighted_track_length_m4 shape: "
-            f"{weighted_track_length.shape}, expected {expected_shape}."
+            "Unexpected density_weight_sum_m3 shape: "
+            f"{density_weight_sum.shape}, expected {expected_shape}."
         )
-
-    # Logarithmic bins have unequal widths. Divide by dE before plotting so
-    # color represents a differential energy distribution rather than the
-    # integrated contribution accumulated in a wider bin.
-    differential_track_length = (
-        weighted_track_length / np.diff(energy_edges)[None, :, None]
-    )
 
     # A shared logarithmic color scale makes the H ENA and H+ panels directly
     # comparable. Empty bins are masked rather than assigned an artificial
     # floor.
-    positive = differential_track_length[differential_track_length > 0]
+    positive = density_weight_sum[density_weight_sum > 0]
     if positive.size == 0:
         raise ValueError("The MAT file contains no positive weighted bins.")
     color_norm = LogNorm(vmin=np.percentile(positive, 2), vmax=positive.max())
@@ -83,7 +76,7 @@ def main() -> None:
     image = None
     for charge_index, (axis, species) in enumerate(zip(axes, species_names)):
         values = np.ma.masked_less_equal(
-            differential_track_length[:, :, charge_index], 0
+            density_weight_sum[:, :, charge_index], 0
         )
         image = axis.pcolormesh(
             energy_edges,
@@ -102,10 +95,7 @@ def main() -> None:
 
     axes[0].set_ylabel("Altitude (km)")
     colorbar = fig.colorbar(image, ax=axes, pad=0.02)
-    colorbar.set_label(
-        r"Density-weighted track length / $\Delta E$ "
-        r"(m$^{-2}$ eV$^{-1}$)"
-    )
+    colorbar.set_label(r"Sum of particle density weights (m$^{-3}$)")
     fig.suptitle(
         "100,000 H ENA particles, 600 km, 400 km/s, "
         r"$T=10$ eV, $n=1$ cm$^{-3}$"
