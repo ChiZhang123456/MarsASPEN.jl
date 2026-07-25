@@ -502,6 +502,60 @@ same fixed logarithmic horizontal ranges for direct comparison: VER from
 `1e2` to `1e9 photons m^-3 s^-1`, radiative energy rate from `1e-16` to
 `1e-8 W m^-3`, and limb brightness from `1e-2` to `1e5 R`.
 
+## 11. Point-source maps at 120 km
+
+The current transport geometry starts every particle at 600 km above
+longitude 0 degrees and latitude 0 degrees. The following example maps the
+local footprint where those trajectories cross the 120 km spherical surface:
+
+```powershell
+julia --project=. -t auto examples/run_surface_diagnostics_120km.jl h_ena
+julia --project=. -t auto examples/run_surface_diagnostics_120km.jl hplus
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_surface_diagnostics_120km.py examples/output/h_ena_100000_surface_diagnostics_120km.mat examples/output/hplus_100000_surface_diagnostics_120km.mat
+```
+
+For target species `j`, the local crossing estimator uses the total projectile
+speed:
+
+```text
+q_j(lon, lat) =
+    n_j(lon, lat, 120 km)
+    sum_i [Wn_i |V_i| sigma_ion,j(E_i)].
+```
+
+The radial component is not used here. It is needed for radial flux, whereas
+the collision frequency and collision energy depend on the total speed and
+total kinetic energy.
+
+The collision-energy transfer estimator is
+
+```text
+P_collision =
+    sum_i sum_j sum_k [
+        Wn_i |V_i| n_j sigma_jk(E_i) DeltaE_jk(E_i)
+    ].
+```
+
+It includes the fixed modeled inelastic losses and the mean two-body elastic
+energy transfer. If a particle stops below the 10 eV transport cutoff inside
+the 119.5 to 120.5 km shell, its remaining energy is added to
+`thermalized_below_cutoff_ev_m3_s1`. The saved total is
+
+```text
+P_total = P_collision + P_below_10eV.
+```
+
+The MAT files retain both `eV m^-3 s^-1` and `W m^-3`, using
+`1 eV = 1.602176634e-19 J`. This is projectile energy transfer. It is an
+upper estimate of local heating because escaping Ly-alpha radiation and
+transport by secondary electrons are not yet subtracted.
+
+The resulting PNG is
+`examples/figures/point_source_surface_diagnostics_120km_6panel.png`.
+It contains total O plus CO2 ionization, Ly-alpha volume emission, and energy
+transfer for H ENA-source and H+-source simulations. It is a point-source
+footprint, not a globally normalized dayside map.
+
 To inspect the H+ energy distribution at 550 km separately:
 
 ```powershell

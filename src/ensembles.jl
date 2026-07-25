@@ -319,6 +319,123 @@ function run_target_ionization_rate_ensemble(
     )
 end
 
+"""Mean fractional projectile-energy loss in one sampled elastic collision."""
+function mean_elastic_loss_fractions(model::AspenModel)
+    fractions = zeros(Float64, 2, 3)
+    random_grid = model.cross_sections.scatter_r
+    angles = deg2rad.(model.cross_sections.scatter_theta)
+    for charge in 0:1, target in 1:3
+        projectile_mass = charge == 1 ? HP_MASS : H_MASS
+        ratio = projectile_mass / TARGET_MASS[target]
+        loss = similar(angles)
+        for i in eachindex(angles)
+            theta = angles[i]
+            disc = max(1 - (ratio * sin(theta))^2, 0.0)
+            speed_ratio = max(
+                (ratio * cos(theta) + sqrt(disc)) / (1 + ratio), 0.0,
+            )
+            loss[i] = 1 - speed_ratio^2
+        end
+        integral = sum(
+            0.5 * (loss[i] + loss[i + 1]) *
+            (random_grid[i + 1] - random_grid[i])
+            for i in 1:length(random_grid)-1
+        )
+        fractions[charge + 1, target] =
+            integral / (random_grid[end] - random_grid[1])
+    end
+    fractions
+end
+
+"""
+Calculate point-source diagnostic maps on one spherical altitude surface.
+
+The first four output fields use the local total projectile speed, not radial
+speed. Array order is longitude bin, latitude bin, diagnostic. Diagnostics are
+O ionization, CO2 ionization, Ly-alpha volume emission, and projectile
+collision-energy transfer. The terminal-energy field adds the remaining
+energy of particles that stop below `cfg.min_energy_ev` inside the requested
+altitude shell.
+
+Because the present source starts at one geographic point, these arrays are a
+local footprint rather than a globally normalized dayside map.
+"""
+function run_surface_diagnostic_map_ensemble(
+    model::AspenModel,
+    cfg::MonteCarloConfig;
+    weighting::MonteCarloWeight=MonteCarloWeight(),
+    altitude_km::Real=120.0,
+    longitude_edges_deg::AbstractVector{<:Real}=collect(-30.0:1.0:30.0),
+    latitude_edges_deg::AbstractVector{<:Real}=collect(-30.0:1.0:30.0),
+    thermalization_shell_half_width_km::Real=0.5,
+)
+    lon_edges = Float64.(longitude_edges_deg)
+    lat_edges = Float64.(latitude_edges_deg)
+    all(diff(lon_edges) .> 0) ||
+        throw(ArgumentError("longitude_edges_deg must increase"))
+    all(diff(lat_edges) .> 0) ||
+        throw(ArgumentError("latitude_edges_deg must increase"))
+    half_width = Float64(thermalization_shell_half_width_km)
+    half_width > 0 ||
+        throw(ArgumentError("thermalization_shell_half_width_km must be positive"))
+    surface_altitude = Float64(altitude_km)
+    shell_edges = (
+        surface_altitude - half_width, surface_altitude + half_width,
+    )
+    thread_maps = [
+        zeros(Float64, length(lon_edges)-1, length(lat_edges)-1, 4)
+        for _ in 1:Base.Threads.maxthreadid()
+    ]
+    thread_thermal = [
+        zeros(Float64, length(lon_edges)-1, length(lat_edges)-1)
+        for _ in 1:Base.Threads.maxthreadid()
+    ]
+    elastic_fractions = mean_elastic_loss_fractions(model)
+    total_importance_weight = initial_importance_weight_sum(cfg, weighting)
+    @threads for particle_id in 1:cfg.n_particles
+        tid = threadid()
+        run_particle_core(
+            model, cfg, particle_id, false;
+            flux_altitude_km=[surface_altitude],
+            surface_diagnostics=thread_maps[tid],
+            surface_altitude_km=surface_altitude,
+            surface_longitude_edges_deg=lon_edges,
+            surface_latitude_edges_deg=lat_edges,
+            elastic_loss_fraction=elastic_fractions,
+            thermalization_energy_map=thread_thermal[tid],
+            thermalization_shell_edges_km=shell_edges,
+            weighting=weighting,
+            total_importance_weight=total_importance_weight,
+        )
+    end
+    diagnostics = reduce(+, thread_maps)
+    thermalization = reduce(+, thread_thermal)
+    collision_energy = diagnostics[:, :, 4]
+    total_energy = collision_energy .+ thermalization
+    (
+        altitude_km=surface_altitude,
+        longitude_edges_deg=lon_edges,
+        latitude_edges_deg=lat_edges,
+        diagnostic_names=(
+            "O_ionization", "CO2_ionization", "Ly_alpha",
+            "collision_energy_transfer",
+        ),
+        oxygen_ionization_rate_m3_s1=diagnostics[:, :, 1],
+        co2_ionization_rate_m3_s1=diagnostics[:, :, 2],
+        total_ionization_rate_m3_s1=
+            diagnostics[:, :, 1] .+ diagnostics[:, :, 2],
+        lya_volume_emission_rate_photons_m3_s1=diagnostics[:, :, 3],
+        collision_energy_transfer_ev_m3_s1=collision_energy,
+        thermalized_below_cutoff_ev_m3_s1=thermalization,
+        total_energy_transfer_ev_m3_s1=total_energy,
+        total_energy_transfer_w_m3=total_energy .* QE,
+        elastic_mean_loss_fraction=elastic_fractions,
+        thermalization_shell_edges_km=collect(shell_edges),
+        total_importance_weight=total_importance_weight,
+        source_geometry="single point at lon=0 deg, lat=0 deg, 600 km",
+    )
+end
+
 """
 Estimate H Ly-alpha volume emission and radiative-energy profiles.
 

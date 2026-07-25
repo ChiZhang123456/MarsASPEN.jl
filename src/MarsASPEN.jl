@@ -17,6 +17,7 @@ export AspenModel, MonteCarloConfig, MonteCarloWeight, ParticleSummary,
        run_directional_flux_ensemble, run_radial_flux_ensemble,
        run_target_ionization_rate_ensemble,
        run_lya_volume_emission_ensemble,
+       run_surface_diagnostic_map_ensemble,
        thermal_speed_from_temperature_ev,
        maxwellian_importance_weight_3d, particle_density_weight,
        write_detailed_mat

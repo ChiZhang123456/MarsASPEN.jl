@@ -167,6 +167,13 @@ function run_particle_core(
     ionization_flux_sigma::Union{Nothing,Array{Float64,3}}=nothing,
     ionization_target::Int=2,
     lya_rate_coefficient::Union{Nothing,Array{Float64,4}}=nothing,
+    surface_diagnostics::Union{Nothing,Array{Float64,3}}=nothing,
+    surface_altitude_km::Float64=120.0,
+    surface_longitude_edges_deg::Union{Nothing,Vector{Float64}}=nothing,
+    surface_latitude_edges_deg::Union{Nothing,Vector{Float64}}=nothing,
+    elastic_loss_fraction::Union{Nothing,Matrix{Float64}}=nothing,
+    thermalization_energy_map::Union{Nothing,Matrix{Float64}}=nothing,
+    thermalization_shell_edges_km::NTuple{2,Float64}=(119.5, 120.5),
     weighting::MonteCarloWeight=MonteCarloWeight(),
     total_importance_weight::Float64=Float64(cfg.n_particles),
 )
@@ -226,7 +233,7 @@ function run_particle_core(
         znew = z + vz / speed * ds
         if !isnothing(directional_flux) || !isnothing(density_crossings) ||
            !isnothing(radial_flux) || !isnothing(ionization_flux_sigma) ||
-           !isnothing(lya_rate_coefficient)
+           !isnothing(lya_rate_coefficient) || !isnothing(surface_diagnostics)
             # Count crossings of fixed spherical altitude surfaces. Direction
             # 1 is downward and direction 2 is upward.
             altitude_after = sqrt(xnew*xnew + ynew*ynew + znew*znew)/1000 -
@@ -331,6 +338,61 @@ function run_particle_core(
                     end
                 end
             end
+            if !isnothing(surface_diagnostics) &&
+               min(alt, altitude_after) <= surface_altitude_km <=
+               max(alt, altitude_after)
+                xc, yc, zc, _ = state_at_surface_crossing(
+                    x, y, z, xnew, ynew, znew, vx, vy, vz,
+                    surface_altitude_km,
+                )
+                position = cartesian_to_lon_lat_alt(xc, yc, zc)
+                longitude = mod(position.lon_deg + 180.0, 360.0) - 180.0
+                ilon = searchsortedlast(surface_longitude_edges_deg, longitude)
+                ilat = searchsortedlast(
+                    surface_latitude_edges_deg, position.lat_deg,
+                )
+                if 1 <= ilon < length(surface_longitude_edges_deg) &&
+                   1 <= ilat < length(surface_latitude_edges_deg)
+                    density = neutral_density(
+                        model, position.lon_deg, position.lat_deg,
+                        surface_altitude_km;
+                        include_hot_o=cfg.include_hot_o,
+                    )
+                    target_density = (density.CO2, density.O, density.N2)
+                    particle_rate = particle_density_weight_m3 * speed
+                    # Metrics: O ionization, CO2 ionization, Ly-alpha VER,
+                    # and total projectile collision-energy transfer.
+                    surface_diagnostics[ilon, ilat, 1] += particle_rate *
+                        target_density[2] *
+                        sigma_at(model.cross_sections, charge, 2, 2, e)
+                    surface_diagnostics[ilon, ilat, 2] += particle_rate *
+                        target_density[1] *
+                        sigma_at(model.cross_sections, charge, 1, 2, e)
+                    lya_rate = 0.0
+                    energy_rate = 0.0
+                    for target in 1:3
+                        nt = target_density[target]
+                        lya_rate += nt * sigma_at(
+                            model.cross_sections, charge, target, 3, e,
+                        )
+                        for reaction in 1:3
+                            energy_rate += nt * sigma_at(
+                                model.cross_sections, charge, target,
+                                reaction, e,
+                            ) * model.cross_sections.loss[
+                                charge + 1, target, reaction
+                            ]
+                        end
+                        energy_rate += nt * sigma_at(
+                            model.cross_sections, charge, target, 4, e,
+                        ) * e * elastic_loss_fraction[charge + 1, target]
+                    end
+                    surface_diagnostics[ilon, ilat, 3] +=
+                        particle_rate * lya_rate
+                    surface_diagnostics[ilon, ilat, 4] +=
+                        particle_rate * energy_rate
+                end
+            end
         end
         x, y, z = xnew, ynew, znew
         elapsed_time += ds / speed
@@ -385,6 +447,24 @@ function run_particle_core(
     end
     collisions == cfg.max_collisions && (stop = 5)
     final_alt = sqrt(x*x+y*y+z*z)/1000 - MARS_RADIUS_KM
+    if !isnothing(thermalization_energy_map) && stop == 1 &&
+       thermalization_shell_edges_km[1] <= final_alt <
+       thermalization_shell_edges_km[2]
+        position = cartesian_to_lon_lat_alt(x, y, z)
+        longitude = mod(position.lon_deg + 180.0, 360.0) - 180.0
+        ilon = searchsortedlast(surface_longitude_edges_deg, longitude)
+        ilat = searchsortedlast(surface_latitude_edges_deg, position.lat_deg)
+        if 1 <= ilon < length(surface_longitude_edges_deg) &&
+           1 <= ilat < length(surface_latitude_edges_deg)
+            shell_thickness_m = 1000.0 * (
+                thermalization_shell_edges_km[2] -
+                thermalization_shell_edges_km[1]
+            )
+            thermalization_energy_map[ilon, ilat] +=
+                injection_flux_weight * energy(vx, vy, vz, charge) /
+                shell_thickness_m
+        end
+    end
     summary = ParticleSummary(energy(vx,vy,vz,charge), final_alt, steps, collisions,
                               counts[4], counts[2], counts[3], counts[1], stop)
     if record
