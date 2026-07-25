@@ -54,57 +54,58 @@ def main() -> None:
     weights = np.ravel(data["density_weight_m3"])
 
     fig = plt.figure(figsize=(7.2, 5.4), constrained_layout=True)
-    position_axis = fig.add_subplot(2, 2, 1, projection="3d")
+    position_axis = fig.add_subplot(2, 2, 1)
     velocity_axes = (
         fig.add_subplot(2, 2, 2),
         fig.add_subplot(2, 2, 3),
         fig.add_subplot(2, 2, 4),
     )
 
-    # Draw Mars at the origin and a deterministic subset of the 100,000
-    # injection positions on the 600 km dayside spherical surface.
+    # Project a deterministic subset of the initial positions into the
+    # cylindrical MSO X-R plane, where R = sqrt(Y^2 + Z^2). Coordinates are
+    # normalized by the Mars radius so both axes can use the requested
+    # 0 to 2 R_M range.
     mars_radius_km = 3388.25
-    theta = np.linspace(0.0, 2.0 * np.pi, 80)
-    polar = np.linspace(0.0, np.pi, 40)
-    sphere_x = mars_radius_km * np.outer(
-        np.cos(theta), np.sin(polar)
+    angle = np.linspace(0.0, 0.5 * np.pi, 500)
+    mars_x = np.cos(angle)
+    mars_r = np.sin(angle)
+    injection_radius_rm = (mars_radius_km + 600.0) / mars_radius_km
+    injection_x = injection_radius_rm * np.cos(angle)
+    injection_r = injection_radius_rm * np.sin(angle)
+    position_axis.fill_between(
+        mars_x, 0.0, mars_r, color="#C96D3B",
+        alpha=0.82, linewidth=0,
     )
-    sphere_y = mars_radius_km * np.outer(
-        np.sin(theta), np.sin(polar)
-    )
-    sphere_z = mars_radius_km * np.outer(
-        np.ones_like(theta), np.cos(polar)
-    )
-    position_axis.plot_surface(
-        sphere_x, sphere_y, sphere_z, color="#C96D3B",
-        alpha=0.82, linewidth=0, shade=True, rasterized=True,
+    position_axis.plot(mars_x, mars_r, color="#7A3827", linewidth=0.9)
+    position_axis.plot(
+        injection_x, injection_r, color="0.45", linewidth=0.8,
+        linestyle=(0, (3, 2)), label="600 km injection surface",
     )
     rng = np.random.default_rng(61)
     selected = rng.choice(position.shape[0], size=3000, replace=False)
+    x_rm = position[selected, 0] / mars_radius_km
+    r_rm = np.hypot(
+        position[selected, 1], position[selected, 2]
+    ) / mars_radius_km
     position_axis.scatter(
-        position[selected, 0], position[selected, 1], position[selected, 2],
-        s=1.0, color="#277DA1", alpha=0.28, depthshade=False,
-        rasterized=True, label="H$^+$ at 600 km",
+        x_rm, r_rm, s=2.0, color="#277DA1", alpha=0.35,
+        linewidths=0, rasterized=True, label="Sampled H$^+$",
     )
-    limit = mars_radius_km + 900.0
     position_axis.set(
-        xlim=(-limit, limit), ylim=(-limit, limit), zlim=(-limit, limit),
-        xlabel="MSO X (km)", ylabel="MSO Y (km)", zlabel="MSO Z (km)",
-        title="Initial positions on the dayside",
+        xlim=(0.0, 2.0), ylim=(0.0, 2.0),
+        xlabel=r"MSO X ($R_{\mathrm{M}}$)",
+        ylabel=r"$R=\sqrt{Y^2+Z^2}$ ($R_{\mathrm{M}}$)",
+        title="Initial positions in the X-R plane",
     )
-    position_axis.set_box_aspect((1, 1, 1))
-    # Look approximately from the Sun toward Mars so the selected dayside
-    # hemisphere and its 600 km stand-off from the planet are immediately
-    # visible.
-    position_axis.view_init(elev=18, azim=0)
+    position_axis.set_aspect("equal", adjustable="box")
+    position_axis.set_xticks((0.0, 0.5, 1.0, 1.5, 2.0))
+    position_axis.set_yticks((0.0, 0.5, 1.0, 1.5, 2.0))
     position_axis.legend(loc="upper left", fontsize=6.5)
-    position_axis.text2D(
-        0.69, 0.91, "Sunward\n+X", transform=position_axis.transAxes,
-        ha="center", va="center", color="#B8860B", fontweight="bold",
-    )
-    position_axis.quiver(
-        0, 0, 0, limit, 0, 0, color="#E3B341",
-        arrow_length_ratio=0.08, linewidth=1.2,
+    position_axis.annotate(
+        "Sunward +X",
+        xy=(1.88, 0.12), xytext=(1.25, 0.12),
+        arrowprops={"arrowstyle": "->", "color": "#B8860B", "lw": 1.0},
+        color="#B8860B", ha="left", va="center", fontsize=6.5,
     )
 
     labels = (r"$V_x$", r"$V_y$", r"$V_z$")
@@ -144,7 +145,7 @@ def main() -> None:
         )
         axis.legend(loc="upper left", fontsize=6.5)
 
-    position_axis.text2D(
+    position_axis.text(
         0.025, 0.975, "a", transform=position_axis.transAxes,
         ha="left", va="top", fontsize=8, fontweight="bold",
     )

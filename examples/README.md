@@ -262,8 +262,9 @@ julia --project=. -t auto examples/sample_dayside_injection_100000.jl
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_injection_100000.py examples/output/dayside_hplus_injection_100000.mat
 ```
 
-The resulting figure contains a three-dimensional Mars and injection-position
-view together with the MSO $V_x$, $V_y$, and $V_z$ distributions:
+The resulting figure contains an MSO X-R injection-position panel, with both
+axes spanning 0 to $2R_{\mathrm{M}}$, together with the MSO $V_x$, $V_y$, and
+$V_z$ distributions:
 
 `examples/figures/dayside_hplus_injection_100000_4panel.png`.
 
