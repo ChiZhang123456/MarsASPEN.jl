@@ -476,6 +476,28 @@ Output:
 
 `examples/figures/dayside_hplus_injection_100000_4panel.png`
 
+### Particle-motion animation in the MSO X-R plane
+
+The animation uses
+
+```math
+R=\sqrt{Y^2+Z^2}
+```
+
+and resamples every detailed trajectory at 0.1 s intervals. H+ and H ENA are
+shown with different colors, so charge exchange is visible during transport.
+The diagnostic uses 1,000 particles to keep individual positions readable and
+the detailed trajectory file manageable.
+
+```powershell
+julia --project=. -t auto examples/run_dayside_animation_1000.jl
+C:\Users\Win\.conda\envs\mars\python.exe examples/animate_dayside_particles_xr.py
+```
+
+Output:
+
+`examples/figures/dayside_particles_xr.gif`
+
 ### Longitude and latitude maps at 120 km
 
 ```powershell
