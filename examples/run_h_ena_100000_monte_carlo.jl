@@ -19,18 +19,27 @@
 #   A compact MAT file containing the sum of particle density weights in each
 #   altitude and energy bin. No path-length factor and no division by energy
 #   width are applied. Full trajectories are intentionally not saved.
+#
+# Array layout is altitude surface × energy bin × charge state. Charge index 1
+# is H ENA and index 2 is H+. Upward and downward crossings are combined, and
+# a returning particle can cross a surface more than once.
 
 using MarsASPEN
 using MAT
 using Printf
 
+# Resolve paths relative to the cloned repository.
 repo = normpath(joinpath(@__DIR__, ".."))
 output = length(ARGS) >= 1 ? ARGS[1] :
     joinpath(repo, "examples", "output", "h_ena_100000_monte_carlo.mat")
 
+# Assemble the solar-minimum atmosphere, hot O, collision cross sections,
+# reaction energy losses, and scattering-angle data.
 model = load_model(repo; solar="solar_min", ls=0)
 
 # Transport settings contain no source-density or macro-particle weighting.
+# State zero selects neutral H. The 10 eV temperature broadens velocities about
+# the 400 km/s bulk flow. The seed gives deterministic particle random streams.
 config = MonteCarloConfig(
     n_particles=100_000,
     initial_altitude_km=600.0,
@@ -40,7 +49,8 @@ config = MonteCarloConfig(
     seed=21,
 )
 
-# All importance-sampling and physical source information lives here.
+# The 50 eV sampling distribution improves tail statistics. The f/fs weight
+# restores the physical 10 eV source, and 1 cm^-3 is supplied as 1e6 m^-3.
 weighting = MonteCarloWeight(
     sampling_temperature_factor=5.0,
     source_number_density_m3=1.0e6,
@@ -55,6 +65,7 @@ altitude_centers_km = 0.5 .* (
 )
 energy_edges_ev = 10.0 .^ range(0.0, 4.0, length=101)
 
+# Compact mode retains only the histogram, not every particle event.
 elapsed = @elapsed result = run_density_crossing_ensemble(
     model, config;
     weighting=weighting,
@@ -62,6 +73,8 @@ elapsed = @elapsed result = run_density_crossing_ensemble(
     energy_edges_ev=energy_edges_ev,
 )
 
+# Store source metadata with the histogram so Python does not infer parameters
+# from the filename. The reader also corrects reversed MAT v7.3 dimensions.
 mkpath(dirname(abspath(output)))
 matwrite(output, Dict(
     "format_version" => "marsaspen_h_ena_weighted_example_v1",
@@ -86,6 +99,7 @@ matwrite(output, Dict(
     "density_weight_sum_m3" => result.density_weight_sum_m3,
 ))
 
+# Print performance and importance-weight convergence diagnostics.
 @printf("n_particles=%d\n", config.n_particles)
 @printf("elapsed_s=%.6f\n", elapsed)
 @printf("particles_per_s=%.3f\n", config.n_particles / elapsed)

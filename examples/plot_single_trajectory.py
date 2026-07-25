@@ -1,4 +1,11 @@
-"""Plot altitude, energy, charge state, speed, and reactions for one particle."""
+"""Plot altitude, energy, charge state, speed, and reactions for one particle.
+
+Julia saves both propagation rows and collision rows. ``event_type == 2``
+identifies collisions, while ``reaction_code`` distinguishes state change,
+target ionization, Ly-alpha production, and elastic scattering. Identical
+reaction colors are used in the altitude and energy panels so each event can
+be followed between physical quantities.
+"""
 
 from __future__ import annotations
 
@@ -18,6 +25,8 @@ from marsaspen_analysis.io import load_history_mat  # noqa: E402
 mpl.rcParams["font.family"] = "Arial"
 mpl.rcParams["mathtext.fontset"] = "dejavusans"
 
+# State change means H+ charge exchange or neutral-H stripping, depending on
+# the projectile charge before the collision.
 REACTION_LABELS = {
     1: "State change",
     2: "Ionization",
@@ -43,6 +52,8 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
 
+    # The loader supports classic MAT and HDF5-backed MAT v7.3. Event columns
+    # remain aligned row by row.
     data = load_history_mat(args.mat_file)
     time_s = vector(data, "time_s")
     altitude = vector(data, "altitude_km")
@@ -53,10 +64,12 @@ def main() -> None:
     vx = vector(data, "vx_m_s")
     vy = vector(data, "vy_m_s")
     vz = vector(data, "vz_m_s")
+    # Convert the SI velocity magnitude to km/s only for display.
     speed = np.sqrt(vx**2 + vy**2 + vz**2) / 1000
 
     initial_charge = int(vector(data, "config_initial_charge_state")[0])
     species = r"H$^+$" if initial_charge == 1 else "H ENA"
+    # Propagation rows draw the tracks. Only collision rows receive markers.
     collision = event_type == 2
 
     fig, axes = plt.subplots(
@@ -67,6 +80,7 @@ def main() -> None:
     axes[2].step(time_s, charge, where="post", color="#9467bd", lw=1.2)
     axes[3].plot(time_s, speed, color="#8c564b", lw=1.2)
 
+    # Elastic collisions are often numerous, so their markers are smaller.
     for code, label in REACTION_LABELS.items():
         mask = collision & (reaction == code)
         if not np.any(mask):

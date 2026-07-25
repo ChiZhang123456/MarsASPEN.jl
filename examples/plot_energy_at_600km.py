@@ -1,4 +1,11 @@
-"""Diagnose the weighted particle energy distribution just below 600 km."""
+"""Diagnose the weighted particle energy distribution just below 600 km.
+
+The simulated top-layer histogram is compared with the analytical energy
+distribution of a three-dimensional drifting Maxwellian. This separates
+source-sampling errors from transport effects. Because the saved crossing
+histogram combines directions, returned particles may add a low-energy tail
+that is absent from the purely downward analytical source.
+"""
 
 from __future__ import annotations
 
@@ -31,6 +38,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
 
+    # Load grid edges and normalize the array orientation used by MAT v7.3.
     data = load_history_mat(args.mat_file)
     altitude_edges = vector(data, "altitude_edges_km")
     energy_edges = vector(data, "energy_edges_ev")
@@ -49,6 +57,7 @@ def main() -> None:
     h_ena = histogram[altitude_index, :, 0]
     hplus = histogram[altitude_index, :, 1]
 
+    # These metadata values completely define the analytical source curve.
     temperature_ev = float(vector(data, "physical_temperature_ev"))
     source_density = float(vector(data, "source_number_density_m3"))
     speed = np.linalg.norm(vector(data, "initial_bulk_velocity_m_s"))
@@ -66,6 +75,7 @@ def main() -> None:
         ncx2.cdf(scaled_edges, df=3, nc=noncentrality)
     )
 
+    # Geometric centers are appropriate for logarithmic energy bins.
     centers = np.sqrt(energy_edges[:-1] * energy_edges[1:])
     fig, axis = plt.subplots(figsize=(9, 5.8), constrained_layout=True)
     axis.step(

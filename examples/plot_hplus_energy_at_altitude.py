@@ -4,6 +4,9 @@ This diagnostic reads the compact altitude-energy MAT output produced by
 ``run_h_ena_100000_monte_carlo.jl``. The plotted quantity is the direct sum of
 particle density weights, evaluated in the one-kilometer altitude bin
 containing the requested altitude.
+
+Native logarithmic bins and a rebinned curve are both shown. Rebinning changes
+only this diagnostic display. It does not rerun transport or modify MAT data.
 """
 
 from __future__ import annotations
@@ -43,6 +46,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
 
+    # Read grid edges and the altitude × energy × charge histogram.
     data = load_history_mat(args.mat_file)
     altitude_edges = vector(data, "altitude_edges_km")
     energy_edges = vector(data, "energy_edges_ev")
@@ -53,6 +57,7 @@ def main() -> None:
         energy_edges.size - 1,
         2,
     )
+    # h5py exposes Julia array dimensions in reverse order for MAT v7.3.
     if density_weight_sum.shape == expected_shape[::-1]:
         density_weight_sum = density_weight_sum.transpose(2, 1, 0)
     if density_weight_sum.shape != expected_shape:
@@ -61,6 +66,7 @@ def main() -> None:
             f"expected {expected_shape}."
         )
 
+    # Locate the one-kilometer layer containing the requested altitude.
     altitude_index = np.searchsorted(
         altitude_edges, args.altitude, side="right"
     ) - 1
@@ -74,6 +80,8 @@ def main() -> None:
     if not np.any(positive):
         raise ValueError("No H+ contribution exists in the selected altitude bin.")
 
+    # Sum neighboring bins because the saved value is integrated per energy
+    # bin, not divided by the bin width.
     if args.rebin < 1:
         raise ValueError("--rebin must be at least one.")
     usable_bins = distribution.size // args.rebin * args.rebin

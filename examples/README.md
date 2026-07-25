@@ -1,7 +1,10 @@
 # MarsASPEN examples
 
-This folder contains two single-particle diagnostics and one weighted
-100,000-particle Monte Carlo example. Run all commands from the repository root.
+This folder contains two single-particle diagnostics and two weighted
+100,000-particle Monte Carlo examples. Run all commands from the repository
+root. The source files contain detailed comments describing physical units,
+charge-state conventions, importance sampling, histogram dimensions, MAT
+fields, and limitations of the crossing-weight estimator.
 
 ## 1. Single neutral H ENA
 
@@ -49,6 +52,26 @@ stripping. It does not multiply by path length or divide by energy-bin width.
 A rendered reference figure is stored at
 `examples/figures/h_ena_100000_altitude_energy.png`.
 
+## 4. Weighted Monte Carlo example with 100,000 H+ particles
+
+This case injects 100,000 solar-wind protons at 600 km with a bulk velocity of
+`[-400, 0, 0]` km/s, physical temperature 10 eV, and physical density
+5 cm^-3. The importance sampler again uses 50 eV, and the f/fs correction
+restores the requested 10 eV distribution. Charge exchange produces the H ENA
+population shown in the left panel.
+
+```powershell
+julia --project=. -t auto examples/run_hplus_100000_monte_carlo.jl
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_h_ena_100000_monte_carlo.py examples/output/hplus_100000_monte_carlo.mat --output examples/figures/hplus_100000_altitude_energy.png
+```
+
+The plotting script reads `initial_species`, source density, temperature,
+altitude, speed, and particle count from the MAT file, so the title is not
+hard-coded for the neutral example. For the proton-source figure, the H ENA
+color range is 1e1 to 1e6 m^-3 and the dominant H+ range is 1e1 to 1e7 m^-3.
+A rendered reference figure is stored at
+`examples/figures/hplus_100000_altitude_energy.png`.
+
 To inspect the H+ energy distribution at 550 km separately:
 
 ```powershell
@@ -67,8 +90,8 @@ density-weight histogram combines downward and upward crossings, so returned
 particles can produce a low-energy tail even this close to the injection
 boundary.
 
-The diagnostic shows both the native 5 eV bins and a less noisy 25 eV
-rebinned curve.
+The one-altitude diagnostic shows all native logarithmic bins and can combine
+neighboring bins with its `--rebin` option to reduce Monte Carlo noise.
 
 The Julia code keeps transport settings and source weights separate:
 
@@ -84,8 +107,11 @@ weighting = MonteCarloWeight(
     source_number_density_m3=1.0e6,
 )
 
-result = run_phase_space_ensemble(
-    model, config; weighting=weighting,
+result = run_density_crossing_ensemble(
+    model, config;
+    weighting=weighting,
+    altitude_surfaces_km=altitude_centers_km,
+    energy_edges_ev=energy_edges_ev,
 )
 ```
 

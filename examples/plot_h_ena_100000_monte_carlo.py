@@ -1,8 +1,15 @@
-"""Plot the density-weight altitude-energy distribution from 100,000 H ENAs.
+"""Plot a 100,000-particle density-weight altitude-energy distribution.
 
 Each color bin is the direct sum of particle density weights for crossings in
 that altitude and energy bin. No path length or energy-width normalization is
-applied. H+ appears when neutral H ENA undergoes electron stripping.
+applied. The reader accepts either the initially neutral H ENA example or the
+initially ionized H+ example and constructs the title and color limits from the
+metadata stored by Julia.
+
+Important interpretation: the current histogram combines upward and downward
+crossings. A particle that returns through the same altitude is counted again.
+Consequently, the plotted quantity is useful for comparing the simulated
+populations, but it is not a unique-particle count or a local density estimate.
 """
 
 from __future__ import annotations
@@ -31,9 +38,19 @@ def one_dimensional(data: dict[str, np.ndarray], key: str) -> np.ndarray:
     return np.asarray(data[key], dtype=float).squeeze()
 
 
+def matlab_string(data: dict[str, np.ndarray], key: str) -> str:
+    """Decode a string written by MAT.jl in either MAT or MAT v7.3 format."""
+    value = np.asarray(data[key]).squeeze()
+    if value.dtype.kind in "US":
+        return "".join(value.reshape(-1).astype(str))
+    if value.dtype.kind in "ui":
+        return "".join(chr(int(code)) for code in value.reshape(-1) if code)
+    return str(value)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Plot the weighted 100,000-particle H ENA example."
+        description="Plot a weighted MarsASPEN altitude-energy MAT output."
     )
     parser.add_argument("mat_file", type=Path)
     parser.add_argument("--output", type=Path, default=None)
@@ -60,16 +77,28 @@ def main() -> None:
             f"{density_weight_sum.shape}, expected {expected_shape}."
         )
 
-    # A shared logarithmic color scale makes the H ENA and H+ panels directly
-    # comparable. Empty bins are masked rather than assigned an artificial
-    # floor.
+    # Positive values are required by LogNorm. Empty bins are masked below
+    # rather than replaced with a small artificial number.
     if not np.any(density_weight_sum > 0):
         raise ValueError("The MAT file contains no positive weighted bins.")
-    # Use separate physical display ranges because the H+ population is much
-    # smaller than the initially injected neutral H ENA population.
+
+    # Read the physical source metadata rather than hard-coding a title. For
+    # the H ENA source, the requested display ranges remain 1e1 to 1e6 m^-3
+    # for H ENA and 1e1 to 1e5 m^-3 for the smaller H+ product. For the 5 cm^-3
+    # proton source, H+ is the dominant population, so its upper limit is
+    # raised to 1e7 m^-3 while H ENA retains the 1e6 m^-3 limit.
+    initial_species = matlab_string(data, "initial_species")
+    n_particles = int(one_dimensional(data, "n_particles"))
+    initial_altitude = float(one_dimensional(data, "initial_altitude_km"))
+    temperature = float(one_dimensional(data, "physical_temperature_ev"))
+    source_density = float(one_dimensional(data, "source_number_density_m3"))
+    bulk_speed = np.linalg.norm(
+        one_dimensional(data, "initial_bulk_velocity_m_s")
+    ) / 1000.0
+    initially_ionized = "plus" in initial_species.lower()
     color_norms = (
         LogNorm(vmin=1.0e1, vmax=1.0e6, clip=True),
-        LogNorm(vmin=1.0e1, vmax=1.0e5, clip=True),
+        LogNorm(vmin=1.0e1, vmax=1.0e7 if initially_ionized else 1.0e5, clip=True),
     )
 
     fig, axes = plt.subplots(
@@ -80,6 +109,8 @@ def main() -> None:
     for charge_index, (axis, species, color_norm) in enumerate(
         zip(axes, species_names, color_norms)
     ):
+        # Charge index zero is neutral H ENA and index one is H+. Masking zeros
+        # keeps genuinely empty regions white on the logarithmic color scale.
         values = np.ma.masked_less_equal(
             density_weight_sum[:, :, charge_index], 0
         )
@@ -101,9 +132,11 @@ def main() -> None:
         colorbar.set_label(r"Sum of particle density weights (m$^{-3}$)")
 
     axes[0].set_ylabel("Altitude (km)")
+    source_label = r"H$^+$" if initially_ionized else "H ENA"
     fig.suptitle(
-        "100,000 H ENA particles, 600 km, 400 km/s, "
-        r"$T=10$ eV, $n=1$ cm$^{-3}$"
+        f"{n_particles:,} {source_label} particles, "
+        f"{initial_altitude:g} km, {bulk_speed:g} km/s, "
+        rf"$T={temperature:g}$ eV, $n={source_density / 1.0e6:g}$ cm$^{{-3}}$"
     )
 
     output = args.output or args.mat_file.with_suffix(".png")
