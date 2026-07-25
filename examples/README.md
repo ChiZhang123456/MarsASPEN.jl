@@ -88,8 +88,10 @@ used in SI collision rates.
 
 ## 5. Collision probability for a 1000 eV projectile
 
-The following example evaluates collision probability every 1 km for a
-1000 eV projectile moving downward through each atmosphere case:
+The following example selects the representative atmosphere case
+\(L_s=0^\circ\), F10.7 = 130 at longitude and latitude zero. It combines
+the neutral atmosphere, local collision probability every 1 km, and
+cumulative collision probability into one three-panel figure:
 
 ```powershell
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_1000ev_collision_probability.py
@@ -104,7 +106,9 @@ The local collision coefficient is
 ```
 
 where \(n_j\) is in m\(^{-3}\), \(\sigma_{j,k}\) is in m\(^{2}\), and
-\(\alpha\) is in m\(^{-1}\). For a path length \(\Delta s\),
+\(\alpha\) is in m\(^{-1}\). The targets included in the collision sum are
+CO2, total O, and N2. Total O is MGITM cold O plus MAMPS hot O. For a path
+length \(\Delta s=1\) km,
 
 ```math
 P_{\mathrm{local}}
@@ -120,10 +124,9 @@ The cumulative optical depth and collision probability are
 P_{\mathrm{cum}}=1-\exp[-\tau(z)].
 ```
 
-The two PNG files are:
+The PNG is:
 
-* `examples/figures/collision_probability_1000ev_local.png`
-* `examples/figures/collision_probability_1000ev_cumulative.png`
+`examples/figures/collision_probability_1000ev_3panel.png`.
 
 ## 6. Uniform dayside injection at 600 km
 

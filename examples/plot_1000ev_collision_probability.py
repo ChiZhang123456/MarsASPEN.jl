@@ -145,8 +145,10 @@ def total_cross_section(projectile: str, target: str) -> float:
     return sigma_cm2 * 1.0e-4
 
 
-def collision_profiles(ls: int, f107: int) -> tuple[np.ndarray, np.ndarray]:
-    """Return local and cumulative probabilities for H ENA and H+."""
+def collision_profiles(
+    ls: int, f107: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Return neutral densities and H/H+ collision probabilities."""
     altitude = np.arange(80.0, 1001.0, 1.0)
     suffix = f"ls{ls:03d}_f{f107:03d}.mat"
     gitm = loadmat(ATMOSPHERE / f"gitm_{suffix}", squeeze_me=True)
@@ -179,70 +181,80 @@ def collision_profiles(ls: int, f107: int) -> tuple[np.ndarray, np.ndarray]:
     # reversing again gives the optical depth above every altitude center.
     tau = np.cumsum((alpha[:, ::-1] * 1000.0), axis=1)[:, ::-1]
     cumulative = 1.0 - np.exp(-tau)
-    return local, cumulative
+    return np.asarray(densities), local, cumulative
 
 
-def plot_grid(values_by_case: dict, cumulative: bool, output: Path) -> None:
-    """Draw one 4 by 3 seasonal and solar-activity comparison."""
+def plot_selected_case(
+    ls: int,
+    f107: int,
+    output: Path,
+) -> None:
+    """Draw atmosphere, local probability, and cumulative probability."""
     altitude = np.arange(80.0, 1001.0, 1.0)
+    densities, local, cumulative = collision_profiles(ls, f107)
     fig, axes = plt.subplots(
-        4, 3, figsize=(7.2, 8.5), sharex=True, sharey=True,
+        1, 3, figsize=(7.2, 3.0), sharey=True, constrained_layout=True,
     )
-    fig.subplots_adjust(
-        left=0.08, right=0.99, bottom=0.06, top=0.90,
-        wspace=0.11, hspace=0.18,
+    density_styles = (
+        (0, r"CO$_2$", "#8172B2", "-"),
+        (1, "Total O", "#2CA02C", "-"),
+        (2, r"N$_2$", "0.35", "--"),
     )
-    for row, ls in enumerate(LS_VALUES):
-        for col, f107 in enumerate(F107_VALUES):
-            axis = axes[row, col]
-            values = values_by_case[(ls, f107)][1 if cumulative else 0]
-            for index, (_, label, color) in enumerate(PROJECTILES):
-                axis.plot(
-                    values[index], altitude, color=color, lw=1.1, label=label
-                )
-            if cumulative:
-                axis.set_xlim(0, 1)
-            else:
-                axis.set_xscale("log")
-                axis.set_xlim(1.0e-10, 1)
-            axis.set_ylim(80, 1000)
-            axis.grid(True, which="major", color="0.90", lw=0.5)
-            axis.set_title(rf"$L_s={ls}^\circ$, F10.7={f107}")
-            axis.text(
-                0.02, 0.97, chr(ord("a") + row * 3 + col),
-                transform=axis.transAxes, ha="left", va="top",
-                fontweight="bold", fontsize=8,
-            )
-
-    xlabel = (
-        "Cumulative collision probability from 1000 km"
-        if cumulative else "Local collision probability per 1 km"
-    )
-    for axis in axes[-1, :]:
-        axis.set_xlabel(xlabel)
-    for axis in axes[:, 0]:
-        axis.set_ylabel("Altitude (km)")
-    axes[0, 0].legend(ncol=2, fontsize=6, loc="lower left")
-    if cumulative:
-        formula = (
-            r"$\tau(z)=\int_z^{1000\,\mathrm{km}}\alpha(s)\,\mathrm{d}s,"
-            r"\qquad P_{\mathrm{cum}}(z)=1-\exp[-\tau(z)]$"
+    for index, label, color, linestyle in density_styles:
+        axes[0].plot(
+            densities[index], altitude, color=color, lw=1.2,
+            ls=linestyle, label=label,
         )
-    else:
-        formula = (
-            r"$\alpha(z,E)=\sum_j n_j(z)\sum_k\sigma_{j,k}(E),"
-            r"\qquad P_{\mathrm{local}}(z)=1-\exp[-\alpha(z,E)\Delta s],"
-            r"\quad \Delta s=1\,\mathrm{km}$"
+    axes[0].set_xscale("log")
+    axes[0].set_xlim(1.0e0, 1.0e18)
+    axes[0].set_xlabel(r"Neutral number density (m$^{-3}$)")
+    axes[0].set_title("Neutral atmosphere")
+    axes[0].legend(ncol=1, fontsize=6.5, loc="upper left")
+
+    for projectile_index, (_, label, color) in enumerate(PROJECTILES):
+        axes[1].plot(
+            local[projectile_index], altitude,
+            color=color, lw=1.2, label=label,
+        )
+        axes[2].plot(
+            cumulative[projectile_index], altitude,
+            color=color, lw=1.2, label=label,
+        )
+    axes[1].set_xscale("log")
+    axes[1].set_xlim(1.0e-10, 1)
+    axes[1].set_xlabel("Local collision probability per 1 km")
+    axes[1].set_title(
+        r"$\alpha(z,E)=\sum_j n_j(z)\sum_k\sigma_{j,k}(E)$"
+        "\n"
+        r"$P_{\mathrm{local}}(z)=1-\exp[-\alpha(z,E)\Delta s],"
+        r"\ \Delta s=1\,\mathrm{km}$",
+        fontsize=7.2,
+    )
+    axes[1].legend(ncol=2, fontsize=6.5, loc="upper left")
+
+    axes[2].set_xlim(0, 1)
+    axes[2].set_xlabel("Cumulative collision probability from 1000 km")
+    axes[2].set_title(
+        r"$\tau(z)=\int_z^{1000\,\mathrm{km}}\alpha(s)\,\mathrm{d}s$"
+        "\n"
+        r"$P_{\mathrm{cum}}(z)=1-\exp[-\tau(z)]$",
+        fontsize=7.2,
+    )
+
+    axes[0].set_ylabel("Altitude (km)")
+    for panel, axis in enumerate(axes):
+        axis.set_ylim(100, 1000)
+        axis.grid(True, which="major", color="0.90", lw=0.5)
+        axis.text(
+            0.02, 0.97, chr(ord("a") + panel),
+            transform=axis.transAxes, ha="left", va="top",
+            fontweight="bold", fontsize=8,
         )
     fig.suptitle(
-        rf"Fixed {ENERGY_EV:.0f} eV projectile at "
+        rf"Fixed {ENERGY_EV:.0f} eV projectiles, "
+        rf"$L_s={ls}^\circ$, F10.7 = {f107}, "
         r"lon=$0^\circ$, lat=$0^\circ$",
         fontsize=8.5,
-        y=0.985,
-    )
-    fig.text(
-        0.5, 0.955, formula,
-        ha="center", va="top", fontsize=8.5,
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=600, bbox_inches="tight", pad_inches=0.12)
@@ -251,15 +263,10 @@ def plot_grid(values_by_case: dict, cumulative: bool, output: Path) -> None:
 
 
 def main() -> None:
-    values = {
-        (ls, f107): collision_profiles(ls, f107)
-        for ls in LS_VALUES for f107 in F107_VALUES
-    }
-    plot_grid(
-        values, False, FIGURES / "collision_probability_1000ev_local.png"
-    )
-    plot_grid(
-        values, True, FIGURES / "collision_probability_1000ev_cumulative.png"
+    plot_selected_case(
+        ls=0,
+        f107=130,
+        output=FIGURES / "collision_probability_1000ev_3panel.png",
     )
 
 
