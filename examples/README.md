@@ -495,6 +495,13 @@ Rows are H ENA source and H+ source. Columns are VER, radiative energy rate,
 and optically thin limb brightness from 100 to 400 km. The PNG is stored at
 `examples/figures/h_ena_hplus_lya_profiles_6panel.png`.
 
+The same command also writes separate source-profile figures to
+`examples/figures/h_ena_lya_profiles_3panel.png` and
+`examples/figures/hplus_lya_profiles_3panel.png`. All three figures use the
+same fixed logarithmic horizontal ranges for direct comparison: VER from
+`1e2` to `1e9 photons m^-3 s^-1`, radiative energy rate from `1e-16` to
+`1e-8 W m^-3`, and limb brightness from `1e-2` to `1e5 R`.
+
 To inspect the H+ energy distribution at 550 km separately:
 
 ```powershell
