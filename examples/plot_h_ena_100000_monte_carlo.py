@@ -1,4 +1,4 @@
-"""Plot the weighted altitude-energy distribution from the 1,000 H ENA run.
+"""Plot the weighted altitude-energy distribution from the 100,000 H ENA run.
 
 The Julia example stores density-weighted track length in each altitude,
 energy, and charge-state bin. This script plots H ENA and H+ separately. H+
@@ -33,7 +33,7 @@ def one_dimensional(data: dict[str, np.ndarray], key: str) -> np.ndarray:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Plot the weighted 1,000-particle H ENA example."
+        description="Plot the weighted 100,000-particle H ENA example."
     )
     parser.add_argument("mat_file", type=Path)
     parser.add_argument("--output", type=Path, default=None)
@@ -83,7 +83,7 @@ def main() -> None:
             altitude_edges,
             values,
             shading="auto",
-            cmap="viridis",
+            cmap="turbo",
             norm=color_norm,
         )
         axis.set_title(species)
@@ -96,7 +96,7 @@ def main() -> None:
     colorbar = fig.colorbar(image, ax=axes, pad=0.02)
     colorbar.set_label(r"Density-weighted track length (m$^{-2}$)")
     fig.suptitle(
-        "1,000 H ENA particles, 600 km, 400 km/s, "
+        "100,000 H ENA particles, 600 km, 400 km/s, "
         r"$T=10$ eV, $n=1$ cm$^{-3}$"
     )
 

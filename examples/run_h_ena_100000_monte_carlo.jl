@@ -1,7 +1,7 @@
-# Weighted Monte Carlo example for 1,000 precipitating H ENA particles.
+# Weighted Monte Carlo example for 100,000 precipitating H ENA particles.
 #
 # Run from the repository root:
-#   julia --project=. -t auto examples/run_h_ena_1000_monte_carlo.jl
+#   julia --project=. -t auto examples/run_h_ena_100000_monte_carlo.jl
 #
 # Physical source:
 #   initial altitude       600 km
@@ -26,13 +26,13 @@ using Printf
 
 repo = normpath(joinpath(@__DIR__, ".."))
 output = length(ARGS) >= 1 ? ARGS[1] :
-    joinpath(repo, "examples", "output", "h_ena_1000_monte_carlo.mat")
+    joinpath(repo, "examples", "output", "h_ena_100000_monte_carlo.mat")
 
 model = load_model(repo; solar="solar_min", ls=0)
 
 # Transport settings contain no source-density or macro-particle weighting.
 config = MonteCarloConfig(
-    n_particles=1000,
+    n_particles=100_000,
     initial_altitude_km=600.0,
     initial_speed_m_s=400_000.0,
     initial_charge_state=0,
@@ -47,7 +47,7 @@ weighting = MonteCarloWeight(
 )
 
 # One-kilometer altitude bins and 5 eV energy bins provide a detailed but
-# compact diagnostic for this small example.
+# compact diagnostic for this 100,000-particle example.
 altitude_edges_km = collect(80.0:1.0:600.0)
 energy_edges_ev = collect(10.0:5.0:1200.0)
 

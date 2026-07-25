@@ -1,7 +1,7 @@
 # MarsASPEN examples
 
 This folder contains two single-particle diagnostics and one weighted
-1,000-particle Monte Carlo example. Run all commands from the repository root.
+100,000-particle Monte Carlo example. Run all commands from the repository root.
 
 ## 1. Single neutral H ENA
 
@@ -29,16 +29,16 @@ Both single-particle figures contain altitude with reaction markers, energy,
 charge state, and speed versus time. Reaction colors are shared between the
 altitude and energy panels.
 
-## 3. Weighted Monte Carlo example with 1,000 H ENA particles
+## 3. Weighted Monte Carlo example with 100,000 H ENA particles
 
-This example injects 1,000 H ENA particles at 600 km with bulk velocity
+This example injects 100,000 H ENA particles at 600 km with bulk velocity
 `[-400, 0, 0]` km/s, physical temperature 10 eV, and source density 1 cm^-3.
 It samples a broader 50 eV distribution and applies the importance weight
 `f/fs` to every particle.
 
 ```powershell
-julia --project=. -t auto examples/run_h_ena_1000_monte_carlo.jl
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_h_ena_1000_monte_carlo.py examples/output/h_ena_1000_monte_carlo.mat
+julia --project=. -t auto examples/run_h_ena_100000_monte_carlo.jl
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_h_ena_100000_monte_carlo.py examples/output/h_ena_100000_monte_carlo.mat
 ```
 
 The resulting figure shows density-weighted track length versus altitude and
@@ -48,7 +48,7 @@ The Julia code keeps transport settings and source weights separate:
 
 ```julia
 config = MonteCarloConfig(
-    n_particles=1000,
+    n_particles=100_000,
     initial_speed_m_s=400_000.0,
     initial_charge_state=0,
     initial_temperature_ev=10.0,

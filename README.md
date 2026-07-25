@@ -54,7 +54,7 @@ analysis program is available in [`docs/CODE_GUIDE_ZH.md`](docs/CODE_GUIDE_ZH.md
 ## Single-particle examples
 
 The [`examples/`](examples/) directory contains reproducible 400 km/s H ENA and
-H+ trajectories, plus a weighted 1,000-particle H ENA Monte Carlo example.
+H+ trajectories, plus a weighted 100,000-particle H ENA Monte Carlo example.
 The single-particle cases save detailed state, energy, velocity, and collision
 history, then the shared Python program marks reaction locations:
 
@@ -65,11 +65,11 @@ C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py exam
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py examples/output/single_hplus_400kms.mat
 ```
 
-Run and plot the weighted 1,000-particle example with:
+Run and plot the weighted 100,000-particle example with:
 
 ```powershell
-julia --project=. -t auto examples/run_h_ena_1000_monte_carlo.jl
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_h_ena_1000_monte_carlo.py examples/output/h_ena_1000_monte_carlo.mat
+julia --project=. -t auto examples/run_h_ena_100000_monte_carlo.jl
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_h_ena_100000_monte_carlo.py examples/output/h_ena_100000_monte_carlo.mat
 ```
 
 ## Neutral atmosphere
