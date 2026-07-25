@@ -11,6 +11,11 @@ from .ionization_rate import (
     ionization_rate_from_components,
     ionization_rate_from_mat,
 )
+from .lya import (
+    lya_profiles_from_mat,
+    optically_thin_limb_brightness_rayleigh,
+    shell_edges_from_centers,
+)
 
 __all__ = [
     "load_history_mat",
@@ -23,4 +28,7 @@ __all__ = [
     "radial_flux_profiles",
     "ionization_rate_from_components",
     "ionization_rate_from_mat",
+    "lya_profiles_from_mat",
+    "optically_thin_limb_brightness_rayleigh",
+    "shell_edges_from_centers",
 ]

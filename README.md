@@ -214,4 +214,9 @@ outward, and net downward profiles for H ENA and H+.
 `ionization_rate_from_mat` reads the charge-resolved target-ionization
 crossing estimator and returns rates in `m^-3 s^-1`.
 
+`run_lya_volume_emission_ensemble` calculates target-resolved H Ly-alpha
+volume emission in `photons m^-3 s^-1` and radiative energy in `W m^-3`.
+The Python `lya_profiles_from_mat` analysis also calculates an optically thin,
+spherically symmetric limb profile in Rayleigh.
+
 All non-mathematical figure text uses Arial.

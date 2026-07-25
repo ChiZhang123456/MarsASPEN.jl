@@ -103,6 +103,32 @@ end
           2 .* result.ionization_rate_m3_s1
 end
 
+@testset "Ly-alpha volume emission estimator" begin
+    cfg = MonteCarloConfig(
+        n_particles=32,
+        initial_charge_state=0,
+        initial_temperature_ev=0.0,
+        initial_speed_m_s=400_000.0,
+        seed=34,
+        include_hot_o=true,
+    )
+    surfaces = [200.5, 400.5, 599.5]
+    result = run_lya_volume_emission_ensemble(
+        MODEL, cfg;
+        weighting=MonteCarloWeight(source_number_density_m3=5.0e6),
+        altitude_surfaces_km=surfaces,
+    )
+    @test size(result.volume_emission_rate_photons_m3_s1) == (3, 2, 3, 2)
+    @test all(result.volume_emission_rate_photons_m3_s1 .>= 0)
+    @test result.total_volume_emission_rate_photons_m3_s1 ≈
+          vec(sum(result.volume_emission_rate_photons_m3_s1; dims=(2, 3, 4)))
+    @test result.total_radiative_energy_rate_w_m3 ≈
+          result.total_volume_emission_rate_photons_m3_s1 .*
+          result.photon_energy_j
+    @test result.photon_energy_j ≈
+          6.62607015e-34 * 299_792_458.0 / 121.567e-9 rtol=1e-15
+end
+
 @testset "Python primitive parity" begin
     expected_density = (
         120.0 => (1.2113975782367725e17, 1.9307346587029375e15, 4.212254955721069e15),

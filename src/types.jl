@@ -24,6 +24,9 @@ const ATMOSPHERE_MASS = (
 )
 const ATMOSPHERE_SPECIES = (:CO2, :O, :O2, :N2, :CO)
 const KB = 1.380649e-23
+const PLANCK_J_S = 6.62607015e-34
+const LIGHT_SPEED_M_S = 299_792_458.0
+const LYA_WAVELENGTH_M = 121.567e-9
 const MARS_G0 = 3.71
 const REACTION_NAMES = (:state_change, :ionization, :lya, :elastic)
 const MODEL_MIN_ALTITUDE_KM = 80.0

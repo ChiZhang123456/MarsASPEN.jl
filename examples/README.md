@@ -433,6 +433,68 @@ C:\Users\Win\.conda\envs\mars\python.exe examples/plot_combined_ionization_rates
 The combined PNG is stored at
 `examples/figures/oxygen_co2_ionization_rate_4panel.png`.
 
+## 10. H Ly-alpha volume emission and limb brightness
+
+The Ly-alpha production example evaluates the effective `sigma_La(E)` cross
+sections for H ENA and H+ impacts on CO2, O, and N2. At every altitude
+crossing it calculates the local total speed and energy. The target-resolved
+volume emission rates are summed to give
+
+```math
+\epsilon_{\mathrm{Ly}\alpha}(z)
+=
+\sum_j n_j(z)
+\left[
+\sum_{i\in\mathrm{H\ ENA}}
+W_{n,i}v_i\sigma_{\mathrm{H},j,\mathrm{Ly}\alpha}(E_i)
++
+\sum_{p\in\mathrm{H^+}}
+W_{n,p}v_p\sigma_{\mathrm{H^+},j,\mathrm{Ly}\alpha}(E_p)
+\right].
+```
+
+The VER unit is `photons m^-3 s^-1`. The effective cross section is assumed
+to include the Ly-alpha photon yield. The radiative energy source is
+
+```math
+P_{\mathrm{Ly}\alpha}
+=
+\epsilon_{\mathrm{Ly}\alpha}
+\frac{hc}{\lambda_{\mathrm{Ly}\alpha}},
+\qquad
+\lambda_{\mathrm{Ly}\alpha}=121.567~\mathrm{nm},
+```
+
+in `W m^-3`. This is radiative energy, not local thermal heating.
+
+The Python analysis treats the one-dimensional VER as spherically symmetric
+and integrates exact path lengths through piecewise-constant spherical shells.
+The optically thin limb brightness is
+
+```math
+B_{\mathrm{Ly}\alpha}(h_{\mathrm{tan}})[\mathrm R]
+=
+10^{-10}
+\int_{\mathrm{LOS}}
+\epsilon_{\mathrm{Ly}\alpha}(s)\,ds.
+```
+
+The current Rayleigh profile does not include CO2 absorption or H Ly-alpha
+resonant scattering and should therefore be interpreted as an optically thin
+model estimate.
+
+Run both 100,000-particle source cases and make the combined 2 by 3 PNG:
+
+```powershell
+julia --project=. -t auto examples/run_lya_volume_emission.jl h_ena
+julia --project=. -t auto examples/run_lya_volume_emission.jl hplus
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_lya_profiles.py examples/output/h_ena_100000_lya_volume_emission.mat examples/output/hplus_100000_lya_volume_emission.mat
+```
+
+Rows are H ENA source and H+ source. Columns are VER, radiative energy rate,
+and optically thin limb brightness from 100 to 400 km. The PNG is stored at
+`examples/figures/h_ena_hplus_lya_profiles_6panel.png`.
+
 To inspect the H+ energy distribution at 550 km separately:
 
 ```powershell

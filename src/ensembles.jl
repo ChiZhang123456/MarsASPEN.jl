@@ -320,6 +320,90 @@ function run_target_ionization_rate_ensemble(
 end
 
 """
+Estimate H Ly-alpha volume emission and radiative-energy profiles.
+
+At every spherical altitude crossing, the transport kernel evaluates the
+local total projectile speed and energy, then accumulates
+
+`Wn * speed * sigma_Lya(E)`
+
+by projectile charge state, target species, and direction. The effective
+Ly-alpha production cross section is reaction channel 3. Multiplication by
+the local CO2, O, or N2 density gives photons m^-3 s^-1, assuming the effective
+cross section already includes the photon yield.
+
+O density includes MAMPS hot O when `cfg.include_hot_o=true`. The radiative
+energy rate multiplies the photon rate by `h*c/lambda` at 121.567 nm. It is a
+radiative source term, not a local thermal-heating rate.
+"""
+function run_lya_volume_emission_ensemble(
+    model::AspenModel,
+    cfg::MonteCarloConfig;
+    weighting::MonteCarloWeight=MonteCarloWeight(),
+    altitude_surfaces_km::AbstractVector{<:Real}=collect(80.5:1.0:599.5),
+    density_lon_deg::Real=0.0,
+    density_lat_deg::Real=0.0,
+)
+    altitude_surfaces = Float64.(altitude_surfaces_km)
+    length(altitude_surfaces) >= 1 ||
+        throw(ArgumentError("at least one altitude surface is required"))
+    all(diff(altitude_surfaces) .> 0) ||
+        throw(ArgumentError("altitude_surfaces_km must increase"))
+
+    thread_coefficients = [
+        zeros(Float64, length(altitude_surfaces), 2, 3, 2)
+        for _ in 1:Base.Threads.maxthreadid()
+    ]
+    total_importance_weight = initial_importance_weight_sum(cfg, weighting)
+    @threads for particle_id in 1:cfg.n_particles
+        tid = threadid()
+        run_particle_core(
+            model, cfg, particle_id, false;
+            flux_altitude_km=altitude_surfaces,
+            lya_rate_coefficient=thread_coefficients[tid],
+            weighting=weighting,
+            total_importance_weight=total_importance_weight,
+        )
+    end
+    coefficient = reduce(+, thread_coefficients)
+
+    target_density = Matrix{Float64}(undef, length(altitude_surfaces), 3)
+    for (ia, altitude_km) in pairs(altitude_surfaces)
+        density = neutral_density(
+            model, density_lon_deg, density_lat_deg, altitude_km;
+            include_hot_o=cfg.include_hot_o,
+        )
+        target_density[ia, :] .= (density.CO2, density.O, density.N2)
+    end
+    volume_emission = coefficient .* reshape(
+        target_density, length(altitude_surfaces), 1, 3, 1,
+    )
+    by_charge = dropdims(sum(volume_emission; dims=(3, 4)); dims=(3, 4))
+    by_target = dropdims(sum(volume_emission; dims=(2, 4)); dims=(2, 4))
+    total_emission = vec(sum(volume_emission; dims=(2, 3, 4)))
+    photon_energy_j = PLANCK_J_S * LIGHT_SPEED_M_S / LYA_WAVELENGTH_M
+    (
+        altitude_surfaces_km=altitude_surfaces,
+        charge_state_names=("H_ENA", "Hplus"),
+        target_names=("CO2", "O", "N2"),
+        direction_names=("downward", "upward"),
+        target_density_m3=target_density,
+        density_lon_deg=Float64(density_lon_deg),
+        density_lat_deg=Float64(density_lat_deg),
+        lya_rate_coefficient_s1=coefficient,
+        volume_emission_rate_photons_m3_s1=volume_emission,
+        volume_emission_rate_by_charge_photons_m3_s1=by_charge,
+        volume_emission_rate_by_target_photons_m3_s1=by_target,
+        total_volume_emission_rate_photons_m3_s1=total_emission,
+        photon_energy_j=photon_energy_j,
+        radiative_energy_rate_w_m3=volume_emission .* photon_energy_j,
+        radiative_energy_rate_by_charge_w_m3=by_charge .* photon_energy_j,
+        total_radiative_energy_rate_w_m3=total_emission .* photon_energy_j,
+        total_importance_weight=total_importance_weight,
+    )
+end
+
+"""
 Accumulate upward and downward differential-flux numerators.
 
 `flux[altitude surface, energy bin, charge, direction]` contains the sum of

@@ -145,6 +145,9 @@ physics kernel:
 * `ionization_flux_sigma` sums `Wn * abs(Vr) * sigma_ion(E)` at crossings.
   Multiplication by the selected target density is performed by the ensemble
   driver to obtain an ionization rate in m^-3 s^-1.
+* `lya_rate_coefficient` sums `Wn * speed * sigma_Lya(E)` by altitude,
+  charge, target, and direction. Multiplication by each target density gives
+  the Ly-alpha volume emission rate in photons m^-3 s^-1.
 
 Particles begin at 600 km with the configured charge state and drifting
 Maxwellian velocity. The random stream is derived from `(cfg.seed, id)`, which
@@ -163,6 +166,7 @@ function run_particle_core(
     radial_flux::Union{Nothing,Array{Float64,3}}=nothing,
     ionization_flux_sigma::Union{Nothing,Array{Float64,3}}=nothing,
     ionization_target::Int=2,
+    lya_rate_coefficient::Union{Nothing,Array{Float64,4}}=nothing,
     weighting::MonteCarloWeight=MonteCarloWeight(),
     total_importance_weight::Float64=Float64(cfg.n_particles),
 )
@@ -221,7 +225,8 @@ function run_particle_core(
         ynew = y + vy / speed * ds
         znew = z + vz / speed * ds
         if !isnothing(directional_flux) || !isnothing(density_crossings) ||
-           !isnothing(radial_flux) || !isnothing(ionization_flux_sigma)
+           !isnothing(radial_flux) || !isnothing(ionization_flux_sigma) ||
+           !isnothing(lya_rate_coefficient)
             # Count crossings of fixed spherical altitude surfaces. Direction
             # 1 is downward and direction 2 is upward.
             altitude_after = sqrt(xnew*xnew + ynew*ynew + znew*znew)/1000 -
@@ -236,6 +241,13 @@ function run_particle_core(
                 sigma_at(
                     model.cross_sections, charge, ionization_target, 2, e,
                 ) : 0.0
+            sigma_lya_segment = !isnothing(lya_rate_coefficient) ?
+                ntuple(
+                    target -> sigma_at(
+                        model.cross_sections, charge, target, 3, e,
+                    ),
+                    3,
+                ) : (0.0, 0.0, 0.0)
             if altitude_after < alt
                 first_surface = searchsortedlast(flux_altitude_km, altitude_after) + 1
                 last_surface = searchsortedlast(flux_altitude_km, alt)
@@ -264,6 +276,16 @@ function run_particle_core(
                         if !isnothing(ionization_flux_sigma)
                             ionization_flux_sigma[ia, charge + 1, 1] +=
                                 crossing_flux * sigma_ion_segment
+                        end
+                    end
+                    if !isnothing(lya_rate_coefficient)
+                        particle_rate_coefficient =
+                            particle_density_weight_m3 * speed
+                        for target in 1:3
+                            lya_rate_coefficient[
+                                ia, charge + 1, target, 1
+                            ] += particle_rate_coefficient *
+                                 sigma_lya_segment[target]
                         end
                     end
                 end
@@ -295,6 +317,16 @@ function run_particle_core(
                         if !isnothing(ionization_flux_sigma)
                             ionization_flux_sigma[ia, charge + 1, 2] +=
                                 crossing_flux * sigma_ion_segment
+                        end
+                    end
+                    if !isnothing(lya_rate_coefficient)
+                        particle_rate_coefficient =
+                            particle_density_weight_m3 * speed
+                        for target in 1:3
+                            lya_rate_coefficient[
+                                ia, charge + 1, target, 2
+                            ] += particle_rate_coefficient *
+                                 sigma_lya_segment[target]
                         end
                     end
                 end
