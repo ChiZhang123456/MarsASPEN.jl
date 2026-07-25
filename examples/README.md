@@ -726,6 +726,19 @@ optional component dimensions. HDF5-based Python readers may expose the
 dimensions in reverse order, so analysis code should identify axes from the
 saved coordinate lengths rather than assuming NumPy axis order.
 
+Plot the 120 to 121 km layer from all four files with:
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_maps_120km.py
+```
+
+The resulting eight-panel PNG is
+`examples/figures/dayside_hplus_100000_3d_maps_120km_8panel.png`. It shows
+number density, total scalar flux, downward and upward radial flux, signed
+radial flux, total target ionization, Ly-alpha volume emission, and projectile
+energy transfer. The dotted longitudes at plus and minus 90 degrees mark the
+nominal MSO terminator.
+
 ## Why `test/` is retained
 
 The `test/` directory is not an example directory. It automatically verifies
