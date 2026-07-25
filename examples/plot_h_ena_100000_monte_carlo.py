@@ -37,6 +37,14 @@ def main() -> None:
     )
     parser.add_argument("mat_file", type=Path)
     parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument(
+        "--color-min", type=float, default=1.0e2,
+        help="Lower logarithmic color limit in m^-3.",
+    )
+    parser.add_argument(
+        "--color-max", type=float, default=None,
+        help="Upper logarithmic color limit in m^-3. Default: source density.",
+    )
     args = parser.parse_args()
 
     # The shared reader supports both ordinary MAT files and MAT v7.3/HDF5.
@@ -63,10 +71,13 @@ def main() -> None:
     # A shared logarithmic color scale makes the H ENA and H+ panels directly
     # comparable. Empty bins are masked rather than assigned an artificial
     # floor.
-    positive = density_weight_sum[density_weight_sum > 0]
-    if positive.size == 0:
+    if not np.any(density_weight_sum > 0):
         raise ValueError("The MAT file contains no positive weighted bins.")
-    color_norm = LogNorm(vmin=np.percentile(positive, 2), vmax=positive.max())
+    source_density = float(one_dimensional(data, "source_number_density_m3"))
+    color_max = args.color_max or source_density
+    if args.color_min <= 0 or color_max <= args.color_min:
+        raise ValueError("Color limits must satisfy 0 < color-min < color-max.")
+    color_norm = LogNorm(vmin=args.color_min, vmax=color_max, clip=True)
 
     fig, axes = plt.subplots(
         1, 2, figsize=(12, 6), sharex=True, sharey=True,
