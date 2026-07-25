@@ -124,7 +124,7 @@ The cumulative optical depth and collision probability are
 P_{\mathrm{cum}}=1-\exp[-\tau(z)].
 ```
 
-All three panels display 100 to 200 km. The cumulative optical depth is still
+All three panels display 100 to 600 km. The cumulative optical depth is still
 integrated from each displayed altitude to 1000 km.
 
 The PNG is:

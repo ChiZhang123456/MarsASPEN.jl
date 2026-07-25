@@ -193,7 +193,10 @@ def plot_selected_case(
     altitude = np.arange(80.0, 1001.0, 1.0)
     densities, local, cumulative = collision_profiles(ls, f107)
     fig, axes = plt.subplots(
-        1, 3, figsize=(7.2, 3.0), sharey=True, constrained_layout=True,
+        1, 3, figsize=(7.2, 3.5), sharey=True,
+    )
+    fig.subplots_adjust(
+        left=0.08, right=0.99, bottom=0.16, top=0.68, wspace=0.38,
     )
     density_styles = (
         (0, r"CO$_2$", "#8172B2", "-"),
@@ -208,7 +211,11 @@ def plot_selected_case(
     axes[0].set_xscale("log")
     axes[0].set_xlim(1.0e0, 1.0e18)
     axes[0].set_xlabel(r"Neutral number density (m$^{-3}$)")
-    axes[0].set_title("Neutral atmosphere")
+    axes[0].set_title(
+        "Neutral atmosphere\n"
+        r"$n_j(z),\quad j\in\{\mathrm{CO_2,O,N_2}\}$",
+        fontsize=7.2,
+    )
     axes[0].legend(ncol=1, fontsize=6.5, loc="upper left")
 
     for projectile_index, (_, label, color) in enumerate(PROJECTILES):
@@ -224,6 +231,7 @@ def plot_selected_case(
     axes[1].set_xlim(1.0e-10, 1)
     axes[1].set_xlabel("Local collision probability per 1 km")
     axes[1].set_title(
+        "Local collision probability\n"
         r"$\alpha(z,E)=\sum_j n_j(z)\sum_k\sigma_{j,k}(E)$"
         "\n"
         r"$P_{\mathrm{local}}(z)=1-\exp[-\alpha(z,E)\Delta s],"
@@ -235,6 +243,7 @@ def plot_selected_case(
     axes[2].set_xlim(0, 1)
     axes[2].set_xlabel("Cumulative collision probability from 1000 km")
     axes[2].set_title(
+        "Cumulative collision probability\n"
         r"$\tau(z)=\int_z^{1000\,\mathrm{km}}\alpha(s)\,\mathrm{d}s$"
         "\n"
         r"$P_{\mathrm{cum}}(z)=1-\exp[-\tau(z)]$",
@@ -242,19 +251,15 @@ def plot_selected_case(
     )
 
     axes[0].set_ylabel("Altitude (km)")
-    for panel, axis in enumerate(axes):
-        axis.set_ylim(100, 200)
+    for axis in axes:
+        axis.set_ylim(100, 600)
         axis.grid(True, which="major", color="0.90", lw=0.5)
-        axis.text(
-            0.02, 0.97, chr(ord("a") + panel),
-            transform=axis.transAxes, ha="left", va="top",
-            fontweight="bold", fontsize=8,
-        )
     fig.suptitle(
         rf"Fixed {ENERGY_EV:.0f} eV projectiles, "
         rf"$L_s={ls}^\circ$, F10.7 = {f107}, "
         r"lon=$0^\circ$, lat=$0^\circ$",
         fontsize=8.5,
+        y=0.98,
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=600, bbox_inches="tight", pad_inches=0.12)
