@@ -168,6 +168,25 @@ physical source to improve tail statistics. Every particle is corrected by
 `f / f_sample`. Its density weight is `n_source * W_i / sum(W)`, and its
 inward crossing-flux weight is the density weight times `max(-v_x, 0)`.
 
+## Local radial flux
+
+`run_radial_flux_ensemble` evaluates the local spherical radial velocity at
+every altitude crossing:
+
+```julia
+radial = run_radial_flux_ensemble(
+    model, config;
+    weighting=weighting,
+    altitude_surfaces_km=collect(80.5:1.0:599.5),
+)
+```
+
+Each crossing contributes `Wn * abs(v dot r_hat)`, in m^-2 s^-1, to either
+the downward or upward array. The returned `signed_outward_flux_m2_s` is
+upward minus downward, while `net_downward_flux_m2_s` uses the opposite sign.
+Unlike the injection-weight directional diagnostic above, this calculation
+uses the particle velocity local to each altitude surface.
+
 ## Python analysis
 
 ```powershell

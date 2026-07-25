@@ -31,6 +31,41 @@ const MODEL = load_model(REPO; atmosphere_data_dir=ATMOSPHERE_DIR)
     @test MonteCarloConfig().min_altitude_km == 80.0
 end
 
+@testset "Local radial flux from density weights" begin
+    cfg = MonteCarloConfig(
+        n_particles=128,
+        initial_charge_state=1,
+        initial_temperature_ev=0.0,
+        initial_speed_m_s=400_000.0,
+        seed=31,
+        include_hot_o=false,
+    )
+    weighting = MonteCarloWeight(source_number_density_m3=5.0e6)
+    surfaces = collect(100.5:50.0:599.5)
+    radial = run_radial_flux_ensemble(
+        MODEL, cfg;
+        weighting=weighting,
+        altitude_surfaces_km=surfaces,
+    )
+    @test size(radial.radial_flux_m2_s) == (length(surfaces), 2, 2)
+    @test all(radial.radial_flux_m2_s .>= 0)
+    @test radial.signed_outward_flux_m2_s ≈
+          radial.radial_flux_m2_s[:, :, 2] .-
+          radial.radial_flux_m2_s[:, :, 1]
+    @test radial.net_downward_flux_m2_s ≈
+          -radial.signed_outward_flux_m2_s
+    # At 599.5 km, the monoenergetic source is still H+ and travels radially
+    # inward, so sum(Wn*|Vr|) equals n_source * 400 km/s.
+    @test radial.radial_flux_m2_s[end, 2, 1] ≈ 2.0e12 rtol=1e-12
+
+    doubled = run_radial_flux_ensemble(
+        MODEL, cfg;
+        weighting=MonteCarloWeight(source_number_density_m3=1.0e7),
+        altitude_surfaces_km=surfaces,
+    )
+    @test doubled.radial_flux_m2_s ≈ 2 .* radial.radial_flux_m2_s
+end
+
 @testset "Python primitive parity" begin
     expected_density = (
         120.0 => (1.2113975782367725e17, 1.9307346587029375e15, 4.212254955721069e15),

@@ -136,6 +136,30 @@ The two PNG outputs are:
 Because energy is deliberately fixed, these curves describe first-collision
 optical depth rather than a complete energy-degrading Monte Carlo trajectory.
 
+## 8. Local radial flux profile
+
+This example injects 100,000 H+ particles at 600 km with 400 km/s bulk speed,
+10 eV temperature, and 5 cm^-3 density. At every one-kilometer spherical
+altitude surface, it evaluates the local radial velocity and accumulates
+
+```text
+Vr_i = v_i dot r_hat
+Wn_i = n_source (f/fs)_i / sum_j(f/fs)_j       [m^-3]
+F_i = Wn_i abs(Vr_i)                           [m^-2 s^-1]
+```
+
+Downward and upward magnitudes are saved separately for H ENA and H+. The
+signed outward radial flux is `F_upward - F_downward`, so negative values
+indicate net precipitation and positive values indicate net escape.
+
+```powershell
+julia --project=. -t auto examples/run_hplus_100000_radial_flux.jl
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_radial_flux_profile.py examples/output/hplus_100000_radial_flux.mat --output examples/figures/hplus_100000_radial_flux_profile.png
+```
+
+The PNG is stored at
+`examples/figures/hplus_100000_radial_flux_profile.png`.
+
 To inspect the H+ energy distribution at 550 km separately:
 
 ```powershell

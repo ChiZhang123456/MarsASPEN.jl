@@ -28,6 +28,30 @@ are handled independently.
 end
 
 """
+Return the signed radial velocity where a straight segment crosses a sphere.
+
+The segment is `p(t) = p0 + t * (p1 - p0)`, with `0 <= t <= 1`. The velocity
+is constant during one free-flight segment. Positive radial velocity is
+outward or upward, and negative radial velocity is inward or downward.
+"""
+@inline function radial_velocity_at_surface(
+    x, y, z, xnew, ynew, znew, vx, vy, vz, altitude_km,
+)
+    dx, dy, dz = xnew - x, ynew - y, znew - z
+    radius_m = (MARS_RADIUS_KM + altitude_km) * 1000
+    a = dx*dx + dy*dy + dz*dz
+    b = 2 * (x*dx + y*dy + z*dz)
+    c = x*x + y*y + z*z - radius_m*radius_m
+    discriminant = max(b*b - 4*a*c, 0.0)
+    root = sqrt(discriminant)
+    t1 = (-b - root) / (2a)
+    t2 = (-b + root) / (2a)
+    t = 0.0 <= t1 <= 1.0 ? t1 : clamp(t2, 0.0, 1.0)
+    xc, yc, zc = x + t*dx, y + t*dy, z + t*dz
+    (vx*xc + vy*yc + vz*zc) / radius_m
+end
+
+"""
 Sample the initial drifting-Maxwellian projectile velocity and importance weight.
 
 The bulk velocity is along MSO -X. Thermal components are sampled at
@@ -105,6 +129,8 @@ physics kernel:
   surfaces by energy and charge state.
 * `density_crossings` sums particle density weights at altitude-surface
   crossings, without multiplying by path length or energy-bin width.
+* `radial_flux` sums `Wn * abs(Vr)` at each crossing, separately for downward
+  and upward directions. Its dimensions are altitude, charge, direction.
 
 Particles begin at 600 km with the configured charge state and drifting
 Maxwellian velocity. The random stream is derived from `(cfg.seed, id)`, which
@@ -120,6 +146,7 @@ function run_particle_core(
     flux_energy_edges_ev::Union{Nothing,Vector{Float64}}=nothing,
     directional_flux::Union{Nothing,Array{Float64,4}}=nothing,
     density_crossings::Union{Nothing,Array{Float64,3}}=nothing,
+    radial_flux::Union{Nothing,Array{Float64,3}}=nothing,
     weighting::MonteCarloWeight=MonteCarloWeight(),
     total_importance_weight::Float64=Float64(cfg.n_particles),
 )
@@ -177,17 +204,23 @@ function run_particle_core(
         xnew = x + vx / speed * ds
         ynew = y + vy / speed * ds
         znew = z + vz / speed * ds
-        if !isnothing(directional_flux) || !isnothing(density_crossings)
+        if !isnothing(directional_flux) || !isnothing(density_crossings) ||
+           !isnothing(radial_flux)
             # Count crossings of fixed spherical altitude surfaces. Direction
             # 1 is downward and direction 2 is upward.
             altitude_after = sqrt(xnew*xnew + ynew*ynew + znew*znew)/1000 -
                              MARS_RADIUS_KM
-            ie = searchsortedlast(flux_energy_edges_ev, e)
-            if 1 <= ie < length(flux_energy_edges_ev)
-                if altitude_after < alt
-                    first_surface = searchsortedlast(flux_altitude_km, altitude_after) + 1
-                    last_surface = searchsortedlast(flux_altitude_km, alt)
-                    for ia in first_surface:last_surface
+            has_energy_accumulator =
+                !isnothing(directional_flux) || !isnothing(density_crossings)
+            ie = has_energy_accumulator ?
+                searchsortedlast(flux_energy_edges_ev, e) : 0
+            valid_energy = has_energy_accumulator &&
+                1 <= ie < length(flux_energy_edges_ev)
+            if altitude_after < alt
+                first_surface = searchsortedlast(flux_altitude_km, altitude_after) + 1
+                last_surface = searchsortedlast(flux_altitude_km, alt)
+                for ia in first_surface:last_surface
+                    if valid_energy
                         if !isnothing(directional_flux)
                             directional_flux[ia, ie, charge + 1, 1] +=
                                 injection_flux_weight
@@ -197,10 +230,20 @@ function run_particle_core(
                                 particle_density_weight_m3
                         end
                     end
-                elseif altitude_after > alt
-                    first_surface = searchsortedlast(flux_altitude_km, alt) + 1
-                    last_surface = searchsortedlast(flux_altitude_km, altitude_after)
-                    for ia in first_surface:last_surface
+                    if !isnothing(radial_flux)
+                        vr = radial_velocity_at_surface(
+                            x, y, z, xnew, ynew, znew, vx, vy, vz,
+                            flux_altitude_km[ia],
+                        )
+                        radial_flux[ia, charge + 1, 1] +=
+                            particle_density_weight_m3 * abs(vr)
+                    end
+                end
+            elseif altitude_after > alt
+                first_surface = searchsortedlast(flux_altitude_km, alt) + 1
+                last_surface = searchsortedlast(flux_altitude_km, altitude_after)
+                for ia in first_surface:last_surface
+                    if valid_energy
                         if !isnothing(directional_flux)
                             directional_flux[ia, ie, charge + 1, 2] +=
                                 injection_flux_weight
@@ -209,6 +252,14 @@ function run_particle_core(
                             density_crossings[ia, ie, charge + 1] +=
                                 particle_density_weight_m3
                         end
+                    end
+                    if !isnothing(radial_flux)
+                        vr = radial_velocity_at_surface(
+                            x, y, z, xnew, ynew, znew, vx, vy, vz,
+                            flux_altitude_km[ia],
+                        )
+                        radial_flux[ia, charge + 1, 2] +=
+                            particle_density_weight_m3 * abs(vr)
                     end
                 end
             end

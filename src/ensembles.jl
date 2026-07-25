@@ -183,6 +183,56 @@ function run_density_crossing_ensemble(
 end
 
 """
+Accumulate local radial number flux on spherical altitude surfaces.
+
+For every surface crossing, the contribution is `Wn * abs(Vr)`, where `Wn`
+has units m^-3 and `Vr = v dot r_hat` has units m s^-1. The result therefore
+has units m^-2 s^-1. Array dimensions are `(altitude, charge, direction)`.
+Charge order is H ENA then H+, and direction order is downward then upward.
+
+The signed outward radial flux is `upward - downward`. The net downward flux
+is the opposite sign, `downward - upward`.
+"""
+function run_radial_flux_ensemble(
+    model::AspenModel,
+    cfg::MonteCarloConfig;
+    weighting::MonteCarloWeight=MonteCarloWeight(),
+    altitude_surfaces_km::AbstractVector{<:Real}=collect(80.5:1.0:599.5),
+)
+    altitude_surfaces = Float64.(altitude_surfaces_km)
+    length(altitude_surfaces) >= 1 ||
+        throw(ArgumentError("at least one altitude surface is required"))
+    all(diff(altitude_surfaces) .> 0) ||
+        throw(ArgumentError("altitude_surfaces_km must increase"))
+
+    thread_flux = [
+        zeros(Float64, length(altitude_surfaces), 2, 2)
+        for _ in 1:Base.Threads.maxthreadid()
+    ]
+    total_importance_weight = initial_importance_weight_sum(cfg, weighting)
+    @threads for particle_id in 1:cfg.n_particles
+        tid = threadid()
+        run_particle_core(
+            model, cfg, particle_id, false;
+            flux_altitude_km=altitude_surfaces,
+            radial_flux=thread_flux[tid],
+            weighting=weighting,
+            total_importance_weight=total_importance_weight,
+        )
+    end
+    flux = reduce(+, thread_flux)
+    (
+        altitude_surfaces_km=altitude_surfaces,
+        charge_state_names=("H_ENA", "Hplus"),
+        direction_names=("downward", "upward"),
+        radial_flux_m2_s=flux,
+        signed_outward_flux_m2_s=flux[:, :, 2] .- flux[:, :, 1],
+        net_downward_flux_m2_s=flux[:, :, 1] .- flux[:, :, 2],
+        total_importance_weight=total_importance_weight,
+    )
+end
+
+"""
 Accumulate upward and downward differential-flux numerators.
 
 `flux[altitude surface, energy bin, charge, direction]` contains the sum of
