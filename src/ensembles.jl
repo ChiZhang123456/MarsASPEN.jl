@@ -233,6 +233,93 @@ function run_radial_flux_ensemble(
 end
 
 """
+Estimate target ionization rates from local radial crossing fluxes.
+
+At each spherical altitude crossing, the transport kernel accumulates
+
+`Wn * abs(Vr) * sigma_ion(E)`
+
+separately by projectile charge state and direction. `Wn` is in m^-3, `Vr`
+is in m s^-1, and the ionization cross section is in m^2, so this intermediate
+coefficient is in s^-1. The driver multiplies it by the selected neutral
+target density in m^-3 to obtain a volume ionization rate in m^-3 s^-1.
+
+The target density is evaluated at `density_lon_deg` and `density_lat_deg`.
+For target O, `cfg.include_hot_o` controls whether MAMPS hot O is added to
+MGITM cold O. Charge order is H ENA then H+, and direction order is downward
+then upward.
+"""
+function run_target_ionization_rate_ensemble(
+    model::AspenModel,
+    cfg::MonteCarloConfig;
+    weighting::MonteCarloWeight=MonteCarloWeight(),
+    altitude_surfaces_km::AbstractVector{<:Real}=collect(80.5:1.0:599.5),
+    target::Symbol=:O,
+    density_lon_deg::Real=0.0,
+    density_lat_deg::Real=0.0,
+)
+    target_index = target === :CO2 ? 1 :
+                   target === :O ? 2 :
+                   target === :N2 ? 3 :
+                   throw(ArgumentError("target must be :CO2, :O, or :N2"))
+    altitude_surfaces = Float64.(altitude_surfaces_km)
+    length(altitude_surfaces) >= 1 ||
+        throw(ArgumentError("at least one altitude surface is required"))
+    all(diff(altitude_surfaces) .> 0) ||
+        throw(ArgumentError("altitude_surfaces_km must increase"))
+
+    thread_flux_sigma = [
+        zeros(Float64, length(altitude_surfaces), 2, 2)
+        for _ in 1:Base.Threads.maxthreadid()
+    ]
+    thread_radial_flux = [
+        zeros(Float64, length(altitude_surfaces), 2, 2)
+        for _ in 1:Base.Threads.maxthreadid()
+    ]
+    total_importance_weight = initial_importance_weight_sum(cfg, weighting)
+    @threads for particle_id in 1:cfg.n_particles
+        tid = threadid()
+        run_particle_core(
+            model, cfg, particle_id, false;
+            flux_altitude_km=altitude_surfaces,
+            radial_flux=thread_radial_flux[tid],
+            ionization_flux_sigma=thread_flux_sigma[tid],
+            ionization_target=target_index,
+            weighting=weighting,
+            total_importance_weight=total_importance_weight,
+        )
+    end
+    flux_sigma = reduce(+, thread_flux_sigma)
+    radial_flux = reduce(+, thread_radial_flux)
+
+    target_density = Vector{Float64}(undef, length(altitude_surfaces))
+    for (ia, altitude_km) in pairs(altitude_surfaces)
+        density = neutral_density(
+            model, density_lon_deg, density_lat_deg, altitude_km;
+            include_hot_o=cfg.include_hot_o,
+        )
+        target_density[ia] = target === :CO2 ? density.CO2 :
+                             target === :O ? density.O : density.N2
+    end
+    rate = flux_sigma .* reshape(target_density, :, 1, 1)
+    (
+        altitude_surfaces_km=altitude_surfaces,
+        target_name=String(target),
+        target_density_m3=target_density,
+        density_lon_deg=Float64(density_lon_deg),
+        density_lat_deg=Float64(density_lat_deg),
+        charge_state_names=("H_ENA", "Hplus"),
+        direction_names=("downward", "upward"),
+        radial_flux_m2_s=radial_flux,
+        flux_times_ionization_cross_section_s1=flux_sigma,
+        ionization_rate_m3_s1=rate,
+        ionization_rate_by_charge_m3_s1=dropdims(sum(rate; dims=3); dims=3),
+        total_ionization_rate_m3_s1=vec(sum(rate; dims=(2, 3))),
+        total_importance_weight=total_importance_weight,
+    )
+end
+
+"""
 Accumulate upward and downward differential-flux numerators.
 
 `flux[altitude surface, energy bin, charge, direction]` contains the sum of

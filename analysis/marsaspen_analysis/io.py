@@ -27,6 +27,16 @@ def load_history_mat(filename: str | Path) -> dict[str, np.ndarray]:
             }
 
 
+def mat_string(value: np.ndarray | str) -> str:
+    """Decode a MATLAB or Julia MAT string into ordinary Python text."""
+    array = np.asarray(value).squeeze()
+    if array.dtype.kind in "ui" and array.ndim == 1:
+        return "".join(chr(int(code)) for code in array if int(code) != 0)
+    if array.dtype.kind in "SU":
+        return "".join(str(item) for item in np.ravel(array))
+    return str(array)
+
+
 def particle_history(data: dict[str, np.ndarray], particle_id: int) -> dict[str, np.ndarray]:
     """Return aligned one-dimensional event columns for one particle."""
     mask = np.asarray(data["particle_id"], dtype=int) == int(particle_id)

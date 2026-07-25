@@ -5,7 +5,12 @@ from pathlib import Path
 import h5py
 import numpy as np
 
-from marsaspen_analysis import load_history_mat, particle_history, reaction_events
+from marsaspen_analysis import (
+    load_history_mat,
+    mat_string,
+    particle_history,
+    reaction_events,
+)
 
 
 def test_hdf5_history_reader(tmp_path: Path) -> None:
@@ -20,3 +25,7 @@ def test_hdf5_history_reader(tmp_path: Path) -> None:
     assert particle_history(data, 1)["energy_ev"].tolist() == [800.0, 780.0]
     assert reaction_events(data)["reaction_code"].tolist() == [2]
     assert reaction_events(data, include_elastic=True)["reaction_code"].tolist() == [2, 4]
+
+
+def test_mat_string_decodes_uint16_characters() -> None:
+    assert mat_string(np.array([72, 112, 108, 117, 115], dtype=np.uint16)) == "Hplus"

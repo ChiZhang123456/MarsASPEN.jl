@@ -327,7 +327,7 @@ optical depth rather than a complete energy-degrading Monte Carlo trajectory.
 This example injects 100,000 H+ particles at 600 km with 400 km/s bulk speed,
 10 eV temperature, and 5 cm^-3 density. At every one-kilometer spherical
 altitude surface, it evaluates the local radial velocity and accumulates the
-vertical number flux. The macro-particle density weight $W_{n,i}$ is defined
+radial number flux. The macro-particle density weight $W_{n,i}$ is defined
 in Section 3.
 
 ```math
@@ -358,8 +358,56 @@ C:\Users\Win\.conda\envs\mars\python.exe examples/plot_radial_flux_profile.py ex
 ```
 
 The reusable Python calculations are in
-`analysis/marsaspen_analysis/flux.py`. They provide local vertical velocity,
-single-particle `Wn * Vr`, and directional and net altitude profiles.
+`analysis/marsaspen_analysis/radial_flux.py`. They provide local radial
+velocity, single-particle `Wn * Vr`, and directional and net altitude
+profiles.
+
+## 9. O ionization-rate profiles
+
+This example estimates O ionization by both H ENA and H+ projectiles. For each
+altitude surface, the local-energy crossing estimator is
+
+```math
+q_{\mathrm O}(r)=n_{\mathrm O}(r)
+\left[
+\sum_{i\in\mathrm{H\ ENA}}
+W_{n,i}|V_{r,i}|\sigma_{\mathrm{H,O,ion}}(E_i)
++
+\sum_{p\in\mathrm{H^+}}
+W_{n,p}|V_{r,p}|\sigma_{\mathrm{H^+,O,ion}}(E_p)
+\right].
+```
+
+Here, $n_{\mathrm O}$ is the MGITM cold O density plus MAMPS hot O density,
+$W_n$ is in $\mathrm{m^{-3}}$, $|V_r|$ is in $\mathrm{m\,s^{-1}}$, and the
+energy-dependent ionization cross section is in $\mathrm{m^2}$. Therefore,
+
+```math
+[q_{\mathrm O}]=\mathrm{m^{-3}\,s^{-1}}.
+```
+
+The projectile energy $E_i$ is calculated from its local total speed at the
+crossing, after all preceding energy losses and scattering. Downward and
+upward contributions are added because particles moving in either direction
+can ionize O.
+
+The sum includes every macro particle crossing the altitude surface. It does
+not first select realized ionization events. Selecting realized events and
+then multiplying them by the ionization cross section would apply the
+collision probability twice.
+
+Run the initially neutral and initially ionized source cases:
+
+```powershell
+julia --project=. -t auto examples/run_oxygen_ionization_rate.jl h_ena
+julia --project=. -t auto examples/run_oxygen_ionization_rate.jl hplus
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_oxygen_ionization_rate.py examples/output/h_ena_100000_oxygen_ionization_rate.mat examples/output/hplus_100000_oxygen_ionization_rate.mat
+```
+
+The comparison PNG is stored at
+`examples/figures/oxygen_ionization_rate_profiles.png`. Each panel shows the
+H ENA contribution, H+ contribution, and their total for one source
+simulation.
 
 To inspect the H+ energy distribution at 550 km separately:
 

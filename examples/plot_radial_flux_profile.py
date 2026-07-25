@@ -32,7 +32,11 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "analysis"))
 
-from marsaspen_analysis import load_history_mat, vertical_flux_from_mat  # noqa: E402
+from marsaspen_analysis import (  # noqa: E402
+    load_history_mat,
+    mat_string,
+    radial_flux_from_mat,
+)
 
 mpl.rcParams.update({
     "font.family": "Arial",
@@ -61,14 +65,13 @@ def main() -> None:
     args = parser.parse_args()
 
     data = load_history_mat(args.mat_file)
-    profiles = vertical_flux_from_mat(data)
+    profiles = radial_flux_from_mat(data)
     altitude = profiles["altitude_km"]
     downward = profiles["downward"]
     upward = profiles["upward"]
     signed_outward = profiles["signed_outward"]
     nominal_flux = float(vector(data, "nominal_bulk_flux_m2_s"))
-    initial_species_raw = np.asarray(data["initial_species"]).squeeze()
-    initial_species = str(initial_species_raw).replace("_", " ")
+    initial_species = mat_string(data["initial_species"]).replace("_", " ")
     source_label = r"H$^+$" if "plus" in initial_species.lower() else "H ENA"
 
     fig, axes = plt.subplots(

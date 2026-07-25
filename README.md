@@ -194,19 +194,24 @@ C:\Users\Win\.conda\envs\mars\python.exe -m pip install -e analysis
 marsaspen-plot output/aspen_10p_detailed.mat
 ```
 
-The analysis package also includes reusable vertical-flux functions:
+The analysis package also includes reusable radial-flux and ionization-rate
+functions:
 
 ```python
 from marsaspen_analysis import (
-    local_vertical_velocity,
-    particle_vertical_flux,
-    vertical_flux_from_mat,
+    local_radial_velocity,
+    particle_radial_flux,
+    radial_flux_from_mat,
+    ionization_rate_from_mat,
 )
 ```
 
-`local_vertical_velocity` evaluates `dot(r, v) / norm(r)`.
-`particle_vertical_flux` evaluates the signed contribution `Wn * Vr` in
-`m^-2 s^-1`. `vertical_flux_from_mat` returns downward, upward, signed
+`local_radial_velocity` evaluates `dot(r, v) / norm(r)`.
+`particle_radial_flux` evaluates the signed contribution `Wn * Vr` in
+`m^-2 s^-1`. `radial_flux_from_mat` returns downward, upward, signed
 outward, and net downward profiles for H ENA and H+.
+
+`ionization_rate_from_mat` reads the charge-resolved target-ionization
+crossing estimator and returns rates in `m^-3 s^-1`.
 
 All non-mathematical figure text uses Arial.

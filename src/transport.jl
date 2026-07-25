@@ -28,13 +28,13 @@ are handled independently.
 end
 
 """
-Return the signed radial velocity where a straight segment crosses a sphere.
+Return position and signed radial velocity where a segment crosses a sphere.
 
 The segment is `p(t) = p0 + t * (p1 - p0)`, with `0 <= t <= 1`. The velocity
 is constant during one free-flight segment. Positive radial velocity is
 outward or upward, and negative radial velocity is inward or downward.
 """
-@inline function radial_velocity_at_surface(
+@inline function state_at_surface_crossing(
     x, y, z, xnew, ynew, znew, vx, vy, vz, altitude_km,
 )
     dx, dy, dz = xnew - x, ynew - y, znew - z
@@ -48,7 +48,18 @@ outward or upward, and negative radial velocity is inward or downward.
     t2 = (-b + root) / (2a)
     t = 0.0 <= t1 <= 1.0 ? t1 : clamp(t2, 0.0, 1.0)
     xc, yc, zc = x + t*dx, y + t*dy, z + t*dz
-    (vx*xc + vy*yc + vz*zc) / radius_m
+    vr = (vx*xc + vy*yc + vz*zc) / radius_m
+    xc, yc, zc, vr
+end
+
+"""Return signed radial velocity at a spherical-surface crossing."""
+@inline function radial_velocity_at_surface(
+    x, y, z, xnew, ynew, znew, vx, vy, vz, altitude_km,
+)
+    _, _, _, vr = state_at_surface_crossing(
+        x, y, z, xnew, ynew, znew, vx, vy, vz, altitude_km,
+    )
+    vr
 end
 
 """
@@ -131,6 +142,9 @@ physics kernel:
   crossings, without multiplying by path length or energy-bin width.
 * `radial_flux` sums `Wn * abs(Vr)` at each crossing, separately for downward
   and upward directions. Its dimensions are altitude, charge, direction.
+* `ionization_flux_sigma` sums `Wn * abs(Vr) * sigma_ion(E)` at crossings.
+  Multiplication by the selected target density is performed by the ensemble
+  driver to obtain an ionization rate in m^-3 s^-1.
 
 Particles begin at 600 km with the configured charge state and drifting
 Maxwellian velocity. The random stream is derived from `(cfg.seed, id)`, which
@@ -147,6 +161,8 @@ function run_particle_core(
     directional_flux::Union{Nothing,Array{Float64,4}}=nothing,
     density_crossings::Union{Nothing,Array{Float64,3}}=nothing,
     radial_flux::Union{Nothing,Array{Float64,3}}=nothing,
+    ionization_flux_sigma::Union{Nothing,Array{Float64,3}}=nothing,
+    ionization_target::Int=2,
     weighting::MonteCarloWeight=MonteCarloWeight(),
     total_importance_weight::Float64=Float64(cfg.n_particles),
 )
@@ -205,7 +221,7 @@ function run_particle_core(
         ynew = y + vy / speed * ds
         znew = z + vz / speed * ds
         if !isnothing(directional_flux) || !isnothing(density_crossings) ||
-           !isnothing(radial_flux)
+           !isnothing(radial_flux) || !isnothing(ionization_flux_sigma)
             # Count crossings of fixed spherical altitude surfaces. Direction
             # 1 is downward and direction 2 is upward.
             altitude_after = sqrt(xnew*xnew + ynew*ynew + znew*znew)/1000 -
@@ -216,6 +232,10 @@ function run_particle_core(
                 searchsortedlast(flux_energy_edges_ev, e) : 0
             valid_energy = has_energy_accumulator &&
                 1 <= ie < length(flux_energy_edges_ev)
+            sigma_ion_segment = !isnothing(ionization_flux_sigma) ?
+                sigma_at(
+                    model.cross_sections, charge, ionization_target, 2, e,
+                ) : 0.0
             if altitude_after < alt
                 first_surface = searchsortedlast(flux_altitude_km, altitude_after) + 1
                 last_surface = searchsortedlast(flux_altitude_km, alt)
@@ -230,13 +250,21 @@ function run_particle_core(
                                 particle_density_weight_m3
                         end
                     end
-                    if !isnothing(radial_flux)
+                    if !isnothing(radial_flux) ||
+                       !isnothing(ionization_flux_sigma)
                         vr = radial_velocity_at_surface(
                             x, y, z, xnew, ynew, znew, vx, vy, vz,
                             flux_altitude_km[ia],
                         )
-                        radial_flux[ia, charge + 1, 1] +=
+                        crossing_flux =
                             particle_density_weight_m3 * abs(vr)
+                        if !isnothing(radial_flux)
+                            radial_flux[ia, charge + 1, 1] += crossing_flux
+                        end
+                        if !isnothing(ionization_flux_sigma)
+                            ionization_flux_sigma[ia, charge + 1, 1] +=
+                                crossing_flux * sigma_ion_segment
+                        end
                     end
                 end
             elseif altitude_after > alt
@@ -253,13 +281,21 @@ function run_particle_core(
                                 particle_density_weight_m3
                         end
                     end
-                    if !isnothing(radial_flux)
+                    if !isnothing(radial_flux) ||
+                       !isnothing(ionization_flux_sigma)
                         vr = radial_velocity_at_surface(
                             x, y, z, xnew, ynew, znew, vx, vy, vz,
                             flux_altitude_km[ia],
                         )
-                        radial_flux[ia, charge + 1, 2] +=
+                        crossing_flux =
                             particle_density_weight_m3 * abs(vr)
+                        if !isnothing(radial_flux)
+                            radial_flux[ia, charge + 1, 2] += crossing_flux
+                        end
+                        if !isnothing(ionization_flux_sigma)
+                            ionization_flux_sigma[ia, charge + 1, 2] +=
+                                crossing_flux * sigma_ion_segment
+                        end
                     end
                 end
             end

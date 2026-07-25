@@ -1,7 +1,8 @@
-"""Vertical number-flux analysis for MarsASPEN altitude-surface output.
+"""Radial number-flux analysis for MarsASPEN altitude-surface output.
 
-MarsASPEN uses spherical altitude surfaces, so the local vertical direction is
-the radial direction. For a particle at position ``r`` with velocity ``v``,
+MarsASPEN currently diagnoses flux through spherical altitude surfaces. For a
+particle at position ``r`` with velocity ``v``, the surface-normal direction
+is radial:
 
     Vr = dot(r, v) / norm(r)
 
@@ -16,11 +17,11 @@ from typing import Mapping
 import numpy as np
 
 
-def local_vertical_velocity(
+def local_radial_velocity(
     position_m: np.ndarray,
     velocity_m_s: np.ndarray,
 ) -> np.ndarray:
-    """Return the local radial, or vertical, velocity in m s^-1.
+    """Return the local radial velocity in m s^-1.
 
     Positive values point away from Mars and negative values point toward
     Mars. The final dimension of both inputs must contain the three Cartesian
@@ -34,21 +35,21 @@ def local_vertical_velocity(
         )
     radius = np.linalg.norm(position, axis=-1)
     if np.any(radius == 0.0):
-        raise ValueError("local vertical velocity is undefined at r = 0")
+        raise ValueError("local radial velocity is undefined at r = 0")
     return np.sum(position * velocity, axis=-1) / radius
 
 
-def particle_vertical_flux(
+def particle_radial_flux(
     density_weight_m3: np.ndarray | float,
-    vertical_velocity_m_s: np.ndarray | float,
+    radial_velocity_m_s: np.ndarray | float,
 ) -> np.ndarray:
-    """Return signed particle vertical-flux contributions in m^-2 s^-1."""
+    """Return signed particle radial-flux contributions in m^-2 s^-1."""
     weight = np.asarray(density_weight_m3, dtype=float)
-    velocity = np.asarray(vertical_velocity_m_s, dtype=float)
+    velocity = np.asarray(radial_velocity_m_s, dtype=float)
     return weight * velocity
 
 
-def vertical_flux_profiles(
+def radial_flux_profiles(
     radial_flux_m2_s: np.ndarray,
     n_altitudes: int | None = None,
 ) -> dict[str, np.ndarray]:
@@ -74,7 +75,7 @@ def vertical_flux_profiles(
     flux = np.asarray(radial_flux_m2_s, dtype=float)
     if n_altitudes is not None:
         expected = (int(n_altitudes), 2, 2)
-        if flux.shape == expected[::-1]:
+        if flux.shape != expected and flux.shape == expected[::-1]:
             flux = flux.transpose(2, 1, 0)
         if flux.shape != expected:
             raise ValueError(
@@ -98,14 +99,14 @@ def vertical_flux_profiles(
     }
 
 
-def vertical_flux_from_mat(
+def radial_flux_from_mat(
     data: Mapping[str, np.ndarray],
 ) -> dict[str, np.ndarray]:
-    """Extract altitude and vertical-flux profiles from a loaded MAT mapping."""
+    """Extract altitude and radial-flux profiles from a loaded MAT mapping."""
     altitude = np.asarray(data["altitude_surfaces_km"], dtype=float).squeeze()
     if altitude.ndim != 1:
         raise ValueError("altitude_surfaces_km must be one-dimensional")
-    profiles = vertical_flux_profiles(
+    profiles = radial_flux_profiles(
         data["radial_flux_m2_s"], n_altitudes=altitude.size
     )
     return {"altitude_km": altitude, **profiles}

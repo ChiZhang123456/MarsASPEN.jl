@@ -66,6 +66,43 @@ end
     @test doubled.radial_flux_m2_s ≈ 2 .* radial.radial_flux_m2_s
 end
 
+@testset "O ionization crossing estimator" begin
+    cfg = MonteCarloConfig(
+        n_particles=64,
+        initial_charge_state=1,
+        initial_temperature_ev=0.0,
+        initial_speed_m_s=400_000.0,
+        seed=33,
+        include_hot_o=true,
+    )
+    surfaces = [200.5, 400.5, 599.5]
+    result = run_target_ionization_rate_ensemble(
+        MODEL, cfg;
+        weighting=MonteCarloWeight(source_number_density_m3=5.0e6),
+        altitude_surfaces_km=surfaces,
+        target=:O,
+    )
+    @test size(result.ionization_rate_m3_s1) == (3, 2, 2)
+    @test all(result.ionization_rate_m3_s1 .>= 0)
+    @test result.ionization_rate_by_charge_m3_s1 ≈
+          dropdims(sum(result.ionization_rate_m3_s1; dims=3); dims=3)
+    @test result.total_ionization_rate_m3_s1 ≈
+          vec(sum(result.ionization_rate_m3_s1; dims=(2, 3)))
+    @test result.target_density_m3 ≈ [
+        neutral_density(MODEL, 0.0, 0.0, altitude; include_hot_o=true).O
+        for altitude in surfaces
+    ]
+
+    doubled = run_target_ionization_rate_ensemble(
+        MODEL, cfg;
+        weighting=MonteCarloWeight(source_number_density_m3=1.0e7),
+        altitude_surfaces_km=surfaces,
+        target=:O,
+    )
+    @test doubled.ionization_rate_m3_s1 ≈
+          2 .* result.ionization_rate_m3_s1
+end
+
 @testset "Python primitive parity" begin
     expected_density = (
         120.0 => (1.2113975782367725e17, 1.9307346587029375e15, 4.212254955721069e15),
