@@ -1,291 +1,64 @@
 # MarsASPEN examples
 
-This folder contains two single-particle diagnostics and two weighted
-100,000-particle Monte Carlo examples. Run all commands from the repository
-root. The source files contain detailed comments describing physical units,
-charge-state conventions, importance sampling, histogram dimensions, MAT
-fields, and limitations of the crossing-weight estimator.
+The examples now use a uniform dayside hemispherical source for every
+large-particle Monte Carlo simulation. The former 100,000-particle examples
+that injected all particles at one longitude and latitude have been removed.
+Single-particle examples remain available because they are intended to explain
+individual trajectories and collision physics, not to represent a global
+solar-wind source.
 
-## 1. Single neutral H ENA
+All commands below are run from the MarsASPEN.jl repository root.
 
-This case follows one monoenergetic 400 km/s H ENA from 600 km. It saves the
-complete trajectory, energy, charge state, velocity, and collision history.
+## 1. Single H ENA trajectory
+
+This example follows one neutral H particle with an initial speed of
+400 km s\(^{-1}\). It records altitude, charge state, energy, reaction type,
+scattering angle, and cumulative collision probability.
 
 ```powershell
 julia --project=. examples/run_h_ena_trajectory.jl
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py examples/output/single_h_ena_400kms.mat
 ```
 
-The plotting script displays only the atmospheric segment from 80 to 400 km
-and saves a 600 dpi PNG in `examples/figures`.
+The PNG is stored at
+`examples/figures/single_h_ena_400kms.png`.
 
-## 2. Single H+
+## 2. Single H+ trajectory
 
-This case uses the same altitude and speed but starts as H+. It is useful for
-seeing charge exchange from H+ to H ENA and subsequent state changes.
+This example follows one proton with an initial speed of 400 km s\(^{-1}\).
+Charge exchange can convert H+ into H ENA, and electron stripping can convert
+H ENA back into H+.
 
 ```powershell
 julia --project=. examples/run_hplus_trajectory.jl
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py examples/output/single_hplus_400kms.mat
 ```
 
-The corresponding publication-style PNG is stored in `examples/figures`.
+The PNG is stored at
+`examples/figures/single_hplus_400kms.png`.
 
-Both single-particle figures use a 2 by 2 quantitative layout containing
-altitude with reaction markers, energy, charge state, and speed versus time.
-Reaction colors are shared between altitude and energy. Each reference figure
-is stored as a 600 dpi PNG.
+## 3. Atmospheric density cases
 
-## 3. Weighted Monte Carlo example with 100,000 H ENA particles
-
-This example injects 100,000 numerical H ENA particles at 600 km with bulk
-velocity `[-400, 0, 0]` km/s, physical temperature 10 eV, and source number
-density
-
-```math
-n_{\mathrm{source}} = 1~\mathrm{cm^{-3}}
-                    = 10^{6}~\mathrm{m^{-3}}.
-```
-
-Each simulated trajectory is a **macro particle**, not one individual
-physical hydrogen atom. Macro particle $i$ carries a density weight
-$W_{n,i}$, which specifies the share of the physical source number density
-represented by that trajectory:
-
-```math
-[W_{n,i}] = \mathrm{m^{-3}}.
-```
-
-### Physical and sampling velocity distributions
-
-The requested source is a drifting three-dimensional Maxwellian. Its
-normalized velocity probability density is
-
-```math
-p(\boldsymbol{v};\boldsymbol{U},T)=
-\left(\frac{m}{2\pi k_{\mathrm{B}}T}\right)^{3/2}
-\exp\left[
--\frac{m|\boldsymbol{v}-\boldsymbol{U}|^2}
-       {2k_{\mathrm{B}}T}
-\right],
-```
-
-where
-
-* $\boldsymbol{v}$ is particle velocity, in $\mathrm{m\,s^{-1}}$;
-* $\boldsymbol{U}$ is bulk velocity, in $\mathrm{m\,s^{-1}}$;
-* $T$ is expressed in the input as eV, with $k_{\mathrm{B}}T=T_{\mathrm{eV}}q_{\mathrm{e}}$, in J;
-* $m$ is the hydrogen mass, in kg;
-* $p(\boldsymbol{v})$ has units $(\mathrm{m\,s^{-1}})^{-3}=\mathrm{s^3\,m^{-3}}$;
-* $\int p(\boldsymbol{v})\,d^3v=1$.
-
-The physical phase-space number-density distribution is therefore
-
-```math
-f_n(\boldsymbol{v})=
-n_{\mathrm{source}}p(\boldsymbol{v};\boldsymbol{U},T),
-```
-
-with units $\mathrm{m^{-3}}(\mathrm{m\,s^{-1}})^{-3}=\mathrm{s^3\,m^{-6}}$.
-
-Sampling every numerical particle directly from the physical 10 eV
-distribution is valid. However, this example deliberately samples from a
-broader Maxwellian with
-
-```math
-T_{\mathrm{s}}=50~\mathrm{eV},
-```
-
-so that the velocity tails contain more numerical trajectories. Let the
-normalized sampling probability density be
-
-```math
-p_{\mathrm{s}}(\boldsymbol{v})=
-p(\boldsymbol{v};\boldsymbol{U},T_{\mathrm{s}}).
-```
-
-### Importance weight
-
-For a sampled velocity $\boldsymbol{v}_i$, the dimensionless importance
-weight is
-
-```math
-w_i=
-\frac{p(\boldsymbol{v}_i;\boldsymbol{U},T)}
-       {p_{\mathrm{s}}(\boldsymbol{v}_i;\boldsymbol{U},T_{\mathrm{s}})}.
-```
-
-For the two drifting Maxwellians used here, MarsASPEN evaluates this as
-
-```math
-w_i=
-\left(\frac{v_{\mathrm{th,s}}}{v_{\mathrm{th}}}\right)^3
-\exp\left[
-\frac{|\boldsymbol{v}_i-\boldsymbol{U}|^2}{v_{\mathrm{th,s}}^2}
--
-\frac{|\boldsymbol{v}_i-\boldsymbol{U}|^2}{v_{\mathrm{th}}^2}
-\right],
-```
-
-where
-
-```math
-v_{\mathrm{th}}=\sqrt{\frac{2T_{\mathrm{eV}}q_{\mathrm{e}}}{m}},
-\qquad
-v_{\mathrm{th,s}}=
-\sqrt{\frac{2T_{\mathrm{s,eV}}q_{\mathrm{e}}}{m}}.
-```
-
-Both probability densities have the same units, so
-
-```math
-[w_i]=1.
-```
-
-The importance weight corrects the deliberately broadened sampling
-distribution back to the requested physical 10 eV distribution.
-
-### Density weight carried by each macro particle
-
-For $N_{\mathrm{MC}}$ simulated particles, MarsASPEN converts $w_i$ into
-the physical density weight
-
-```math
-\boxed{
-W_{n,i}=
-n_{\mathrm{source}}
-\frac{w_i}{\displaystyle\sum_{j=1}^{N_{\mathrm{MC}}}w_j}
-}
-```
-
-with
-
-```math
-[W_{n,i}]=\mathrm{m^{-3}}.
-```
-
-This normalization guarantees
-
-```math
-\sum_{i=1}^{N_{\mathrm{MC}}}W_{n,i}=
-n_{\mathrm{source}}.
-```
-
-Thus, the 100,000 numerical trajectories collectively represent the complete
-physical source density. They do not represent only 100,000 real atoms. If
-the sampling and physical temperatures are identical, all $w_i=1$, and the
-formula reduces to
-
-```math
-W_{n,i}=\frac{n_{\mathrm{source}}}{N_{\mathrm{MC}}}.
-```
-
-For the present example, this equal-weight reference value would be
-
-```math
-\frac{10^6~\mathrm{m^{-3}}}{10^5}=
-10~\mathrm{m^{-3}}
-```
-
-per macro particle. Because importance sampling is used, the actual
-$W_{n,i}$ values are unequal, but their sum remains exactly
-$10^6~\mathrm{m^{-3}}$.
-
-### Using Wn in model diagnostics
-
-For an altitude-energy histogram, every crossing of macro particle $i$ is
-added to its corresponding altitude, energy, and charge-state bin using
-$W_{n,i}$:
-
-```math
-H_{a,e,q}=
-\sum_{i\in(a,e,q)}W_{n,i},
-\qquad
-[H_{a,e,q}]=\mathrm{m^{-3}}.
-```
-
-This example directly plots that accumulated density weight. It does not
-multiply by trajectory path length and does not divide by energy-bin width.
-Consequently, the plotted quantity is density weight accumulated per discrete
-altitude-energy bin, not differential density per eV.
-
-For a vertical number-flux diagnostic, the local radial velocity must also be
-included:
-
-```math
-V_{r,i}=
-\frac{\boldsymbol{r}_i\cdot\boldsymbol{v}_i}
-       {|\boldsymbol{r}_i|},
-\qquad
-[V_{r,i}]=\mathrm{m\,s^{-1}},
-```
-
-```math
-F_i=W_{n,i}|V_{r,i}|,
-\qquad
-[F_i]=\mathrm{m^{-2}\,s^{-1}}.
-```
-
-Downward and upward crossings are accumulated separately. The signed outward
-flux is $F_{\mathrm{up}}-F_{\mathrm{down}}$.
-
-### Running the example
-
-The altitude-energy output uses 100 logarithmic energy bins from 1 to
-10,000 eV. The lower bound is 1 eV because a logarithmic axis cannot include
-zero. The displayed energy range is 10 to 3,000 eV.
-
-```powershell
-julia --project=. -t auto examples/run_h_ena_100000_monte_carlo.jl
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_h_ena_100000_monte_carlo.py examples/output/h_ena_100000_monte_carlo.mat
-```
-
-The resulting figure separately shows neutral H ENA and H+ created by
-electron stripping. A rendered reference figure is stored at
-`examples/figures/h_ena_100000_altitude_energy.png`.
-
-## 4. Weighted Monte Carlo example with 100,000 H+ particles
-
-This case injects 100,000 solar-wind protons at 600 km with a bulk velocity of
-`[-400, 0, 0]` km/s, physical temperature 10 eV, and physical density
-5 cm^-3. The importance sampler again uses 50 eV, and the f/fs correction
-restores the requested 10 eV distribution. Charge exchange produces the H ENA
-population shown in the left panel.
-
-```powershell
-julia --project=. -t auto examples/run_hplus_100000_monte_carlo.jl
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_h_ena_100000_monte_carlo.py examples/output/hplus_100000_monte_carlo.mat --output examples/figures/hplus_100000_altitude_energy.png
-```
-
-The plotting script reads `initial_species`, source density, temperature,
-altitude, speed, and particle count from the MAT file, so the title is not
-hard-coded for the neutral example. For the proton-source figure, the H ENA
-color range is 1e1 to 1e6 m^-3 and the dominant H+ range is 1e1 to 1e7 m^-3.
-A rendered reference figure is stored at
-`examples/figures/hplus_100000_altitude_energy.png`.
-
-## 5. MGITM and MAMPS density profiles
-
-This Nature-style 4 by 3 panel figure compares all packaged atmosphere cases:
-four seasons, $L_s=0,90,180,270$ degrees, and three F10.7 values, 70, 130,
-and 200. Profiles are evaluated at 0 degrees longitude and 0 degrees latitude
-from 80 to 1000 km. The five cold species use MGITM, including the same lower
-log-density and upper hydrostatic extrapolations as the Julia model. Hot O uses
-MAMPS only inside its native altitude range.
+The packaged atmosphere combines MGITM cold neutral densities with MAMPS hot
+oxygen. MGITM is logarithmically extrapolated from its lowest native grid
+levels to 80 km at every longitude and latitude. MAMPS is used only inside its
+available altitude range.
 
 ```powershell
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_atmosphere_cases.py
 ```
 
-The PNG is stored at
+The figure compares the available solar longitude and F10.7 cases from 80 to
+1000 km:
+
 `examples/figures/gitm_mamps_density_cases.png`.
 
-## 6. Collision cross sections
+## 4. Collision cross sections
 
-The cross-section figure has one row for H ENA and one row for H+, with columns
-for CO2, O, and N2. Every panel shows state change, target ionization,
-Ly-alpha production, and elastic scattering. Cross sections are converted from
-the source-table unit cm^2 to the model SI unit m^2.
+The collision tables distinguish neutral H and H+ projectiles and the CO2, O,
+and N2 targets. The channels include elastic scattering, charge-state change,
+target ionization, Ly-alpha emission, and Balmer-alpha emission where data are
+available.
 
 ```powershell
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_cross_sections.py
@@ -294,491 +67,364 @@ C:\Users\Win\.conda\envs\mars\python.exe examples/plot_cross_sections.py
 The PNG is stored at
 `examples/figures/collision_cross_sections.png`.
 
-## 7. Fixed 1000 eV collision probability every 1 km
+Cross sections are converted from cm\(^{2}\) to m\(^{2}\) before they are
+used in SI collision rates.
 
-This diagnostic holds the projectile energy fixed at 1000 eV and computes the
-total collision coefficient for H ENA and H+ at every 1 km altitude:
+## 5. Collision probability for a 1000 eV projectile
 
-```text
-alpha(z) = sum_j n_j(z) sum_k sigma_jk(1000 eV)
-P_local(z) = 1 - exp[-alpha(z) 1000 m]
-P_cumulative(z) = 1 - exp[-integral_z^1000km alpha(s) ds]
-```
-
-The Python calculation reproduces Julia's longitude and latitude interpolation,
-lower and upper atmosphere extrapolation, MAMPS range handling, and internal
-768-point cross-section interpolation. It was checked directly against
-`MarsASPEN.local_state` at 100, 200, 600, and 1000 km.
+The following example evaluates collision probability every 1 km for a
+1000 eV projectile moving downward through each atmosphere case:
 
 ```powershell
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_1000ev_collision_probability.py
 ```
 
-The two PNG outputs are:
-
-- `examples/figures/collision_probability_1000ev_local.png`
-- `examples/figures/collision_probability_1000ev_cumulative.png`
-
-Because energy is deliberately fixed, these curves describe first-collision
-optical depth rather than a complete energy-degrading Monte Carlo trajectory.
-
-## 8. Local radial flux profile
-
-This example injects 100,000 H+ particles at 600 km with 400 km/s bulk speed,
-10 eV temperature, and 5 cm^-3 density. At every one-kilometer spherical
-altitude surface, it evaluates the local radial velocity and accumulates the
-radial number flux. The macro-particle density weight $W_{n,i}$ is defined
-in Section 3.
+The local collision coefficient is
 
 ```math
-V_{r,i}=\boldsymbol{v}_i\cdot\hat{\boldsymbol{r}}_i,
+\alpha(z)
+=
+\sum_j n_j(z)\sum_k \sigma_{j,k}(E),
+```
+
+where \(n_j\) is in m\(^{-3}\), \(\sigma_{j,k}\) is in m\(^{2}\), and
+\(\alpha\) is in m\(^{-1}\). For a path length \(\Delta s\),
+
+```math
+P_{\mathrm{local}}
+=
+1-\exp[-\alpha(z)\Delta s].
+```
+
+The cumulative optical depth and collision probability are
+
+```math
+\tau(z)=\int_z^{1000\,\mathrm{km}}\alpha(s)\,ds,
 \qquad
-F_i=W_{n,i}|V_{r,i}|.
+P_{\mathrm{cum}}=1-\exp[-\tau(z)].
 ```
 
-Downward and upward magnitudes are saved separately for H ENA and H+. The
-flux unit is $\mathrm{m^{-2}\,s^{-1}}$. The signed outward radial flux is
-$F_{\mathrm{upward}}-F_{\mathrm{downward}}$, so negative values
-indicate net precipitation and positive values indicate net escape.
+The two PNG files are:
 
-```powershell
-julia --project=. -t auto examples/run_hplus_100000_radial_flux.jl
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_radial_flux_profile.py examples/output/hplus_100000_radial_flux.mat --output examples/figures/hplus_100000_radial_flux_profile.png
-```
+* `examples/figures/collision_probability_1000ev_local.png`
+* `examples/figures/collision_probability_1000ev_cumulative.png`
 
-The equivalent initially neutral H ENA source uses the same density,
-temperature, bulk speed, altitude grid, and flux definition:
+## 6. Uniform dayside injection at 600 km
 
-```powershell
-julia --project=. -t auto examples/run_h_ena_100000_radial_flux.jl
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_radial_flux_profile.py examples/output/h_ena_100000_radial_flux.mat --output examples/figures/h_ena_100000_radial_flux_profile.png
-```
+### Source geometry
 
-The reusable Python calculations are in
-`analysis/marsaspen_analysis/radial_flux.py`. They provide local radial
-velocity, single-particle `Wn * Vr`, and directional and net altitude
-profiles.
-
-The two source cases can also be combined into a 2 by 3 figure. Rows are H ENA
-source and H+ source. Columns are downward, upward, and signed net outward
-radial flux. The displayed altitude range is 100 to 400 km.
-
-```powershell
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_combined_radial_flux.py examples/output/h_ena_100000_radial_flux.mat examples/output/hplus_100000_radial_flux.mat
-```
-
-The combined PNG is stored at
-`examples/figures/h_ena_hplus_radial_flux_6panel.png`.
-
-## 9. O and CO2 ionization-rate profiles
-
-The generic target-ionization example supports O, CO2, and N2. The current
-reference figures evaluate O and CO2 ionization by both H ENA and H+
-projectiles. For target species $j$, the local-energy crossing estimator is
-
-```math
-q_j(r)=n_j(r)
-\left[
-\sum_{i\in\mathrm{H\ ENA}}
-W_{n,i}|V_{r,i}|\sigma_{\mathrm{H},j,\mathrm{ion}}(E_i)
-+
-\sum_{p\in\mathrm{H^+}}
-W_{n,p}|V_{r,p}|\sigma_{\mathrm{H^+},j,\mathrm{ion}}(E_p)
-\right].
-```
-
-For O, $n_j$ is the MGITM cold O density plus MAMPS hot O density. For CO2,
-$n_j$ is the MGITM CO2 density. $W_n$ is in $\mathrm{m^{-3}}$, $|V_r|$ is in
-$\mathrm{m\,s^{-1}}$, and the energy-dependent ionization cross section is in
-$\mathrm{m^2}$. Therefore,
-
-```math
-[q_j]=\mathrm{m^{-3}\,s^{-1}}.
-```
-
-The projectile energy $E_i$ is calculated from its local total speed at the
-crossing, after all preceding energy losses and scattering. Downward and
-upward contributions are added because particles moving in either direction
-can ionize O.
-
-The sum includes every macro particle crossing the altitude surface. It does
-not first select realized ionization events. Selecting realized events and
-then multiplying them by the ionization cross section would apply the
-collision probability twice.
-
-Run the initially neutral and initially ionized source cases for O:
-
-```powershell
-julia --project=. -t auto examples/run_target_ionization_rate.jl h_ena O
-julia --project=. -t auto examples/run_target_ionization_rate.jl hplus O
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_target_ionization_rate.py examples/output/h_ena_100000_oxygen_ionization_rate.mat examples/output/hplus_100000_oxygen_ionization_rate.mat
-```
-
-Run the corresponding CO2 cases:
-
-```powershell
-julia --project=. -t auto examples/run_target_ionization_rate.jl h_ena CO2
-julia --project=. -t auto examples/run_target_ionization_rate.jl hplus CO2
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_target_ionization_rate.py examples/output/h_ena_100000_co2_ionization_rate.mat examples/output/hplus_100000_co2_ionization_rate.mat
-```
-
-All four cases can be combined into one 2 by 2 figure. Rows are O and CO2.
-Columns are H ENA source and H+ source. Every panel uses the 100 to 400 km
-altitude range.
-
-```powershell
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_combined_ionization_rates.py examples/output/h_ena_100000_oxygen_ionization_rate.mat examples/output/hplus_100000_oxygen_ionization_rate.mat examples/output/h_ena_100000_co2_ionization_rate.mat examples/output/hplus_100000_co2_ionization_rate.mat
-```
-
-The combined PNG is stored at
-`examples/figures/oxygen_co2_ionization_rate_4panel.png`.
-
-## 10. H Ly-alpha volume emission and limb brightness
-
-The Ly-alpha production example evaluates the effective `sigma_La(E)` cross
-sections for H ENA and H+ impacts on CO2, O, and N2. At every altitude
-crossing it calculates the local total speed and energy. The target-resolved
-volume emission rates are summed to give
-
-```math
-\epsilon_{\mathrm{Ly}\alpha}(z)
-=
-\sum_j n_j(z)
-\left[
-\sum_{i\in\mathrm{H\ ENA}}
-W_{n,i}v_i\sigma_{\mathrm{H},j,\mathrm{Ly}\alpha}(E_i)
-+
-\sum_{p\in\mathrm{H^+}}
-W_{n,p}v_p\sigma_{\mathrm{H^+},j,\mathrm{Ly}\alpha}(E_p)
-\right].
-```
-
-The VER unit is `photons m^-3 s^-1`. The effective cross section is assumed
-to include the Ly-alpha photon yield. The radiative energy source is
-
-```math
-P_{\mathrm{Ly}\alpha}
-=
-\epsilon_{\mathrm{Ly}\alpha}
-\frac{hc}{\lambda_{\mathrm{Ly}\alpha}},
-\qquad
-\lambda_{\mathrm{Ly}\alpha}=121.567~\mathrm{nm},
-```
-
-in `W m^-3`. This is radiative energy, not local thermal heating.
-
-The Python analysis treats the one-dimensional VER as spherically symmetric
-and integrates exact path lengths through piecewise-constant spherical shells.
-The optically thin limb brightness is
-
-```math
-B_{\mathrm{Ly}\alpha}(h_{\mathrm{tan}})[\mathrm R]
-=
-10^{-10}
-\int_{\mathrm{LOS}}
-\epsilon_{\mathrm{Ly}\alpha}(s)\,ds.
-```
-
-The current Rayleigh profile does not include CO2 absorption or H Ly-alpha
-resonant scattering and should therefore be interpreted as an optically thin
-model estimate.
-
-Run both 100,000-particle source cases and make the combined 2 by 3 PNG:
-
-```powershell
-julia --project=. -t auto examples/run_lya_volume_emission.jl h_ena
-julia --project=. -t auto examples/run_lya_volume_emission.jl hplus
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_lya_profiles.py examples/output/h_ena_100000_lya_volume_emission.mat examples/output/hplus_100000_lya_volume_emission.mat
-```
-
-Rows are H ENA source and H+ source. Columns are VER, radiative energy rate,
-and optically thin limb brightness from 100 to 400 km. The PNG is stored at
-`examples/figures/h_ena_hplus_lya_profiles_6panel.png`.
-
-The same command also writes separate source-profile figures to
-`examples/figures/h_ena_lya_profiles_3panel.png` and
-`examples/figures/hplus_lya_profiles_3panel.png`. All three figures use the
-same fixed logarithmic horizontal ranges for direct comparison: VER from
-`1e2` to `1e9 photons m^-3 s^-1`, radiative energy rate from `1e-16` to
-`1e-8 W m^-3`, and limb brightness from `1e-2` to `1e5 R`.
-
-## 11. Point-source maps at 120 km
-
-The current transport geometry starts every particle at 600 km above
-longitude 0 degrees and latitude 0 degrees. The following example maps the
-local footprint where those trajectories cross the 120 km spherical surface:
-
-```powershell
-julia --project=. -t auto examples/run_surface_diagnostics_120km.jl h_ena
-julia --project=. -t auto examples/run_surface_diagnostics_120km.jl hplus
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_surface_diagnostics_120km.py examples/output/h_ena_100000_surface_diagnostics_120km.mat examples/output/hplus_100000_surface_diagnostics_120km.mat
-```
-
-For target species `j`, the local crossing estimator uses the total projectile
-speed:
-
-```text
-q_j(lon, lat) =
-    n_j(lon, lat, 120 km)
-    sum_i [Wn_i |V_i| sigma_ion,j(E_i)].
-```
-
-The radial component is not used here. It is needed for radial flux, whereas
-the collision frequency and collision energy depend on the total speed and
-total kinetic energy.
-
-The collision-energy transfer estimator is
-
-```text
-P_collision =
-    sum_i sum_j sum_k [
-        Wn_i |V_i| n_j sigma_jk(E_i) DeltaE_jk(E_i)
-    ].
-```
-
-It includes the fixed modeled inelastic losses and the mean two-body elastic
-energy transfer. If a particle stops below the 10 eV transport cutoff inside
-the 119.5 to 120.5 km shell, its remaining energy is added to
-`thermalized_below_cutoff_ev_m3_s1`. The saved total is
-
-```text
-P_total = P_collision + P_below_10eV.
-```
-
-The MAT files retain both `eV m^-3 s^-1` and `W m^-3`, using
-`1 eV = 1.602176634e-19 J`. This is projectile energy transfer. It is an
-upper estimate of local heating because escaping Ly-alpha radiation and
-transport by secondary electrons are not yet subtracted.
-
-To inspect the H+ energy distribution at 550 km separately:
-
-```powershell
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_hplus_energy_at_altitude.py examples/output/h_ena_100000_monte_carlo.mat --altitude 550
-```
-
-To compare the highest saved altitude layer with the analytical 10 eV
-drifting Maxwellian injection distribution, run:
-
-```powershell
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_energy_at_600km.py examples/output/h_ena_100000_monte_carlo.mat
-```
-
-The highest row represents the 599.5 km crossing surface. Its current
-density-weight histogram combines downward and upward crossings, so returned
-particles can produce a low-energy tail even this close to the injection
-boundary.
-
-The one-altitude diagnostic shows all native logarithmic bins and can combine
-neighboring bins with its `--rebin` option to reduce Monte Carlo noise.
-
-The Julia code keeps transport settings and source weights separate:
+The new large-particle source covers the complete MSO dayside hemisphere at
+600 km altitude. Set
 
 ```julia
-config = MonteCarloConfig(
-    n_particles=100_000,
-    initial_speed_m_s=400_000.0,
-    initial_charge_state=0,
-    initial_temperature_ev=10.0,
-)
-weighting = MonteCarloWeight(
-    sampling_temperature_factor=5.0,
-    source_number_density_m3=1.0e6,
-)
-
-result = run_density_crossing_ensemble(
-    model, config;
-    weighting=weighting,
-    altitude_surfaces_km=altitude_centers_km,
-    energy_edges_ev=energy_edges_ev,
-)
+injection_geometry=:dayside_uniform
 ```
 
-## Uniform dayside injection at 600 km
+in `MonteCarloConfig`. MarsASPEN samples
 
-Set `injection_geometry=:dayside_uniform` to distribute initial positions
-uniformly in spherical surface area over the complete MSO dayside hemisphere.
-For example:
-
-```julia
-config = MonteCarloConfig(
-    n_particles=100_000,
-    injection_geometry=:dayside_uniform,
-    initial_altitude_km=600.0,
-    initial_speed_m_s=400_000.0,
-    initial_charge_state=1,
-    initial_temperature_ev=10.0,
-)
+```math
+\mu=\cos(\mathrm{SZA})\sim U(0,1),
+\qquad
+\varphi\sim U(0,2\pi),
 ```
 
-MarsASPEN samples `x/r` uniformly on `[0, 1]` and the azimuth about the MSO X
-axis uniformly on `[0, 2 pi)`. This gives a uniform probability per spherical
-surface area. Velocity is sampled independently in the global MSO frame:
+and constructs the MSO position
+
+```math
+\boldsymbol{r}
+=
+r_{\mathrm{inj}}
+\left(
+\mu,\,
+\sqrt{1-\mu^2}\cos\varphi,\,
+\sqrt{1-\mu^2}\sin\varphi
+\right).
+```
+
+Here
+
+```math
+r_{\mathrm{inj}}=R_{\mathrm{Mars}}+600~\mathrm{km}.
+```
+
+Uniform \(\mu\) and azimuth give a uniform probability per unit spherical
+surface area. All sampled positions satisfy \(x\geq0\) and
+\(0\leq\mathrm{SZA}\leq90^\circ\).
+
+### Velocity distribution
+
+The physical proton distribution is a drifting three-dimensional Maxwellian:
+
+```math
+\boldsymbol{U}
+=
+(-400,0,0)~\mathrm{km\,s^{-1}},
+\qquad
+T=10~\mathrm{eV},
+\qquad
+n_{\mathrm{sw}}=5~\mathrm{cm^{-3}}.
+```
+
+The bulk velocity is specified in the global MSO frame. It is not rotated to
+the local radial direction. Therefore, each particle has a different local
+radial velocity,
+
+```math
+V_{r,i}
+=
+\frac{\boldsymbol{r}_i\mathbin{\cdot}\boldsymbol{v}_i}
+{|\boldsymbol{r}_i|}.
+```
+
+At the subsolar point, the bulk velocity is almost entirely inward and
+radial. Near the terminator, the same MSO velocity is nearly tangent to the
+600 km injection sphere.
+
+### Macro-particle normalization
+
+The uniform-dayside simulation represents a stationary particle injection
+rate through the spherical source surface. The area of the dayside hemisphere
+is
+
+```math
+A_{\mathrm{day}}=2\pi r_{\mathrm{inj}}^2.
+```
+
+For physical distribution \(f(\boldsymbol{v})\), sampling distribution
+\(f_s(\boldsymbol{v})\), and importance ratio
+
+```math
+w_i
+=
+\frac{f(\boldsymbol{v}_i)}
+{f_s(\boldsymbol{v}_i)},
+```
+
+the inward number flux represented by the sampled ensemble is normalized with
+the local inward speed
+
+```math
+V_{\mathrm{in},i}
+=
+\max(-V_{r,i},0).
+```
+
+The physical particle rate represented by macro particle \(i\) is
+
+```math
+\dot{N}_i
+=
+A_{\mathrm{day}}\,
+n_{\mathrm{sw}}\,
+\frac{w_iV_{\mathrm{in},i}}
+{\sum_{p=1}^{N_{\mathrm{MC}}}w_p}.
+```
+
+Units are
 
 ```text
-Vx ~ Normal(-400 km/s, sigma)
-Vy ~ Normal(   0 km/s, sigma)
-Vz ~ Normal(   0 km/s, sigma)
-
-sigma = sqrt(kT / m_H+).
+A_day:       m^2
+n_sw:        m^-3
+V_in:        m s^-1
+w_i:         dimensionless
+Ndot_i:      s^-1
 ```
 
-The local radial component is evaluated separately for every macro particle:
+Thus each simulated trajectory is a macro particle carrying a physical
+particle rate, not one real proton and not a fixed point-source density.
 
-```text
-Vr_i = V_i dot rhat_i.
-```
+### Inspecting the injection distribution
 
-The global `-Vx` drift is therefore radial only at the subsolar point. The
-physical inward crossing weight at the injection boundary is
-
-```text
-Wflux_i = Wn_i max(-Vr_i, 0).
-```
-
-Particles with `Vr >= 0` have zero inward flux weight. They remain part of the
-sampled Maxwellian source distribution but leave the outer boundary instead
-of entering the atmosphere.
-
-Generate and inspect 100,000 initial H+ macro particles with:
+The following commands sample 100,000 initial positions and velocities without
+running transport:
 
 ```powershell
 julia --project=. -t auto examples/sample_dayside_injection_100000.jl
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_injection_100000.py examples/output/dayside_hplus_injection_100000.mat
 ```
 
-The PNG is stored at
-`examples/figures/dayside_hplus_injection_100000_4panel.png`. Its first panel
-shows Mars and the sampled 600 km dayside positions in the three-dimensional
-MSO X, Y, Z coordinate system. The remaining panels show the three MSO
-velocity-component distributions.
+The resulting figure contains a three-dimensional Mars and injection-position
+view together with the MSO \(V_x\), \(V_y\), and \(V_z\) distributions:
 
-## Full three-dimensional Monte Carlo output
+`examples/figures/dayside_hplus_injection_100000_4panel.png`.
 
-`run_spatial_grid_ensemble` is the standard driver for simulations that need
-reusable three-dimensional physical outputs. The horizontal cell width is the
-native MGITM spacing, 5 degrees longitude by 5 degrees latitude. The example
-uses 1 km altitude cells from 80 to 600 km:
+## 7. Uniform-dayside three-dimensional Monte Carlo simulation
+
+Run the complete 100,000-particle H+ simulation with:
 
 ```powershell
 julia --project=. -t auto examples/run_dayside_3d_100000.jl
 ```
 
-The source contains 100,000 H+ macro particles uniformly distributed over the
-600 km dayside sphere, with MSO bulk velocity `(-400, 0, 0) km/s`, physical
-temperature 10 eV, and number density `5e6 m^-3`.
-
-For a uniformly sampled dayside area `A_day`, each macro particle has physical
-particle-rate weight
+The example uses:
 
 ```text
-Ndot_i = Wn_i max(-Vr_i, 0) A_day                  [s^-1].
+initial altitude:       600 km
+source geometry:        uniform dayside spherical area
+initial species:        H+
+MSO bulk velocity:      (-400, 0, 0) km s^-1
+physical temperature:   10 eV
+physical density:       5 cm^-3
+number of particles:    100,000
+longitude bin width:    5 degrees
+latitude bin width:     5 degrees
+altitude bin width:     1 km
+altitude range:         80 to 600 km
 ```
 
-For a trajectory segment of duration `dt`, path length `ds`, and cell volume
-`Vcell`, the accumulated moments are
+### Three-dimensional estimators
 
-```text
-number density:       Ndot_i dt / Vcell            [m^-3]
-total scalar flux:    Ndot_i ds / Vcell            [m^-2 s^-1]
-signed radial flux:   Ndot_i Vr_i dt / Vcell       [m^-2 s^-1]
-upward radial flux:   Ndot_i max(Vr_i,0) dt/Vcell  [m^-2 s^-1]
-downward radial flux: Ndot_i max(-Vr_i,0)dt/Vcell  [m^-2 s^-1].
+For grid-cell volume \(V_{\mathrm{cell}}\), trajectory residence time
+\(\Delta t\), path length \(\Delta s=|\boldsymbol{v}|\Delta t\), and
+macro-particle rate \(\dot N_i\), MarsASPEN accumulates
+
+```math
+n
+=
+\sum_i
+\frac{\dot N_i\Delta t_i}{V_{\mathrm{cell}}},
 ```
 
-This residence-time estimator is required for a three-dimensional grid.
-Simply summing `Wn` whenever a trajectory enters a cell would depend on step
-size and would not produce a physical local density.
-
-Each realized collision contributes
-
-```text
-reaction rate = Ndot_i / Vcell                     [m^-3 s^-1]
+```math
+F_{\mathrm{total}}
+=
+\sum_i
+\frac{\dot N_i\Delta s_i}{V_{\mathrm{cell}}},
 ```
 
-to its projectile charge, target species, and reaction channel. The saved
-reaction channels are state change, target ionization, Ly-alpha production,
-and elastic scattering. The target order is CO2, O, and N2. Consequently, the
-reaction output can directly produce O or CO2 ionization maps, total
-Ly-alpha volume emission, elastic collision rates, and charge-resolved rates.
+```math
+F_r
+=
+\sum_i
+\frac{\dot N_iV_{r,i}\Delta t_i}{V_{\mathrm{cell}}}.
+```
+
+The corresponding units are m\(^{-3}\), m\(^{-2}\) s\(^{-1}\), and
+m\(^{-2}\) s\(^{-1}\). Upward and downward radial fluxes are accumulated
+separately using \(\max(V_r,0)\) and \(\max(-V_r,0)\).
+
+Each realized reaction contributes
+
+```math
+q_{\mathrm{event}}
+=
+\frac{\dot N_i}{V_{\mathrm{cell}}}
+```
+
+in m\(^{-3}\) s\(^{-1}\). Reactions are stored separately by projectile
+charge state, atmospheric target, and reaction channel.
+
+### MAT output files
 
 The simulation writes four MAT v7.3 files:
 
-* `dayside_hplus_100000_3d_grid.mat` contains MSO coordinate edges, centers,
-  and exact spherical cell volumes.
+* `dayside_hplus_100000_3d_grid.mat` contains longitude, latitude, and
+  altitude edges and centers, plus exact spherical cell volumes.
 * `dayside_hplus_100000_3d_moments.mat` contains total and charge-resolved
-  density, scalar flux, signed radial flux, upward flux, and downward flux.
-* `dayside_hplus_100000_3d_reactions.mat` contains charge-target-reaction
-  volume rates and raw Monte Carlo event counts. It also includes convenient
-  channel totals, target-resolved ionization rates, and total Ly-alpha volume
-  emission so common plots do not need to reduce the full six-dimensional
-  array first.
+  number density, total scalar flux, signed radial flux, upward radial flux,
+  and downward radial flux.
+* `dayside_hplus_100000_3d_reactions.mat` contains reaction rates and raw
+  Monte Carlo event counts by charge, target, and channel. It also stores
+  target-resolved ionization rates and total H Ly-alpha volume emission.
 * `dayside_hplus_100000_3d_energy.mat` contains collision energy transfer,
-  sub-10 eV cutoff thermalization, and their sum in `W m^-3`.
+  sub-10 eV thermalization, and their sum in W m\(^{-3}\).
 
-The declared Julia array order is longitude, latitude, altitude, followed by
-optional component dimensions. HDF5-based Python readers may expose the
-dimensions in reverse order, so analysis code should identify axes from the
-saved coordinate lengths rather than assuming NumPy axis order.
+Julia writes arrays in longitude, latitude, altitude order followed by any
+component dimensions. Some HDF5 readers expose dimensions in reverse order.
+The supplied Python scripts identify dimensions from coordinate lengths
+instead of assuming NumPy axis order.
 
-Plot the 120 to 121 km layer from all four files with:
+## 8. Uniform-dayside diagnostic figures
+
+### Initial positions and velocities
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_injection_100000.py examples/output/dayside_hplus_injection_100000.mat
+```
+
+Output:
+
+`examples/figures/dayside_hplus_injection_100000_4panel.png`
+
+### Longitude and latitude maps at 120 km
 
 ```powershell
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_maps_120km.py
 ```
 
-The resulting eight-panel PNG is
-`examples/figures/dayside_hplus_100000_3d_maps_120km_8panel.png`. It shows
-number density, total scalar flux, downward and upward radial flux, signed
-radial flux, total target ionization, Ly-alpha volume emission, and projectile
-energy transfer. The dotted longitudes at plus and minus 90 degrees mark the
-nominal MSO terminator.
+The eight panels show number density, total scalar flux, downward radial flux,
+upward radial flux, signed radial flux, total target ionization rate,
+H Ly-alpha volume emission rate, and projectile energy transfer rate:
 
-Create the corresponding altitude profiles with:
+`examples/figures/dayside_hplus_100000_3d_maps_120km_8panel.png`
+
+### Altitude profiles
 
 ```powershell
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_altitude_profiles.py
 ```
 
-The PNG is
-`examples/figures/dayside_hplus_100000_3d_altitude_profiles_8panel.png`.
-The displayed altitude range is 100 to 300 km. Each panel contains a global
-spherical-area mean and a dayside-area mean.
-Latitude weighting uses the exact spherical factor
-`sin(lat_upper)-sin(lat_lower)`, rather than treating every latitude bin as
-having the same area. The signed radial-flux panel uses a symmetric logarithmic
-axis; the other seven panels use logarithmic horizontal axes.
+Profiles cover 100 to 300 km and compare the global spherical-area mean with
+the dayside-area mean:
 
-Create solar zenith angle and altitude maps from the same three-dimensional
-output with:
+`examples/figures/dayside_hplus_100000_3d_altitude_profiles_8panel.png`
+
+Latitude weighting uses the exact spherical factor
+
+```math
+\sin(\phi_{\mathrm{upper}})
+-
+\sin(\phi_{\mathrm{lower}}).
+```
+
+### SZA and altitude distributions
 
 ```powershell
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_sza_altitude.py
 ```
 
-The MSO solar zenith angle at each grid center is
+The MSO solar zenith angle is
 
 ```math
 \mathrm{SZA}
 =
-\cos^{-1}\left(\cos\phi\cos\lambda\right),
+\cos^{-1}(\cos\phi\cos\lambda).
 ```
 
-where \(\phi\) is latitude and \(\lambda\) is longitude. The script uses
-5 degree SZA bins and 1 km altitude bins from 100 to 300 km. It averages
-cells in each SZA annulus using their exact spherical areas, so polar and
-equatorial cells receive physically appropriate weights.
+The script uses 5 degree SZA bins, 1 km altitude bins, and the 100 to 300 km
+altitude range. Every SZA annulus is averaged with exact spherical cell-area
+weights. The dotted line at SZA \(=90^\circ\) marks the terminator.
 
-The resulting PNG is
-`examples/figures/dayside_hplus_100000_3d_sza_altitude_8panel.png`.
-Its eight panels show number density, total scalar flux, downward and upward
-radial flux, signed outward radial flux, total target ionization rate,
-H Ly-alpha volume emission rate, and projectile energy transfer rate. The
-dotted line at SZA = 90 degrees marks the terminator.
+Output:
 
-## Why `test/` is retained
+`examples/figures/dayside_hplus_100000_3d_sza_altitude_8panel.png`
 
-The `test/` directory is not an example directory. It automatically verifies
-the atmosphere interpolation, cross sections, deterministic random streams,
-charge-state accounting, flux scaling, and Monte Carlo weight normalization.
-It should remain in the package so future refactoring cannot silently change
-the physics.
+## 9. Analysis package
+
+The Python package under `analysis/marsaspen_analysis` provides MAT and MAT
+v7.3 readers for trajectory and three-dimensional output. The former
+point-source radial-flux, ionization-profile, and Ly-alpha-profile modules
+have been removed. Uniform-dayside diagnostics are calculated directly from
+the gridded moments, reactions, and energy MAT files.
+
+Install the reader in editable mode with:
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe -m pip install -e analysis
+```
+
+## 10. Tests
+
+The Julia tests verify atmosphere interpolation, cross sections, Monte Carlo
+weighting, uniform-dayside injection geometry, and three-dimensional spatial
+diagnostics:
+
+```powershell
+julia --project=. test/runtests.jl
+```
+
+The remaining Python tests verify ordinary MAT and MAT v7.3 input:
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe -m pytest analysis/tests
+```

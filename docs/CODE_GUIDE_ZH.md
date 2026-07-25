@@ -313,18 +313,9 @@ path_length_m[altitude_bin, energy_bin, charge_state]
 | 2 | collision |
 | 3 | final state |
 
-## 4. `scripts` Julia 运行脚本
+## 4. Julia 运行脚本
 
-### 4.1 `scripts/benchmark.jl`
-
-运行 compact ensemble 并报告速度、平均最终能量、平均碰撞数、平均 step 数
-和各终止类型数量。
-
-```powershell
-julia --project=. -t auto scripts/benchmark.jl 1000000
-```
-
-### 4.2 `scripts/run_detailed.jl`
+### 4.1 `scripts/run_detailed.jl`
 
 为少量粒子保存完整轨迹 MAT 文件。
 
@@ -334,52 +325,27 @@ julia --project=. -t auto scripts/run_detailed.jl 10 output/detailed.mat
 
 不要用此模式保存 100 万粒子，因为完整 step history 可能达到数百 GB。
 
-### 4.3 `scripts/run_reaction_altitude_counts.jl`
+### 4.2 `examples/sample_dayside_injection_100000.jl`
 
-使用低内存 histogram 统计不同高度的四类反应事件数。
-
-```powershell
-julia --project=. -t auto scripts/run_reaction_altitude_counts.jl 1000000 output/counts.csv 1
-```
-
-最后一个参数是高度 bin 宽度，单位 km。
-
-### 4.4 `scripts/run_phase_space_histogram.jl`
-
-统计 H ENA 和 H⁺ 的高度能量分布。
+在600 km高度的完整MSO日侧半球上按球面面积均匀采样10万个初始位置。
+太阳风速度在MSO坐标系中取 `[-400, 0, 0] km s⁻¹`，而不是在每个位置旋转到
+局地径向方向。该脚本只保存注入位置、速度、SZA和权重，不运行输运。
 
 ```powershell
-julia --project=. -t auto scripts/run_phase_space_histogram.jl 1000000 output/phase.mat 1 100 1
+julia --project=. -t auto examples/sample_dayside_injection_100000.jl
 ```
 
-最后三个参数分别为：
+### 4.3 `examples/run_dayside_3d_100000.jl`
 
-1. 高度 bin 宽度，km。
-2. 对数能量 bin 数。
-3. 初始宏粒子权重。
-
-### 4.5 `scripts/run_solar_wind_flux.jl`
-
-从 600 km 注入漂移 Maxwellian 太阳风 H⁺。默认参数为密度 5 cm⁻³、体速度
-`[-400, 0, 0] km s⁻¹` 和 `kT = 10 eV`。程序统计 100 至 300 km 每个固定
-高度面的下行和上行 H⁺、H ENA 穿越通量。
+这是当前的大粒子数标准示例。它使用均匀日侧半球源运行10万个H⁺ macro
+particles，并在经度、纬度和1 km高度网格中累计粒子矩、反应率和能量转移率。
 
 ```powershell
-julia --project=. -t auto scripts/run_solar_wind_flux.jl 10000000 output/solar_wind_flux.mat 0.5 2
+julia --project=. -t auto examples/run_dayside_3d_100000.jl
 ```
 
-脚本通过 `MonteCarloWeight(sampling_temperature_factor=5,
-source_number_density_m3=5e6)` 设置权重，也就是从 50 eV 的较宽
-采样分布产生速度，再用 `f/fs` 恢复 10 eV 的物理太阳风分布。每个粒子的
-密度权重和 flux weight 分别为：
-
-```text
-Wn_i = n_sw (f/fs)_i / sum(f/fs)
-Wflux_i = Wn_i max(-v_x,i, 0)
-```
-
-因此 energy bin 内保存的是 number flux。除以能量 bin 宽度后得到 differential
-number flux，单位 m⁻² s⁻¹ eV⁻¹。
+输出分成grid、moments、reactions和energy四个MAT v7.3文件。详细的
+macro-particle归一化、单位和变量说明见 `examples/README.md`。
 
 ## 5. Python 分析代码
 
@@ -404,48 +370,38 @@ number flux，单位 m⁻² s⁻¹ eV⁻¹。
 
 绘制 MGITM 冷组分、MAMPS hot O、total O 和中性温度。
 
-### 5.4 `analysis/scripts/plot_reaction_altitude_counts.py`
-
-绘制 state change、ionization、Ly-alpha 或 elastic count 随高度的分布。
-
-### 5.5 `analysis/scripts/plot_phase_space_histogram.py`
-
-读取 phase-space MAT 文件，绘制 H ENA 和 H⁺ 的高度能量二维分布。颜色表示：
-
-```text
-sum(particle_weight × ds)
-```
-
-### 5.6 `analysis/scripts/plot_detailed_mat.py`
+### 5.4 `analysis/scripts/plot_detailed_mat.py`
 
 这是详细轨迹绘图的命令行入口。
 
-### 5.7 `analysis/scripts/plot_solar_wind_flux.py`
+### 5.5 Uniform-dayside 三维绘图
 
-绘制四个高度能量通量面板，分别为下行 H⁺、上行 H⁺、下行 H ENA 和上行
-H ENA。四个面板使用统一的对数色标，可以直接比较绝对通量。
+`examples/plot_dayside_3d_maps_120km.py` 绘制120 km经纬度分布。
+`examples/plot_dayside_3d_altitude_profiles.py` 绘制100至300 km高度剖面。
+`examples/plot_dayside_3d_sza_altitude.py` 绘制SZA和高度二维分布。
 
-### 5.8 `analysis/tests/test_io.py`
+### 5.6 `analysis/tests/test_io.py`
 
 测试 MAT v7.3 reader、单粒子筛选和反应事件筛选。
 
 ## 6. 原始统计量与物理量
 
-必须区分以下三类量：
+三维均匀日侧模拟必须区分以下物理量：
 
-1. Reaction count：反应事件数。
-2. Path-length histogram：`sum(w_i ds)`。
-3. Physical rate or brightness：需要通量权重、时间、面积、体积或视线积分。
+1. 原始Monte Carlo event count，它只用于统计收敛性检查。
+2. Residence-time estimator，它给出网格内数密度。
+3. Track-length estimator，它给出total scalar flux。
+4. Event-rate estimator，它给出电离率和Ly-alpha体发射率。
 
-若入射 H 通量为 `F_H`，模拟面积为 `A`，统计时间为 `Delta t`，模拟粒子数为
-`N`，可以使用：
+均匀日侧半球面积为
 
 ```text
-w_i = F_H A Delta t / N
+A_day = 2 pi r_inj^2.
 ```
 
-一维高度模型中的体积反应率还需要除以高度层厚度和对应体积。Ly-alpha
-brightness 需要从体积发射率沿观测视线积分，并转换为 Rayleigh。
+每个macro particle携带物理粒子率 `Ndot_i`，单位s⁻¹。网格内数密度贡献为
+`Ndot_i dt / Vcell`，通量贡献为 `Ndot_i ds / Vcell`，实现的反应事件贡献为
+`Ndot_i / Vcell`。
 
 ## 7. 修改代码后的验证
 
@@ -453,7 +409,7 @@ brightness 需要从体积发射率沿观测视线积分，并转换为 Rayleigh
 
 ```powershell
 julia --project=. -t auto test/runtests.jl
-julia --project=. -t auto scripts/benchmark.jl 1000
+C:\Users\Win\.conda\envs\mars\python.exe -m pytest analysis/tests
 ```
 
 需要重点检查：
@@ -462,5 +418,5 @@ julia --project=. -t auto scripts/benchmark.jl 1000
 * 密度和截面单位是否一致。
 * 能量变化后是否重新计算截面。
 * charge state 是否在 state-change 反应后正确更新。
-* histogram 是 event count 还是 path-length estimator。
+* 三维输出使用的是event、residence-time还是track-length estimator。
 * 大规模运行是否触发 collision 或 step safety limit。

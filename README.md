@@ -32,7 +32,9 @@ Simulation controls and source weights are deliberately separate:
 
 ```julia
 config = MonteCarloConfig(
-    n_particles=1_000_000,
+    n_particles=100_000,
+    injection_geometry=:dayside_uniform,
+    initial_charge_state=1,
     initial_speed_m_s=400_000.0,
     initial_temperature_ev=10.0,
 )
@@ -40,7 +42,7 @@ weighting = MonteCarloWeight(
     sampling_temperature_factor=5.0,
     source_number_density_m3=5.0e6,
 )
-result = run_directional_flux_ensemble(
+result = run_spatial_grid_ensemble(
     model, config; weighting=weighting,
 )
 ```
@@ -55,9 +57,9 @@ analysis program is available in [`docs/CODE_GUIDE_ZH.md`](docs/CODE_GUIDE_ZH.md
 ## Single-particle examples
 
 The [`examples/`](examples/) directory contains reproducible 400 km/s H ENA and
-H+ trajectories, plus a weighted 100,000-particle H ENA Monte Carlo example.
-The single-particle cases save detailed state, energy, velocity, and collision
-history, then the shared Python program marks reaction locations:
+H+ trajectories. These single-particle cases save detailed state, energy,
+velocity, and collision history, then the shared Python program marks reaction
+locations:
 
 ```powershell
 julia --project=. examples/run_h_ena_trajectory.jl
@@ -66,12 +68,20 @@ C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py exam
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py examples/output/single_hplus_400kms.mat
 ```
 
-Run and plot the weighted 100,000-particle example with:
+Large-particle examples use a uniform 600 km MSO dayside hemispherical source,
+not a single injection longitude and latitude:
 
 ```powershell
-julia --project=. -t auto examples/run_h_ena_100000_monte_carlo.jl
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_h_ena_100000_monte_carlo.py examples/output/h_ena_100000_monte_carlo.mat
+julia --project=. -t auto examples/sample_dayside_injection_100000.jl
+julia --project=. -t auto examples/run_dayside_3d_100000.jl
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_maps_120km.py
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_altitude_profiles.py
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_sza_altitude.py
 ```
+
+The complete source normalization, three-dimensional estimators, MAT contents,
+and plotting commands are documented in
+[`examples/README.md`](examples/README.md).
 
 ## Neutral atmosphere
 
@@ -104,89 +114,23 @@ from MGITM and `O_hot` from MAMPS.
 julia --project=. -e "using Pkg; Pkg.instantiate(); Pkg.test()"
 ```
 
-## Compact ensemble benchmark
+## Uniform-dayside three-dimensional output
+
+The production example injects 100,000 H+ macro particles uniformly in
+spherical area over the 600 km MSO dayside hemisphere. Velocities are sampled
+from a drifting Maxwellian with density 5 cm\(^{-3}\), temperature 10 eV, and
+MSO bulk velocity \((-400,0,0)\) km s\(^{-1}\).
+
+The simulation accumulates longitude, latitude, and 1 km altitude cells and
+writes separate grid, moment, reaction, and energy MAT v7.3 files:
 
 ```powershell
-julia --project=. -t auto scripts/benchmark.jl 1000000
+julia --project=. -t auto examples/run_dayside_3d_100000.jl
 ```
 
-On the development workstation, 1,000,000 particles completed in 131.0 s
-using 28 Julia threads, corresponding to about 7,631 particles/s.
-
-## Detailed MAT output
-
-```powershell
-julia --project=. -t auto scripts/run_detailed.jl 10 output/aspen_10p_detailed.mat
-```
-
-Detailed output uses flat arrays plus particle offsets in one compressed MAT
-v7.3 file. Compact output is recommended for large ensembles. Saving every
-transport step for 1,000,000 particles can require hundreds of GB.
-
-## Altitude-binned reaction counts
-
-Large ensembles can accumulate reaction counts directly into altitude bins
-without storing every collision event:
-
-```powershell
-julia --project=. -t auto scripts/run_reaction_altitude_counts.jl 1000000 output/reaction_altitude_counts_1000000p.csv 10
-C:\Users\Win\.conda\envs\mars\python.exe analysis/scripts/plot_reaction_altitude_counts.py output/reaction_altitude_counts_1000000p.csv
-```
-
-The CSV separates charge-state change, ionization, Lyman-alpha production, and
-elastic collisions. Counts are collision events, so one particle can contribute
-many events.
-
-## H ENA and H+ altitude-energy distributions
-
-```powershell
-julia --project=. -t auto scripts/run_phase_space_histogram.jl 1000000 output/phase_space_1000000p.mat 1 100 1
-C:\Users\Win\.conda\envs\mars\python.exe analysis/scripts/plot_phase_space_histogram.py output/phase_space_1000000p.mat
-```
-
-The final argument is the initial macro-particle weight, with a default of one.
-It is stored in `MonteCarloWeight(unit_particle_weight=...)`. Each trajectory
-segment contributes `unit_particle_weight * ds` to its altitude,
-energy, and charge-state bin. This path-length weighting avoids bias from the
-adaptive transport step. A physical incident flux can be applied by replacing
-the unit weight with the corresponding macro-particle weight.
-
-## Solar-wind proton directional flux
-
-The following production run injects a drifting-Maxwellian H+ population at
-600 km with density 5 cm^-3, bulk velocity `[-400, 0, 0]` km/s, and `kT = 10 eV`.
-It records downward and upward H+ and H ENA flux crossings from 100 to 300 km:
-
-```powershell
-julia --project=. -t auto scripts/run_solar_wind_flux.jl 10000000 output/solar_wind_flux_10000000p.mat 0.5 2
-C:\Users\Win\.conda\envs\mars\python.exe analysis/scripts/plot_solar_wind_flux.py output/solar_wind_flux_10000000p.mat
-```
-
-The final two arguments are altitude spacing in km and energy spacing in eV.
-The plotted quantity is differential number flux in m^-2 s^-1 eV^-1.
-The run samples velocities from a Maxwellian five times hotter than the
-physical source to improve tail statistics. Every particle is corrected by
-`f / f_sample`. Its density weight is `n_source * W_i / sum(W)`, and its
-inward crossing-flux weight is the density weight times `max(-v_x, 0)`.
-
-## Local radial flux
-
-`run_radial_flux_ensemble` evaluates the local spherical radial velocity at
-every altitude crossing:
-
-```julia
-radial = run_radial_flux_ensemble(
-    model, config;
-    weighting=weighting,
-    altitude_surfaces_km=collect(80.5:1.0:599.5),
-)
-```
-
-Each crossing contributes `Wn * abs(v dot r_hat)`, in m^-2 s^-1, to either
-the downward or upward array. The returned `signed_outward_flux_m2_s` is
-upward minus downward, while `net_downward_flux_m2_s` uses the opposite sign.
-Unlike the injection-weight directional diagnostic above, this calculation
-uses the particle velocity local to each altitude surface.
+The output supports longitude-latitude maps, altitude profiles, and
+SZA-altitude maps of H and H+ density, scalar flux, radial flux, target
+ionization, H Ly-alpha production, and projectile energy transfer.
 
 ## Python analysis
 
@@ -195,29 +139,8 @@ C:\Users\Win\.conda\envs\mars\python.exe -m pip install -e analysis
 marsaspen-plot output/aspen_10p_detailed.mat
 ```
 
-The analysis package also includes reusable radial-flux and ionization-rate
-functions:
-
-```python
-from marsaspen_analysis import (
-    local_radial_velocity,
-    particle_radial_flux,
-    radial_flux_from_mat,
-    ionization_rate_from_mat,
-)
-```
-
-`local_radial_velocity` evaluates `dot(r, v) / norm(r)`.
-`particle_radial_flux` evaluates the signed contribution `Wn * Vr` in
-`m^-2 s^-1`. `radial_flux_from_mat` returns downward, upward, signed
-outward, and net downward profiles for H ENA and H+.
-
-`ionization_rate_from_mat` reads the charge-resolved target-ionization
-crossing estimator and returns rates in `m^-3 s^-1`.
-
-`run_lya_volume_emission_ensemble` calculates target-resolved H Ly-alpha
-volume emission in `photons m^-3 s^-1` and radiative energy in `W m^-3`.
-The Python `lya_profiles_from_mat` analysis also calculates an optically thin,
-spherically symmetric limb profile in Rayleigh.
+The analysis package provides ordinary MAT and MAT v7.3 readers. The
+uniform-dayside plotting examples read the gridded moment, reaction, and energy
+files directly.
 
 All non-mathematical figure text uses Arial.
