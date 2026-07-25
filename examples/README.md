@@ -17,6 +17,10 @@ julia --project=. examples/run_h_ena_trajectory.jl
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py examples/output/single_h_ena_400kms.mat
 ```
 
+The plotting script displays only the atmospheric segment from 80 to 400 km
+and exports PNG, SVG, and PDF. The rendered reference files are stored in
+`examples/figures` with the stem `single_h_ena_400kms`.
+
 ## 2. Single H+
 
 This case uses the same altitude and speed but starts as H+. It is useful for
@@ -28,9 +32,14 @@ julia --project=. examples/run_hplus_trajectory.jl
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py examples/output/single_hplus_400kms.mat
 ```
 
-Both single-particle figures contain altitude with reaction markers, energy,
-charge state, and speed versus time. Reaction colors are shared between the
-altitude and energy panels.
+The corresponding publication-style reference files are stored in
+`examples/figures` with the stem `single_hplus_400kms`.
+
+Both single-particle figures use a 2 by 2 quantitative layout containing
+altitude with reaction markers, energy, charge state, and speed versus time.
+Reaction colors are shared between altitude and energy. SVG and PDF preserve
+editable text for manuscript preparation, while the 600 dpi PNG is convenient
+for README previews.
 
 ## 3. Weighted Monte Carlo example with 100,000 H ENA particles
 

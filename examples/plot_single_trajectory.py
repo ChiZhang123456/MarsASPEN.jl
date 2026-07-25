@@ -1,10 +1,19 @@
-"""Plot altitude, energy, charge state, speed, and reactions for one particle.
+"""Create a publication-style figure for one simulated particle trajectory.
 
 Julia saves both propagation rows and collision rows. ``event_type == 2``
 identifies collisions, while ``reaction_code`` distinguishes state change,
 target ionization, Ly-alpha production, and elastic scattering. Identical
 reaction colors are used in the altitude and energy panels so each event can
 be followed between physical quantities.
+
+Only the portion of the history between 80 and 400 km is displayed. This
+removes the collision-free source segment above 400 km and focuses the figure
+on the atmospheric interaction region. The four panels provide complementary
+evidence: reaction altitude, kinetic-energy evolution, charge state, and
+particle speed.
+
+The output argument specifies the PNG preview. The same stem is also exported
+as SVG and PDF so labels remain editable for later manuscript preparation.
 """
 
 from __future__ import annotations
@@ -24,6 +33,13 @@ from marsaspen_analysis.io import load_history_mat  # noqa: E402
 
 mpl.rcParams["font.family"] = "Arial"
 mpl.rcParams["mathtext.fontset"] = "dejavusans"
+mpl.rcParams["svg.fonttype"] = "none"
+mpl.rcParams["pdf.fonttype"] = 42
+mpl.rcParams["font.size"] = 8
+mpl.rcParams["axes.linewidth"] = 0.8
+mpl.rcParams["axes.spines.top"] = False
+mpl.rcParams["axes.spines.right"] = False
+mpl.rcParams["legend.frameon"] = False
 
 # State change means H+ charge exchange or neutral-H stripping, depending on
 # the projectile charge before the collision.
@@ -34,10 +50,10 @@ REACTION_LABELS = {
     4: "Elastic",
 }
 REACTION_COLORS = {
-    1: "#d62728",
-    2: "#ff7f0e",
-    3: "#2ca02c",
-    4: "#4d4d4d",
+    1: "#C44E52",
+    2: "#DD8452",
+    3: "#55A868",
+    4: "#6B6B6B",
 }
 
 
@@ -69,48 +85,84 @@ def main() -> None:
 
     initial_charge = int(vector(data, "config_initial_charge_state")[0])
     species = r"H$^+$" if initial_charge == 1 else "H ENA"
+
+    # Restrict every panel to the same atmospheric part of the trajectory.
+    # Applying one common mask preserves alignment among time, position,
+    # velocity, charge, and reaction columns.
+    altitude_window = (altitude >= 80.0) & (altitude <= 400.0)
+    if not np.any(altitude_window):
+        raise ValueError("This trajectory contains no samples from 80 to 400 km.")
+    time_s = time_s[altitude_window]
+    altitude = altitude[altitude_window]
+    energy = energy[altitude_window]
+    charge = charge[altitude_window]
+    event_type = event_type[altitude_window]
+    reaction = reaction[altitude_window]
+    speed = speed[altitude_window]
+
     # Propagation rows draw the tracks. Only collision rows receive markers.
     collision = event_type == 2
 
     fig, axes = plt.subplots(
-        4, 1, figsize=(10, 12), sharex=True, constrained_layout=True
+        2, 2, figsize=(7.2, 5.4), sharex=True, constrained_layout=True
     )
-    axes[0].plot(time_s, altitude, color="black", lw=1.2)
-    axes[1].plot(time_s, energy, color="#1f77b4", lw=1.2)
-    axes[2].step(time_s, charge, where="post", color="#9467bd", lw=1.2)
-    axes[3].plot(time_s, speed, color="#8c564b", lw=1.2)
+    axes = axes.ravel()
+    axes[0].plot(time_s, altitude, color="#222222", lw=1.1)
+    axes[1].plot(time_s, energy, color="#4C72B0", lw=1.1)
+    axes[2].step(time_s, charge, where="post", color="#8172B2", lw=1.1)
+    axes[3].plot(time_s, speed, color="#937860", lw=1.1)
 
     # Elastic collisions are often numerous, so their markers are smaller.
     for code, label in REACTION_LABELS.items():
         mask = collision & (reaction == code)
         if not np.any(mask):
             continue
-        size = 15 if code == 4 else 38
+        size = 9 if code == 4 else 24
         axes[0].scatter(
             time_s[mask], altitude[mask], s=size,
             color=REACTION_COLORS[code], label=label, zorder=3,
+            edgecolors="none",
         )
         axes[1].scatter(
             time_s[mask], energy[mask], s=size,
-            color=REACTION_COLORS[code], zorder=3,
+            color=REACTION_COLORS[code], zorder=3, edgecolors="none",
         )
 
     axes[0].set_ylabel("Altitude (km)")
+    axes[0].set_ylim(80, 400)
     axes[1].set_ylabel("Energy (eV)")
     axes[2].set_ylabel("Charge state")
     axes[2].set_yticks([0, 1], ["H ENA", "H+"])
     axes[3].set_ylabel("Speed (km/s)")
+    axes[2].set_xlabel("Time (s)")
     axes[3].set_xlabel("Time (s)")
-    axes[0].legend(ncol=2, fontsize=9)
+    axes[0].legend(ncol=2, fontsize=7, loc="best")
+
+    # Lowercase bold panel labels follow common Nature-family conventions.
+    for label, axis in zip(("a", "b", "c", "d"), axes):
+        axis.text(
+            0.02, 0.96, label, transform=axis.transAxes,
+            ha="left", va="top", fontweight="bold", fontsize=9,
+        )
     for ax in axes:
-        ax.grid(True, color="0.85", lw=0.7)
-    fig.suptitle(f"Single {species}, 600 km, 400 km/s")
+        ax.grid(True, color="0.90", lw=0.55)
+        ax.tick_params(direction="out", width=0.8, length=3)
+    fig.suptitle(
+        f"Single {species} trajectory, 400 km/s, atmospheric segment"
+    )
 
     output = args.output or args.mat_file.with_suffix(".png")
     output.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output, dpi=220)
+    # PNG is convenient for README previews. SVG and PDF retain vector lines
+    # and editable text for publication layout.
+    output_stem = output.with_suffix("")
+    fig.savefig(output_stem.with_suffix(".png"), dpi=600, bbox_inches="tight")
+    fig.savefig(output_stem.with_suffix(".svg"), bbox_inches="tight")
+    fig.savefig(output_stem.with_suffix(".pdf"), bbox_inches="tight")
     plt.close(fig)
-    print(f"output={output.resolve()}")
+    print(f"png={output_stem.with_suffix('.png').resolve()}")
+    print(f"svg={output_stem.with_suffix('.svg').resolve()}")
+    print(f"pdf={output_stem.with_suffix('.pdf').resolve()}")
 
 
 if __name__ == "__main__":
