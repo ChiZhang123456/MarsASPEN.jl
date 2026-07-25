@@ -243,7 +243,7 @@ def plot_selected_case(
 
     axes[0].set_ylabel("Altitude (km)")
     for panel, axis in enumerate(axes):
-        axis.set_ylim(100, 1000)
+        axis.set_ylim(100, 200)
         axis.grid(True, which="major", color="0.90", lw=0.5)
         axis.text(
             0.02, 0.97, chr(ord("a") + panel),
