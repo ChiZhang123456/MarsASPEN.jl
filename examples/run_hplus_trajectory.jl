@@ -2,6 +2,10 @@
 #
 # Run from the repository root:
 #   julia --project=. examples/run_hplus_trajectory.jl
+#
+# This diagnostic follows one particle only. It does not assign a physical
+# source density or a Monte Carlo macro-particle weight. Collisions themselves
+# remain stochastic because MarsASPEN is a particle collision model.
 
 using MarsASPEN
 
@@ -18,11 +22,7 @@ config = MonteCarloConfig(
     initial_temperature_ev=0.0,
     seed=21,
 )
-weighting = MonteCarloWeight()
-summaries, histories = run_detailed_ensemble(
-    model, config; weighting=weighting,
-)
-write_detailed_mat(
-    output, summaries, histories; config=config, weighting=weighting,
-)
+# The default unit weighting is sufficient for a single diagnostic trajectory.
+summaries, histories = run_detailed_ensemble(model, config)
+write_detailed_mat(output, summaries, histories; config=config)
 println("output=$(abspath(output))")
