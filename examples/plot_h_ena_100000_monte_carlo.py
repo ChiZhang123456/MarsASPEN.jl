@@ -29,8 +29,14 @@ sys.path.insert(0, str(REPO / "analysis"))
 from marsaspen_analysis.io import load_history_mat  # noqa: E402
 
 # Apply the project figure convention to every non-mathematical text object.
-mpl.rcParams["font.family"] = "Arial"
-mpl.rcParams["mathtext.fontset"] = "dejavusans"
+mpl.rcParams.update({
+    "font.family": "Arial",
+    "mathtext.fontset": "dejavusans",
+    "font.size": 7,
+    "axes.linewidth": 0.8,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+})
 
 
 def one_dimensional(data: dict[str, np.ndarray], key: str) -> np.ndarray:
@@ -102,7 +108,7 @@ def main() -> None:
     )
 
     fig, axes = plt.subplots(
-        1, 2, figsize=(12, 6), sharex=True, sharey=True,
+        1, 2, figsize=(7.2, 3.2), sharex=True, sharey=True,
         constrained_layout=True,
     )
     species_names = ("H ENA", r"H$^+$")
@@ -141,7 +147,7 @@ def main() -> None:
 
     output = args.output or args.mat_file.with_suffix(".png")
     output.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output, dpi=220)
+    fig.savefig(output, dpi=600, bbox_inches="tight")
     plt.close(fig)
     print(f"output={output.resolve()}")
 
