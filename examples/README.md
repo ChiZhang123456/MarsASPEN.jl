@@ -40,22 +40,229 @@ is stored as a 600 dpi PNG.
 
 ## 3. Weighted Monte Carlo example with 100,000 H ENA particles
 
-This example injects 100,000 H ENA particles at 600 km with bulk velocity
-`[-400, 0, 0]` km/s, physical temperature 10 eV, and source density 1 cm^-3.
-It samples a broader 50 eV distribution and applies the importance weight
-`f/fs` to every particle. The altitude-energy output uses 100 logarithmic
-energy bins from 1 to 10,000 eV. The lower bound is 1 eV because a logarithmic
-axis cannot include zero. The example figure displays 10 to 3,000 eV.
+This example injects 100,000 numerical H ENA particles at 600 km with bulk
+velocity `[-400, 0, 0]` km/s, physical temperature 10 eV, and source number
+density
+
+$$
+n_{\mathrm{source}} = 1~\mathrm{cm^{-3}}
+                    = 10^{6}~\mathrm{m^{-3}}.
+$$
+
+Each simulated trajectory is a **macro particle**, not one individual
+physical hydrogen atom. Macro particle \(i\) carries a density weight
+\(W_{n,i}\), which specifies the share of the physical source number density
+represented by that trajectory:
+
+$$
+[W_{n,i}] = \mathrm{m^{-3}}.
+$$
+
+If a physical source volume \(\Delta V\), in \(\mathrm{m^3}\), is specified,
+the number of real particles represented by macro particle \(i\) in that
+volume is
+
+$$
+N_{\mathrm{real},i} = W_{n,i}\Delta V,
+$$
+
+which is dimensionless because it is a particle count. MarsASPEN stores
+\(W_{n,i}\), rather than assuming a particular source volume.
+
+### Physical and sampling velocity distributions
+
+The requested source is a drifting three-dimensional Maxwellian. Its
+normalized velocity probability density is
+
+$$
+p(\boldsymbol{v};\boldsymbol{U},T)
+=
+\left(\frac{m}{2\pi k_{\mathrm{B}}T}\right)^{3/2}
+\exp\left[
+-\frac{m|\boldsymbol{v}-\boldsymbol{U}|^2}
+       {2k_{\mathrm{B}}T}
+\right],
+$$
+
+where
+
+* \(\boldsymbol{v}\) is particle velocity, in \(\mathrm{m\,s^{-1}}\);
+* \(\boldsymbol{U}\) is bulk velocity, in \(\mathrm{m\,s^{-1}}\);
+* \(T\) is expressed in the input as eV, with \(k_{\mathrm{B}}T =
+  T_{\mathrm{eV}}q_{\mathrm{e}}\), in J;
+* \(m\) is the hydrogen mass, in kg;
+* \(p(\boldsymbol{v})\) has units
+  \((\mathrm{m\,s^{-1}})^{-3}=\mathrm{s^3\,m^{-3}}\);
+* \(\int p(\boldsymbol{v})\,d^3v=1\).
+
+The physical phase-space number-density distribution is therefore
+
+$$
+f_n(\boldsymbol{v})
+=n_{\mathrm{source}}p(\boldsymbol{v};\boldsymbol{U},T),
+$$
+
+with units
+\(\mathrm{m^{-3}}(\mathrm{m\,s^{-1}})^{-3}
+=\mathrm{s^3\,m^{-6}}\).
+
+Sampling every numerical particle directly from the physical 10 eV
+distribution is valid. However, this example deliberately samples from a
+broader Maxwellian with
+
+$$
+T_{\mathrm{s}}=50~\mathrm{eV},
+$$
+
+so that the velocity tails contain more numerical trajectories. Let the
+normalized sampling probability density be
+
+$$
+p_{\mathrm{s}}(\boldsymbol{v})
+=p(\boldsymbol{v};\boldsymbol{U},T_{\mathrm{s}}).
+$$
+
+### Importance weight
+
+For a sampled velocity \(\boldsymbol{v}_i\), the dimensionless importance
+weight is
+
+$$
+w_i
+=\frac{p(\boldsymbol{v}_i;\boldsymbol{U},T)}
+       {p_{\mathrm{s}}(\boldsymbol{v}_i;\boldsymbol{U},T_{\mathrm{s}})}.
+$$
+
+For the two drifting Maxwellians used here, MarsASPEN evaluates this as
+
+$$
+w_i
+=
+\left(\frac{v_{\mathrm{th,s}}}{v_{\mathrm{th}}}\right)^3
+\exp\left[
+\frac{|\boldsymbol{v}_i-\boldsymbol{U}|^2}{v_{\mathrm{th,s}}^2}
+-
+\frac{|\boldsymbol{v}_i-\boldsymbol{U}|^2}{v_{\mathrm{th}}^2}
+\right],
+$$
+
+where
+
+$$
+v_{\mathrm{th}}=\sqrt{\frac{2T_{\mathrm{eV}}q_{\mathrm{e}}}{m}},
+\qquad
+v_{\mathrm{th,s}}=
+\sqrt{\frac{2T_{\mathrm{s,eV}}q_{\mathrm{e}}}{m}}.
+$$
+
+Both probability densities have the same units, so
+
+$$
+[w_i]=1.
+$$
+
+The importance weight corrects the deliberately broadened sampling
+distribution back to the requested physical 10 eV distribution.
+
+### Density weight carried by each macro particle
+
+For \(N_{\mathrm{MC}}\) simulated particles, MarsASPEN converts \(w_i\) into
+the physical density weight
+
+$$
+\boxed{
+W_{n,i}
+=
+n_{\mathrm{source}}
+\frac{w_i}{\displaystyle\sum_{j=1}^{N_{\mathrm{MC}}}w_j}
+}
+$$
+
+with
+
+$$
+[W_{n,i}]=\mathrm{m^{-3}}.
+$$
+
+This normalization guarantees
+
+$$
+\sum_{i=1}^{N_{\mathrm{MC}}}W_{n,i}
+=n_{\mathrm{source}}.
+$$
+
+Thus, the 100,000 numerical trajectories collectively represent the complete
+physical source density. They do not represent only 100,000 real atoms. If
+the sampling and physical temperatures are identical, all \(w_i=1\), and the
+formula reduces to
+
+$$
+W_{n,i}=\frac{n_{\mathrm{source}}}{N_{\mathrm{MC}}}.
+$$
+
+For the present example, this equal-weight reference value would be
+
+$$
+\frac{10^6~\mathrm{m^{-3}}}{10^5}
+=10~\mathrm{m^{-3}}
+$$
+
+per macro particle. Because importance sampling is used, the actual
+\(W_{n,i}\) values are unequal, but their sum remains exactly
+\(10^6~\mathrm{m^{-3}}\).
+
+### Using \(W_n\) in model diagnostics
+
+For an altitude-energy histogram, every crossing of macro particle \(i\) is
+added to its corresponding altitude, energy, and charge-state bin using
+\(W_{n,i}\):
+
+$$
+H_{a,e,q}
+=
+\sum_{i\in(a,e,q)}W_{n,i},
+\qquad
+[H_{a,e,q}]=\mathrm{m^{-3}}.
+$$
+
+This example directly plots that accumulated density weight. It does not
+multiply by trajectory path length and does not divide by energy-bin width.
+Consequently, the plotted quantity is density weight accumulated per discrete
+altitude-energy bin, not differential density per eV.
+
+For a vertical number-flux diagnostic, the local radial velocity must also be
+included:
+
+$$
+V_{r,i}
+=\frac{\boldsymbol{r}_i\cdot\boldsymbol{v}_i}
+       {|\boldsymbol{r}_i|},
+\qquad
+[V_{r,i}]=\mathrm{m\,s^{-1}},
+$$
+
+$$
+F_i=W_{n,i}|V_{r,i}|,
+\qquad
+[F_i]=\mathrm{m^{-2}\,s^{-1}}.
+$$
+
+Downward and upward crossings are accumulated separately. The signed outward
+flux is \(F_{\mathrm{up}}-F_{\mathrm{down}}\).
+
+### Running the example
+
+The altitude-energy output uses 100 logarithmic energy bins from 1 to
+10,000 eV. The lower bound is 1 eV because a logarithmic axis cannot include
+zero. The displayed energy range is 10 to 3,000 eV.
 
 ```powershell
 julia --project=. -t auto examples/run_h_ena_100000_monte_carlo.jl
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_h_ena_100000_monte_carlo.py examples/output/h_ena_100000_monte_carlo.mat
 ```
 
-The resulting figure directly sums particle density weights in each altitude
-and energy bin, separately for neutral H ENA and H+ created by electron
-stripping. It does not multiply by path length or divide by energy-bin width.
-A rendered reference figure is stored at
+The resulting figure separately shows neutral H ENA and H+ created by
+electron stripping. A rendered reference figure is stored at
 `examples/figures/h_ena_100000_altitude_energy.png`.
 
 ## 4. Weighted Monte Carlo example with 100,000 H+ particles
