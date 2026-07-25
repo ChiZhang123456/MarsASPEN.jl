@@ -1,4 +1,4 @@
-"""Plot O ionization-rate profiles for H ENA and H+ source simulations."""
+"""Plot target ionization-rate profiles for H ENA and H+ source simulations."""
 
 from __future__ import annotations
 
@@ -39,6 +39,16 @@ def source_label(data: dict[str, np.ndarray]) -> str:
     return r"H$^+$ source" if "plus" in value else "H ENA source"
 
 
+def target_labels(data: dict[str, np.ndarray]) -> tuple[str, str]:
+    """Return plain-text and Matplotlib labels for the saved target."""
+    target = mat_string(data["target_name"]).upper()
+    if target == "CO2":
+        return "co2", r"CO$_2$"
+    if target == "N2":
+        return "n2", r"N$_2$"
+    return "oxygen", "O"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("h_ena_mat", type=Path)
@@ -46,8 +56,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=REPO / "examples" / "figures" /
-        "oxygen_ionization_rate_profiles.png",
+        default=None,
     )
     args = parser.parse_args()
 
@@ -56,6 +65,10 @@ def main() -> None:
         load_history_mat(args.hplus_mat),
     ]
     results = [ionization_rate_from_mat(data) for data in datasets]
+    target_keys = [target_labels(data)[0] for data in datasets]
+    if target_keys[0] != target_keys[1]:
+        raise ValueError("both MAT files must contain the same target species")
+    target_key, target_label = target_labels(datasets[0])
 
     fig, axes = plt.subplots(
         1, 2, figsize=(5.4, 4.2), sharex=True, sharey=True,
@@ -78,7 +91,9 @@ def main() -> None:
             )
         axis.set_xscale("log")
         axis.set_ylim(80, 600)
-        axis.set_xlabel(r"O ionization rate (m$^{-3}$ s$^{-1}$)")
+        axis.set_xlabel(
+            rf"{target_label} ionization rate (m$^{{-3}}$ s$^{{-1}}$)"
+        )
         axis.set_title(source_label(data))
         axis.grid(True, which="major", color="0.90", lw=0.55)
         axis.text(
@@ -90,15 +105,19 @@ def main() -> None:
     axes[0].set_ylabel("Altitude (km)")
     axes[0].legend(loc="best", fontsize=7)
     fig.suptitle(
-        "O ionization by precipitating hydrogen\n"
+        f"{target_label} ionization by precipitating hydrogen\n"
         r"100,000 macro particles, 400 km/s, $T=10$ eV, "
         r"$n=5$ cm$^{-3}$",
         fontsize=9,
     )
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(args.output, dpi=600, bbox_inches="tight")
+    output = args.output or (
+        REPO / "examples" / "figures" /
+        f"{target_key}_ionization_rate_profiles.png"
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output, dpi=600, bbox_inches="tight")
     plt.close(fig)
-    print(f"output={args.output.resolve()}")
+    print(f"output={output.resolve()}")
     for data, result in zip(datasets, results):
         index = int(np.nanargmax(result["total_rate_m3_s1"]))
         print(

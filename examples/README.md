@@ -362,28 +362,30 @@ The reusable Python calculations are in
 velocity, single-particle `Wn * Vr`, and directional and net altitude
 profiles.
 
-## 9. O ionization-rate profiles
+## 9. O and CO2 ionization-rate profiles
 
-This example estimates O ionization by both H ENA and H+ projectiles. For each
-altitude surface, the local-energy crossing estimator is
+The generic target-ionization example supports O, CO2, and N2. The current
+reference figures evaluate O and CO2 ionization by both H ENA and H+
+projectiles. For target species $j$, the local-energy crossing estimator is
 
 ```math
-q_{\mathrm O}(r)=n_{\mathrm O}(r)
+q_j(r)=n_j(r)
 \left[
 \sum_{i\in\mathrm{H\ ENA}}
-W_{n,i}|V_{r,i}|\sigma_{\mathrm{H,O,ion}}(E_i)
+W_{n,i}|V_{r,i}|\sigma_{\mathrm{H},j,\mathrm{ion}}(E_i)
 +
 \sum_{p\in\mathrm{H^+}}
-W_{n,p}|V_{r,p}|\sigma_{\mathrm{H^+,O,ion}}(E_p)
+W_{n,p}|V_{r,p}|\sigma_{\mathrm{H^+},j,\mathrm{ion}}(E_p)
 \right].
 ```
 
-Here, $n_{\mathrm O}$ is the MGITM cold O density plus MAMPS hot O density,
-$W_n$ is in $\mathrm{m^{-3}}$, $|V_r|$ is in $\mathrm{m\,s^{-1}}$, and the
-energy-dependent ionization cross section is in $\mathrm{m^2}$. Therefore,
+For O, $n_j$ is the MGITM cold O density plus MAMPS hot O density. For CO2,
+$n_j$ is the MGITM CO2 density. $W_n$ is in $\mathrm{m^{-3}}$, $|V_r|$ is in
+$\mathrm{m\,s^{-1}}$, and the energy-dependent ionization cross section is in
+$\mathrm{m^2}$. Therefore,
 
 ```math
-[q_{\mathrm O}]=\mathrm{m^{-3}\,s^{-1}}.
+[q_j]=\mathrm{m^{-3}\,s^{-1}}.
 ```
 
 The projectile energy $E_i$ is calculated from its local total speed at the
@@ -396,18 +398,29 @@ not first select realized ionization events. Selecting realized events and
 then multiplying them by the ionization cross section would apply the
 collision probability twice.
 
-Run the initially neutral and initially ionized source cases:
+Run the initially neutral and initially ionized source cases for O:
 
 ```powershell
-julia --project=. -t auto examples/run_oxygen_ionization_rate.jl h_ena
-julia --project=. -t auto examples/run_oxygen_ionization_rate.jl hplus
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_oxygen_ionization_rate.py examples/output/h_ena_100000_oxygen_ionization_rate.mat examples/output/hplus_100000_oxygen_ionization_rate.mat
+julia --project=. -t auto examples/run_target_ionization_rate.jl h_ena O
+julia --project=. -t auto examples/run_target_ionization_rate.jl hplus O
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_target_ionization_rate.py examples/output/h_ena_100000_oxygen_ionization_rate.mat examples/output/hplus_100000_oxygen_ionization_rate.mat
 ```
 
-The comparison PNG is stored at
-`examples/figures/oxygen_ionization_rate_profiles.png`. Each panel shows the
-H ENA contribution, H+ contribution, and their total for one source
-simulation.
+Run the corresponding CO2 cases:
+
+```powershell
+julia --project=. -t auto examples/run_target_ionization_rate.jl h_ena CO2
+julia --project=. -t auto examples/run_target_ionization_rate.jl hplus CO2
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_target_ionization_rate.py examples/output/h_ena_100000_co2_ionization_rate.mat examples/output/hplus_100000_co2_ionization_rate.mat
+```
+
+The comparison PNG files are:
+
+- `examples/figures/oxygen_ionization_rate_profiles.png`
+- `examples/figures/co2_ionization_rate_profiles.png`
+
+Each panel shows the H ENA contribution, H+ contribution, and their total for
+one source simulation.
 
 To inspect the H+ energy distribution at 550 km separately:
 

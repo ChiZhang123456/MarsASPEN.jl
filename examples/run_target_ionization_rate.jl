@@ -1,9 +1,11 @@
-# Oxygen ionization-rate profile from a weighted 100,000-particle simulation.
+# Target ionization-rate profile from a weighted 100,000-particle simulation.
 #
 # Usage:
 #
-#   julia --project=. -t auto examples/run_oxygen_ionization_rate.jl h_ena
-#   julia --project=. -t auto examples/run_oxygen_ionization_rate.jl hplus
+#   julia --project=. -t auto examples/run_target_ionization_rate.jl h_ena O
+#   julia --project=. -t auto examples/run_target_ionization_rate.jl hplus O
+#   julia --project=. -t auto examples/run_target_ionization_rate.jl h_ena CO2
+#   julia --project=. -t auto examples/run_target_ionization_rate.jl hplus CO2
 #
 # Both cases use a 600 km source, 400 km/s inward bulk speed, 10 eV physical
 # temperature, and 5 cm^-3 source density. The only difference is the initial
@@ -15,9 +17,10 @@
 #   Wn_i * abs(Vr_i) * sigma_ion(E_i)             [s^-1]
 #
 # where E_i is calculated from the local total speed after previous collisions.
-# Multiplication by the local O density from MGITM cold O plus MAMPS hot O gives
+# Multiplication by the local target density from MGITM, with MAMPS hot O added
+# only for target O, gives
 #
-#   q_O                                             [m^-3 s^-1].
+#   q_target                                        [m^-3 s^-1].
 #
 # This is a crossing estimator over all particles. Selecting only realized
 # ionization events and multiplying those events by sigma again would count
@@ -31,12 +34,18 @@ repo = normpath(joinpath(@__DIR__, ".."))
 source_name = length(ARGS) >= 1 ? lowercase(ARGS[1]) : "h_ena"
 source_name in ("h_ena", "hplus") ||
     throw(ArgumentError("source must be h_ena or hplus"))
+target_text = length(ARGS) >= 2 ? uppercase(ARGS[2]) : "O"
+target = target_text == "O" ? :O :
+         target_text == "CO2" ? :CO2 :
+         target_text == "N2" ? :N2 :
+         throw(ArgumentError("target must be O, CO2, or N2"))
+target_file_label = target === :O ? "oxygen" : lowercase(String(target))
 initial_charge = source_name == "hplus" ? 1 : 0
 default_output = joinpath(
     repo, "examples", "output",
-    "$(source_name)_100000_oxygen_ionization_rate.mat",
+    "$(source_name)_100000_$(target_file_label)_ionization_rate.mat",
 )
-output = length(ARGS) >= 2 ? ARGS[2] : default_output
+output = length(ARGS) >= 3 ? ARGS[3] : default_output
 
 model = load_model(repo; solar="solar_min", ls=0)
 config = MonteCarloConfig(
@@ -58,7 +67,7 @@ elapsed = @elapsed result = run_target_ionization_rate_ensemble(
     model, config;
     weighting=weighting,
     altitude_surfaces_km=altitude_surfaces_km,
-    target=:O,
+    target=target,
     density_lon_deg=0.0,
     density_lat_deg=0.0,
 )
@@ -92,7 +101,9 @@ matwrite(output, Dict(
 
 peak_rate, peak_index = findmax(result.total_ionization_rate_m3_s1)
 @printf("source=%s\n", source_name)
+@printf("target=%s\n", String(target))
 @printf("elapsed_s=%.6f\n", elapsed)
 @printf("peak_altitude_km=%.1f\n", result.altitude_surfaces_km[peak_index])
-@printf("peak_total_O_ionization_rate_m3_s1=%.9g\n", peak_rate)
+@printf("peak_total_%s_ionization_rate_m3_s1=%.9g\n",
+        String(target), peak_rate)
 @printf("output=%s\n", abspath(output))
