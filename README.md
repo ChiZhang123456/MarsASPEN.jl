@@ -73,7 +73,7 @@ not a single injection longitude and latitude:
 
 ```powershell
 julia --project=. -t auto examples/sample_dayside_injection_100000.jl
-julia --project=. -t auto examples/run_dayside_3d_100000.jl
+julia --project=. -t auto examples/run_dayside_3d_10000000.jl
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_maps_120km.py
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_altitude_profiles.py
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_sza_altitude.py
@@ -116,7 +116,7 @@ julia --project=. -e "using Pkg; Pkg.instantiate(); Pkg.test()"
 
 ## Uniform-dayside three-dimensional output
 
-The production example injects 100,000 H+ macro particles uniformly in
+The production example injects 10,000,000 H+ macro particles uniformly in
 spherical area over the 600 km MSO dayside hemisphere. Velocities are sampled
 from a drifting Maxwellian with density $5~\mathrm{cm}^{-3}$, temperature
 $10~\mathrm{eV}$, and MSO bulk velocity
@@ -126,7 +126,7 @@ The simulation accumulates longitude, latitude, and 1 km altitude cells and
 writes separate grid, moment, reaction, and energy MAT v7.3 files:
 
 ```powershell
-julia --project=. -t auto examples/run_dayside_3d_100000.jl
+julia --project=. -t auto examples/run_dayside_3d_10000000.jl
 ```
 
 The output supports longitude-latitude maps, altitude profiles, and

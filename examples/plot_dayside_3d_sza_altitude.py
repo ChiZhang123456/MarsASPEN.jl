@@ -82,12 +82,12 @@ def main() -> None:
     parser.add_argument(
         "prefix", nargs="?", type=Path,
         default=REPO / "examples" / "output" /
-        "dayside_hplus_100000_3d",
+        "dayside_hplus_10000000_3d",
     )
     parser.add_argument(
         "--output", type=Path,
         default=REPO / "examples" / "figures" /
-        "dayside_hplus_100000_3d_sza_altitude_8panel.png",
+        "dayside_hplus_10000000_3d_sza_altitude_8panel.png",
     )
     args = parser.parse_args()
     prefix = str(args.prefix)
@@ -190,7 +190,7 @@ def main() -> None:
 
     fig.suptitle(
         "Uniform-dayside H$^+$ Monte Carlo SZA-altitude diagnostics\n"
-        r"100,000 particles, $\mathbf{U}=(-400,0,0)$ km/s, "
+        r"10,000,000 particles, $\mathbf{U}=(-400,0,0)$ km/s, "
         r"$T=10$ eV, $n=5$ cm$^{-3}$, "
         r"5$^\circ$ SZA $\times$ 1 km altitude bins",
         fontsize=9,

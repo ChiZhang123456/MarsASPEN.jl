@@ -46,13 +46,13 @@ def main() -> None:
     parser.add_argument(
         "prefix", nargs="?", type=Path,
         default=REPO / "examples" / "output" /
-        "dayside_hplus_100000_3d",
+        "dayside_hplus_10000000_3d",
     )
     parser.add_argument("--altitude", type=float, default=120.5)
     parser.add_argument(
         "--output", type=Path,
         default=REPO / "examples" / "figures" /
-        "dayside_hplus_100000_3d_maps_120km_8panel.png",
+        "dayside_hplus_10000000_3d_maps_120km_8panel.png",
     )
     args = parser.parse_args()
     prefix = str(args.prefix)
@@ -150,7 +150,7 @@ def main() -> None:
         "Uniform-dayside H$^+$ Monte Carlo diagnostics\n"
         f"{altitude_low:.0f} to {altitude_high:.0f} km "
         f"(center {altitude_center:.1f} km), "
-        r"100,000 particles, $\mathbf{U}=(-400,0,0)$ km/s, "
+        r"10,000,000 particles, $\mathbf{U}=(-400,0,0)$ km/s, "
         r"$T=10$ eV, $n=5$ cm$^{-3}$",
         fontsize=9,
     )

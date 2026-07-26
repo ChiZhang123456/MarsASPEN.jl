@@ -2,7 +2,7 @@
 #
 # Usage:
 #
-#   julia --project=. -t auto examples/run_dayside_3d_100000.jl
+#   julia --project=. -t auto examples/run_dayside_3d_10000000.jl
 #
 # Initial conditions:
 #   altitude:            600 km
@@ -10,7 +10,7 @@
 #   bulk velocity:       (-400, 0, 0) km/s in the global MSO frame
 #   physical kT:         10 eV
 #   source density:      5 cm^-3 = 5e6 m^-3
-#   number of particles: 100,000
+#   number of particles: 10,000,000
 #
 # Horizontal grid edges match the native 5 degree MGITM grid. Altitude edges
 # run from 80 to 600 km at 1 km spacing. The example writes four files:
@@ -28,9 +28,9 @@ using Printf
 
 repo = normpath(joinpath(@__DIR__, ".."))
 output_prefix = length(ARGS) >= 1 ? ARGS[1] : joinpath(
-    repo, "examples", "output", "dayside_hplus_100000_3d",
+    repo, "examples", "output", "dayside_hplus_10000000_3d",
 )
-n_particles = length(ARGS) >= 2 ? parse(Int, ARGS[2]) : 100_000
+n_particles = length(ARGS) >= 2 ? parse(Int, ARGS[2]) : 10_000_000
 minimum_grid_altitude_km =
     length(ARGS) >= 3 ? parse(Float64, ARGS[3]) : 80.0
 

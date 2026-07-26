@@ -363,14 +363,14 @@ julia --project=. -t auto scripts/run_detailed.jl 10 output/detailed.mat
 julia --project=. -t auto examples/sample_dayside_injection_100000.jl
 ```
 
-### 4.3 `examples/run_dayside_3d_100000.jl`
+### 4.3 `examples/run_dayside_3d_10000000.jl`
 
 这是当前的大粒子数标准示例。它使用均匀日侧半球源运行 10 万个 H⁺
 macro particles，并在经度、纬度和 1 km 高度网格中累计粒子矩、反应率和
 能量转移率。
 
 ```powershell
-julia --project=. -t auto examples/run_dayside_3d_100000.jl
+julia --project=. -t auto examples/run_dayside_3d_10000000.jl
 ```
 
 输出分成 grid、moments、reactions 和 energy 四个 MAT v7.3 文件。详细的

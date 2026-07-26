@@ -1,7 +1,7 @@
 # MarsASPEN examples
 
 The examples now use a uniform dayside hemispherical source for every
-large-particle Monte Carlo simulation. The former 100,000-particle examples
+large-particle Monte Carlo simulation. The former point-source examples
 that injected all particles at one longitude and latitude have been removed.
 Single-particle examples remain available because they are intended to explain
 individual trajectories and collision physics, not to represent a global
@@ -404,10 +404,10 @@ $V_z$ distributions:
 
 ## 7. Uniform-dayside three-dimensional Monte Carlo simulation
 
-Run the complete 100,000-particle H+ simulation with:
+Run the complete 10,000,000-particle H+ simulation with:
 
 ```powershell
-julia --project=. -t auto examples/run_dayside_3d_100000.jl
+julia --project=. -t auto examples/run_dayside_3d_10000000.jl
 ```
 
 The example uses:
@@ -419,7 +419,7 @@ initial species:        H+
 MSO bulk velocity:      (-400, 0, 0) km s^-1
 physical temperature:   10 eV
 physical density:       5 cm^-3
-number of particles:    100,000
+number of particles:    10,000,000
 longitude bin width:    5 degrees
 latitude bin width:     5 degrees
 altitude bin width:     1 km
@@ -583,15 +583,15 @@ counts are also retained for Monte Carlo convergence checks.
 
 The simulation writes four MAT v7.3 files:
 
-* `dayside_hplus_100000_3d_grid.mat` contains longitude, latitude, and
+* `dayside_hplus_10000000_3d_grid.mat` contains longitude, latitude, and
   altitude edges and centers, plus exact spherical cell volumes.
-* `dayside_hplus_100000_3d_moments.mat` contains total and charge-resolved
+* `dayside_hplus_10000000_3d_moments.mat` contains total and charge-resolved
   number density, total scalar flux, signed radial flux, upward radial flux,
   and downward radial flux.
-* `dayside_hplus_100000_3d_reactions.mat` contains reaction rates and raw
+* `dayside_hplus_10000000_3d_reactions.mat` contains reaction rates and raw
   Monte Carlo event counts by charge, target, and channel. It also stores
   target-resolved ionization rates and total H Ly-alpha volume emission.
-* `dayside_hplus_100000_3d_energy.mat` contains collision energy transfer,
+* `dayside_hplus_10000000_3d_energy.mat` contains collision energy transfer,
   sub-10 eV thermalization, and their sum in W m$^{-3}$.
 
 Julia writes arrays in longitude, latitude, altitude order followed by any
@@ -644,7 +644,7 @@ The eight panels show number density, total scalar flux, downward radial flux,
 upward radial flux, signed radial flux, total target ionization rate,
 H Ly-alpha volume emission rate, and projectile energy transfer rate:
 
-`examples/figures/dayside_hplus_100000_3d_maps_120km_8panel.png`
+`examples/figures/dayside_hplus_10000000_3d_maps_120km_8panel.png`
 
 ### Altitude profiles
 
@@ -655,7 +655,7 @@ C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_altitude_profi
 Profiles cover 100 to 300 km and compare the global spherical-area mean with
 the dayside-area mean:
 
-`examples/figures/dayside_hplus_100000_3d_altitude_profiles_8panel.png`
+`examples/figures/dayside_hplus_10000000_3d_altitude_profiles_8panel.png`
 
 Latitude weighting uses the exact spherical factor
 
@@ -685,7 +685,7 @@ weights. The dotted line at SZA $=90^\circ$ marks the terminator.
 
 Output:
 
-`examples/figures/dayside_hplus_100000_3d_sza_altitude_8panel.png`
+`examples/figures/dayside_hplus_10000000_3d_sza_altitude_8panel.png`
 
 ## 9. Analysis package
 

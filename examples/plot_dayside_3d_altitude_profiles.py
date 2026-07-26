@@ -54,12 +54,12 @@ def main() -> None:
     parser.add_argument(
         "prefix", nargs="?", type=Path,
         default=REPO / "examples" / "output" /
-        "dayside_hplus_100000_3d",
+        "dayside_hplus_10000000_3d",
     )
     parser.add_argument(
         "--output", type=Path,
         default=REPO / "examples" / "figures" /
-        "dayside_hplus_100000_3d_altitude_profiles_8panel.png",
+        "dayside_hplus_10000000_3d_altitude_profiles_8panel.png",
     )
     args = parser.parse_args()
     prefix = str(args.prefix)
@@ -157,7 +157,7 @@ def main() -> None:
     fig.suptitle(
         "Uniform-dayside H$^+$ Monte Carlo altitude profiles\n"
         f"{ALTITUDE_MIN_KM:.0f} to {ALTITUDE_MAX_KM:.0f} km, "
-        r"100,000 particles, $\mathbf{U}=(-400,0,0)$ km/s, "
+        r"10,000,000 particles, $\mathbf{U}=(-400,0,0)$ km/s, "
         r"$T=10$ eV, $n=5$ cm$^{-3}$, "
         r"5$^\circ\times$5$^\circ\times1$ km grid",
         fontsize=9,
