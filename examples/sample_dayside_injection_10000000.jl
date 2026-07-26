@@ -1,6 +1,6 @@
 # Sample the global dayside solar-wind injection boundary without transport.
 #
-# The 100,000 initial H+ macro particles are uniformly distributed in surface
+# The 10,000,000 initial H+ macro particles are uniformly distributed in surface
 # area over the 600 km dayside hemisphere. Their MSO velocity distribution is
 # a drifting 3D Maxwellian with bulk velocity (-400, 0, 0) km/s and kT=10 eV.
 # The macro-particle weight is Wn and contains no velocity factor. Local
@@ -9,7 +9,7 @@
 #
 # Usage:
 #
-#   julia --project=. -t auto examples/sample_dayside_injection_100000.jl
+#   julia --project=. -t auto examples/sample_dayside_injection_10000000.jl
 
 using MarsASPEN
 using MAT
@@ -18,11 +18,11 @@ using Statistics
 
 repo = normpath(joinpath(@__DIR__, ".."))
 output = length(ARGS) >= 1 ? ARGS[1] : joinpath(
-    repo, "examples", "output", "dayside_hplus_injection_100000.mat",
+    repo, "examples", "output", "dayside_hplus_injection_10000000.mat",
 )
 
 config = MonteCarloConfig(
-    n_particles=100_000,
+    n_particles=10_000_000,
     injection_geometry=:dayside_uniform,
     initial_altitude_km=600.0,
     initial_speed_m_s=400_000.0,

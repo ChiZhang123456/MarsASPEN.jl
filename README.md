@@ -72,7 +72,7 @@ Large-particle examples use a uniform 600 km MSO dayside hemispherical source,
 not a single injection longitude and latitude:
 
 ```powershell
-julia --project=. -t auto examples/sample_dayside_injection_100000.jl
+julia --project=. -t auto examples/sample_dayside_injection_10000000.jl
 julia --project=. -t auto examples/run_dayside_3d_10000000.jl
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_maps_120km.py
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_altitude_profiles.py

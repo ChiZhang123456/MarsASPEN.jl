@@ -388,19 +388,19 @@ density weight, not one real proton.
 
 ### Inspecting the injection distribution
 
-The following commands sample 100,000 initial positions and velocities without
+The following commands sample 10,000,000 initial positions and velocities without
 running transport:
 
 ```powershell
-julia --project=. -t auto examples/sample_dayside_injection_100000.jl
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_injection_100000.py examples/output/dayside_hplus_injection_100000.mat
+julia --project=. -t auto examples/sample_dayside_injection_10000000.jl
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_injection_10000000.py
 ```
 
 The resulting figure contains an MSO X-R injection-position panel, with both
 axes spanning 0 to $2R_{\mathrm{M}}$, together with the MSO $V_x$, $V_y$, and
 $V_z$ distributions:
 
-`examples/figures/dayside_hplus_injection_100000_4panel.png`.
+`examples/figures/dayside_hplus_injection_10000000_4panel.png`.
 
 ## 7. Uniform-dayside three-dimensional Monte Carlo simulation
 
@@ -604,12 +604,12 @@ instead of assuming NumPy axis order.
 ### Initial positions and velocities
 
 ```powershell
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_injection_100000.py examples/output/dayside_hplus_injection_100000.mat
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_injection_10000000.py
 ```
 
 Output:
 
-`examples/figures/dayside_hplus_injection_100000_4panel.png`
+`examples/figures/dayside_hplus_injection_10000000_4panel.png`
 
 ### Particle-motion animation in four MSO projections
 

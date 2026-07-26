@@ -352,7 +352,7 @@ julia --project=. -t auto scripts/run_detailed.jl 10 output/detailed.mat
 
 不要用此模式保存 100 万粒子，因为完整 step history 可能达到数百 GB。
 
-### 4.2 `examples/sample_dayside_injection_100000.jl`
+### 4.2 `examples/sample_dayside_injection_10000000.jl`
 
 在 600 km 高度的完整 MSO 日侧半球上按球面面积均匀采样 10 万个初始位置。
 太阳风速度在 MSO 坐标系中取 $[-400,0,0]$ km s$^{-1}$，而不是在每个位置
@@ -360,7 +360,7 @@ julia --project=. -t auto scripts/run_detailed.jl 10 output/detailed.mat
 输运。
 
 ```powershell
-julia --project=. -t auto examples/sample_dayside_injection_100000.jl
+julia --project=. -t auto examples/sample_dayside_injection_10000000.jl
 ```
 
 ### 4.3 `examples/run_dayside_3d_10000000.jl`

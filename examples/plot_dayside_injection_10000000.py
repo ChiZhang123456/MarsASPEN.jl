@@ -35,11 +35,15 @@ def gaussian(x: np.ndarray, mean: float, sigma: float) -> np.ndarray:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("input_mat", type=Path)
+    parser.add_argument(
+        "input_mat", nargs="?", type=Path,
+        default=REPO / "examples" / "output" /
+        "dayside_hplus_injection_10000000.mat",
+    )
     parser.add_argument(
         "--output", type=Path,
         default=REPO / "examples" / "figures" /
-        "dayside_hplus_injection_100000_4panel.png",
+        "dayside_hplus_injection_10000000_4panel.png",
     )
     args = parser.parse_args()
     data = load_history_mat(args.input_mat)
@@ -156,7 +160,7 @@ def main() -> None:
         )
     fig.suptitle(
         "Uniform dayside H$^+$ injection\n"
-        r"100,000 macro particles, 600 km, "
+        r"10,000,000 macro particles, 600 km, "
         r"$\mathbf{U}=(-400,0,0)$ km/s, $T=10$ eV, "
         r"$n=5$ cm$^{-3}$",
         fontsize=9,
