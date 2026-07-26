@@ -652,10 +652,12 @@ H Ly-alpha volume emission rate, and projectile energy transfer rate:
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_altitude_profiles.py
 ```
 
-Profiles cover 100 to 300 km and compare the global spherical-area mean with
-the dayside-area mean:
+Profiles cover 100 to 300 km and show only the global spherical-area mean.
+The six panels contain H+ and H-ENA number densities, H+ downward and upward
+radial fluxes, H-ENA downward and upward radial fluxes, O and CO2 ionization
+rates, H Ly-alpha volume emission rate, and total energy deposition rate:
 
-`examples/figures/dayside_hplus_10000000_3d_altitude_profiles_8panel.png`
+`examples/figures/dayside_hplus_10000000_3d_altitude_profiles_6panel.png`
 
 Latitude weighting uses the exact spherical factor
 
