@@ -208,8 +208,8 @@ Output:
 
 The following example selects the representative atmosphere case
 $L_s=0^\circ$, F10.7 = 130 at longitude and latitude zero. It combines
-the neutral atmosphere, local collision probability every 1 km, and
-cumulative collision probability into one three-panel figure:
+the neutral atmosphere, local collision coefficient, and cumulative collision
+probability into one three-panel figure:
 
 ```powershell
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_1000ev_collision_probability.py
@@ -224,26 +224,47 @@ The local collision coefficient is
 ```
 
 where $n_j$ is in m$^{-3}$, $\sigma_{j,k}$ is in m$^{2}$, and
-$\alpha$ is in m$^{-1}$. The targets included in the collision sum are
-CO2, total O, and N2. Total O is MGITM cold O plus MAMPS hot O. For a path
-length $\Delta s=1$ km,
+$\alpha$ is in m$^{-1}$. Thus $\alpha$ is a collision coefficient, meaning
+collision probability per unit path length, rather than a dimensionless
+probability. The targets included in the collision sum are CO2, total O, and
+N2. Total O is MGITM cold O plus MAMPS hot O.
+
+For a particle that has traveled path length $L$, the survival and cumulative
+collision probabilities are
 
 ```math
-P_{\mathrm{local}}
+P_{\mathrm{survive}}(L)
 =
-1-\exp[-\alpha(z)\Delta s].
+\exp\left[
+-\int_0^L
+\sum_j n_j(l)\sum_k\sigma_{j,k}(E)\,\mathrm{d}l
+\right],
 ```
-
-The cumulative optical depth and collision probability are
 
 ```math
-\tau(z)=\int_z^{1000\,\mathrm{km}}\alpha(s)\,ds,
-\qquad
-P_{\mathrm{cum}}=1-\exp[-\tau(z)].
+P_{\mathrm{collision}}(L)
+=
+1-P_{\mathrm{survive}}(L)
+=
+1-\exp\left[
+-\int_0^L
+\sum_j n_j(l)\sum_k\sigma_{j,k}(E)\,\mathrm{d}l
+\right].
 ```
 
-All three panels display 100 to 600 km. The cumulative optical depth is still
-integrated from each displayed altitude to 1000 km.
+For the plotted downward path from 1000 km to altitude $z$, the same
+probability is evaluated with
+
+```math
+L=1000\,\mathrm{km}-z,
+\qquad
+\int_0^L\alpha(l,E)\,\mathrm{d}l
+=
+\int_z^{1000\,\mathrm{km}}\alpha(s,E)\,\mathrm{d}s.
+```
+
+All three panels display 100 to 600 km. The cumulative integral is still
+evaluated from each displayed altitude to 1000 km.
 
 The PNG is:
 

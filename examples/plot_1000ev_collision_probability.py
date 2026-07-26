@@ -1,12 +1,11 @@
-"""Calculate 1 km collision probabilities for a fixed 1000 eV projectile.
+"""Calculate collision coefficients and cumulative probabilities at 1000 eV.
 
 For every packaged season and solar-activity case, this script evaluates
 
     alpha(z) = sum_target n_target(z) sum_reaction sigma(E)
 
-for H ENA and H+ at E = 1000 eV. The local probability over one downward
-kilometer is 1 - exp[-alpha(z) * 1000 m]. The cumulative probability is
-1 - exp[-integral_z^1000km alpha(s) ds].
+for H ENA and H+ at E = 1000 eV. The cumulative probability follows from the
+survival probability, 1 - exp[-integral alpha(s) ds].
 
 This is a fixed-energy diagnostic. It does not reduce the projectile energy
 after a collision and therefore does not replace a Monte Carlo trajectory.
@@ -22,6 +21,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import loadmat
+from scipy.integrate import cumulative_trapezoid
 
 REPO = Path(__file__).resolve().parents[1]
 ATMOSPHERE = REPO / "data" / "atmosphere"
@@ -148,7 +148,7 @@ def total_cross_section(projectile: str, target: str) -> float:
 def collision_profiles(
     ls: int, f107: int,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Return neutral densities and H/H+ collision probabilities."""
+    """Return densities, collision coefficients, and cumulative probabilities."""
     altitude = np.arange(80.0, 1001.0, 1.0)
     suffix = f"ls{ls:03d}_f{f107:03d}.mat"
     gitm = loadmat(ATMOSPHERE / f"gitm_{suffix}", squeeze_me=True)
@@ -176,12 +176,14 @@ def collision_profiles(
                 * total_cross_section(projectile, target)
             )
 
-    local = 1.0 - np.exp(-alpha * 1000.0)
-    # Integrate downward from 1000 km. Reversing, cumulatively summing, and
-    # reversing again gives the optical depth above every altitude center.
-    tau = np.cumsum((alpha[:, ::-1] * 1000.0), axis=1)[:, ::-1]
+    # Integrate downward from 1000 km with path length in meters. The reversed
+    # path coordinate increases from zero at 1000 km toward lower altitude.
+    path_m = (altitude[-1] - altitude[::-1]) * 1000.0
+    tau = cumulative_trapezoid(
+        alpha[:, ::-1], x=path_m, axis=1, initial=0.0,
+    )[:, ::-1]
     cumulative = 1.0 - np.exp(-tau)
-    return np.asarray(densities), local, cumulative
+    return np.asarray(densities), alpha, cumulative
 
 
 def plot_selected_case(
@@ -189,9 +191,9 @@ def plot_selected_case(
     f107: int,
     output: Path,
 ) -> None:
-    """Draw atmosphere, local probability, and cumulative probability."""
+    """Draw atmosphere, collision coefficient, and cumulative probability."""
     altitude = np.arange(80.0, 1001.0, 1.0)
-    densities, local, cumulative = collision_profiles(ls, f107)
+    densities, alpha, cumulative = collision_profiles(ls, f107)
     fig, axes = plt.subplots(
         1, 3, figsize=(7.2, 3.5), sharey=True,
     )
@@ -220,7 +222,7 @@ def plot_selected_case(
 
     for projectile_index, (_, label, color) in enumerate(PROJECTILES):
         axes[1].plot(
-            local[projectile_index], altitude,
+            alpha[projectile_index], altitude,
             color=color, lw=1.2, label=label,
         )
         axes[2].plot(
@@ -228,14 +230,16 @@ def plot_selected_case(
             color=color, lw=1.2, label=label,
         )
     axes[1].set_xscale("log")
-    axes[1].set_xlim(1.0e-10, 1)
-    axes[1].set_xlabel("Local collision probability per 1 km")
+    positive_alpha = alpha[alpha > 0]
+    axes[1].set_xlim(
+        10 ** np.floor(np.log10(positive_alpha.min())),
+        10 ** np.ceil(np.log10(positive_alpha.max())),
+    )
+    axes[1].set_xlabel(r"Collision coefficient, $\alpha$ (m$^{-1}$)")
     axes[1].set_title(
-        "Local collision probability\n"
-        r"$\alpha(z,E)=\sum_j n_j(z)\sum_k\sigma_{j,k}(E)$"
-        "\n"
-        r"$P_{\mathrm{local}}(z)=1-\exp[-\alpha(z,E)\Delta s],"
-        r"\ \Delta s=1\,\mathrm{km}$",
+        "Collision probability per unit path length\n"
+        r"$\alpha(\mathbf{r},E)"
+        r"=\sum_j n_j(\mathbf{r})\sum_k\sigma_{j,k}(E)$",
         fontsize=7.2,
     )
     axes[1].legend(ncol=2, fontsize=6.5, loc="upper left")
@@ -244,9 +248,10 @@ def plot_selected_case(
     axes[2].set_xlabel("Cumulative collision probability from 1000 km")
     axes[2].set_title(
         "Cumulative collision probability\n"
-        r"$\tau(z)=\int_z^{1000\,\mathrm{km}}\alpha(s)\,\mathrm{d}s$"
+        r"$P_{\mathrm{collision}}(L)=1-P_{\mathrm{survive}}(L)$"
         "\n"
-        r"$P_{\mathrm{cum}}(z)=1-\exp[-\tau(z)]$",
+        r"$=1-\exp\!\left[-\int_0^L"
+        r"\sum_j n_j(l)\sum_k\sigma_{j,k}(E)\,\mathrm{d}l\right]$",
         fontsize=7.2,
     )
 
