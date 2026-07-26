@@ -111,8 +111,12 @@ def main() -> None:
                 mamps["alt_km"], mamps["nO_hot"], ALTITUDE_KM
             )
             total_o = cold_o + hot_o
+            # Center the MSO longitude grid on the subsolar meridian.
+            centered_longitude = np.arange(-177.5, 180.0, 5.0)
+            co2 = np.roll(co2, co2.shape[0] // 2, axis=0)
+            total_o = np.roll(total_o, total_o.shape[0] // 2, axis=0)
             cases[(ls, f107)] = {
-                "longitude": np.asarray(gitm["lon_deg"], dtype=float),
+                "longitude": centered_longitude,
                 "latitude": np.asarray(gitm["lat_deg"], dtype=float),
                 "co2": co2,
                 "oxygen": total_o,
@@ -159,9 +163,9 @@ def main() -> None:
                     rasterized=True,
                 )
                 last_mesh[field] = mesh
-                axis.set_xlim(0, 360)
+                axis.set_xlim(-180, 180)
                 axis.set_ylim(-90, 90)
-                axis.set_xticks((0, 90, 180, 270, 360))
+                axis.set_xticks((-180, -90, 0, 90, 180))
                 axis.set_yticks((-90, -45, 0, 45, 90))
                 axis.text(
                     0.02, 0.96, chr(ord("a") + panel_index),
@@ -195,7 +199,7 @@ def main() -> None:
         r"Total O number density (m$^{-3}$)"
     )
     fig.suptitle(
-        "MGITM CO$_2$ and MGITM + MAMPS total O at 150 km",
+        "GITM CO$_2$ and GITM + MAMPS total O at 150 km",
         fontsize=9,
     )
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)

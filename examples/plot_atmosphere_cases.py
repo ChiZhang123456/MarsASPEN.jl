@@ -1,9 +1,9 @@
-"""Plot all packaged MGITM and MAMPS density profiles.
+"""Plot GITM CO2/O and MAMPS hot-O density profiles.
 
 The 4 by 3 panel grid spans four seasons and three solar-activity levels.
 Every profile is sampled at 0 degrees longitude and 0 degrees latitude.
-MGITM contains the cold neutral species CO2, O, O2, N2, and CO. MAMPS supplies
-the separate hot-O population. Number densities are displayed in SI units.
+The supplied processed GITM files contain cold CO2 and O. MAMPS supplies the
+separate hot-O population. Number densities are displayed in SI units.
 
 MarsASPEN extrapolates the first two logarithmic density levels down to 80 km.
 Above the native MGITM top boundary, each cold species is hydrostatically
@@ -32,9 +32,6 @@ F107_VALUES = (70, 130, 200)
 SPECIES = (
     ("nCO2", r"CO$_2$", "#4C72B0", 44.01),
     ("nO", "O", "#55A868", 15.999),
-    ("nO2", r"O$_2$", "#C44E52", 31.998),
-    ("nN2", r"N$_2$", "#8172B2", 28.014),
-    ("nCO", "CO", "#937860", 28.010),
 )
 AMU_KG = 1.66053906660e-27
 KB_J_K = 1.380649e-23
@@ -180,7 +177,7 @@ def main() -> None:
         ncol=2, fontsize=6, loc="lower left", bbox_to_anchor=(0.0, 1.18)
     )
     fig.suptitle(
-        r"MGITM cold neutrals and MAMPS hot O at lon=0$^\circ$, lat=0$^\circ$",
+        r"GITM cold neutrals and MAMPS hot O at lon=0$^\circ$, lat=0$^\circ$",
         fontsize=9,
     )
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)

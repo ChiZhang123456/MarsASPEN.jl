@@ -1,4 +1,4 @@
-"""Plot MGITM neutral temperature at 200 km on its native longitude grid."""
+"""Plot GITM neutral temperature at 200 km on its native longitude grid."""
 
 from __future__ import annotations
 
@@ -76,7 +76,7 @@ def main() -> None:
         gitm["alt_km"], gitm["Tn"], ALTITUDE_KM
     )
 
-    # MGITM longitude is stored from 0 to 360 degrees. Roll only for the
+    # GITM longitude is stored from 0 to 360 degrees. Roll only for the
     # conventional -180 to 180 degree display. The packaged file does not
     # include the subsolar longitude needed to convert this native longitude
     # into MSO longitude.
@@ -112,9 +112,9 @@ def main() -> None:
         xticks=(-180, -90, 0, 90, 180),
         yticks=(-90, -45, 0, 45, 90),
         xlabel="Longitude used by MarsASPEN (deg)",
-        ylabel="MGITM latitude (deg)",
+        ylabel="GITM latitude (deg)",
         title=(
-            "MGITM neutral temperature at 200 km\n"
+            "GITM neutral temperature at 200 km\n"
             r"$L_s=0^\circ$, F10.7 = 130"
         ),
     )
