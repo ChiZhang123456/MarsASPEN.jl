@@ -36,6 +36,11 @@ def positive_log_limits(values: np.ndarray) -> tuple[float, float]:
     return low, max(high, low * 10.0)
 
 
+def longitude_shift(values: np.ndarray) -> np.ndarray:
+    """Move the 0 degree MSO subsolar longitude to the map center."""
+    return np.roll(values, -(values.shape[-1] // 2), axis=-1)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -62,7 +67,7 @@ def main() -> None:
     altitude_low = altitude_edges[altitude_index]
     altitude_high = altitude_edges[altitude_index + 1]
     latitude_edges = np.ravel(moments["latitude_edges_deg"])
-    longitude_edges = np.ravel(moments["longitude_edges_deg"])
+    longitude_edges = np.linspace(-180.0, 180.0, 73)
 
     maps = [
         np.asarray(moments["number_density_by_charge_m3"])[
@@ -88,6 +93,7 @@ def main() -> None:
         )[altitude_index],
         np.asarray(energy["total_energy_transfer_w_m3"])[altitude_index],
     ]
+    maps = [longitude_shift(values) for values in maps]
     titles = (
         "H$^+$ number density",
         "H-ENA number density",
@@ -127,14 +133,14 @@ def main() -> None:
             rasterized=True,
         )
         meshes.append(mesh)
-        axis.set(xlim=(0, 360), ylim=(-90, 90), title=title)
+        axis.set(xlim=(-180, 180), ylim=(-90, 90), title=title)
         if panel >= 6:
             axis.set_xlabel("MSO longitude (deg)")
         if panel % 2 == 0:
             axis.set_ylabel("MSO latitude (deg)")
+        axis.axvline(-90, color="0.25", lw=0.55, ls=":", alpha=0.8)
         axis.axvline(90, color="0.25", lw=0.55, ls=":", alpha=0.8)
-        axis.axvline(270, color="0.25", lw=0.55, ls=":", alpha=0.8)
-        axis.set_xticks((0, 90, 180, 270, 360))
+        axis.set_xticks((-180, -90, 0, 90, 180))
         axis.text(
             0.02, 0.97, "abcdefgh"[panel],
             transform=axis.transAxes, ha="left", va="top",
