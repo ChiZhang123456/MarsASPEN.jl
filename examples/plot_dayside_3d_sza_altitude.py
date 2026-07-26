@@ -9,7 +9,7 @@ from pathlib import Path
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import LogNorm, SymLogNorm
+from matplotlib.colors import LogNorm
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "analysis"))
@@ -107,13 +107,27 @@ def main() -> None:
     last = int(np.flatnonzero(altitude_selected)[-1])
     displayed_altitude_edges = altitude_edges[first:last + 2]
 
+    number_density = np.asarray(
+        moments["number_density_by_charge_m3"], dtype=float
+    )
+    downward_flux = np.asarray(
+        moments["downward_radial_flux_by_charge_m2_s"], dtype=float
+    )
+    upward_flux = np.asarray(
+        moments["upward_radial_flux_by_charge_m2_s"], dtype=float
+    )
+    ionization = np.asarray(
+        reactions["ionization_rate_by_target_m3_s1"], dtype=float
+    )
     fields = [
-        np.asarray(moments["total_number_density_m3"], dtype=float),
-        np.asarray(moments["total_flux_m2_s"], dtype=float),
-        np.asarray(moments["downward_radial_flux_m2_s"], dtype=float),
-        np.asarray(moments["upward_radial_flux_m2_s"], dtype=float),
-        np.asarray(moments["signed_radial_flux_m2_s"], dtype=float),
-        np.asarray(reactions["reaction_rate_by_channel_m3_s1"], dtype=float)[1],
+        number_density[1],
+        number_density[0],
+        downward_flux[1],
+        upward_flux[1],
+        downward_flux[0],
+        upward_flux[0],
+        ionization[1],
+        ionization[0],
         np.asarray(
             reactions["total_lya_volume_emission_rate_photons_m3_s1"],
             dtype=float,
@@ -127,66 +141,80 @@ def main() -> None:
         for values in fields
     ]
     titles = (
-        "H + H$^+$ number density",
-        "Total scalar flux",
-        "Downward radial flux",
-        "Upward radial flux",
-        "Signed outward radial flux",
-        "Total target ionization rate",
+        "H$^+$ number density",
+        "H-ENA number density",
+        "H$^+$ downward radial flux",
+        "H$^+$ upward radial flux",
+        "H-ENA downward radial flux",
+        "H-ENA upward radial flux",
+        "O ionization rate",
+        "CO$_2$ ionization rate",
         "H Ly-alpha volume emission rate",
-        "Projectile energy transfer rate",
+        "Energy deposition rate",
     )
-    colorbar_labels = (
+    row_colorbar_labels = (
         r"Density (m$^{-3}$)",
         r"Flux (m$^{-2}$ s$^{-1}$)",
-        r"Downward flux (m$^{-2}$ s$^{-1}$)",
-        r"Upward flux (m$^{-2}$ s$^{-1}$)",
-        r"Signed flux (m$^{-2}$ s$^{-1}$)",
+        r"Flux (m$^{-2}$ s$^{-1}$)",
         r"Ionization rate (m$^{-3}$ s$^{-1}$)",
-        r"VER (photons m$^{-3}$ s$^{-1}$)",
-        r"Energy transfer (W m$^{-3}$)",
     )
 
     fig, axes = plt.subplots(
-        2, 4, figsize=(10.0, 5.3), sharex=True, sharey=True,
-        constrained_layout=True,
+        5, 2, figsize=(7.2, 10.0), sharex=True, sharey=True,
+        layout="constrained",
     )
-    for panel, (axis, values, title, colorbar_label) in enumerate(
-        zip(axes.flat, sza_altitude, titles, colorbar_labels)
+    meshes = []
+    for panel, (axis, values, title) in enumerate(
+        zip(axes.flat, sza_altitude, titles)
     ):
-        if panel == 4:
-            maximum = np.nanmax(np.abs(values))
-            norm = SymLogNorm(
-                linthresh=max(maximum / 1000.0, 1.0),
-                vmin=-maximum, vmax=maximum, base=10,
-            )
-            plotted = values
-            cmap = "coolwarm"
+        row = panel // 2
+        if panel % 2 == 0 and row < 4:
+            paired = np.concatenate((
+                sza_altitude[panel].ravel(),
+                sza_altitude[panel + 1].ravel(),
+            ))
+            low, high = positive_log_limits(paired)
+            shared_norm = LogNorm(vmin=low, vmax=high)
+        if row < 4:
+            norm = shared_norm
         else:
             low, high = positive_log_limits(values)
             norm = LogNorm(vmin=low, vmax=high)
-            plotted = np.ma.masked_less_equal(values, 0.0)
-            cmap = "turbo"
+        plotted = np.ma.masked_less_equal(values, 0.0)
         mesh = axis.pcolormesh(
             SZA_EDGES_DEG, displayed_altitude_edges, plotted,
-            shading="flat", cmap=cmap, norm=norm, rasterized=True,
+            shading="flat", cmap="turbo", norm=norm, rasterized=True,
         )
+        meshes.append(mesh)
         axis.set(
             xlim=(0, 180), ylim=(ALTITUDE_MIN_KM, ALTITUDE_MAX_KM),
             title=title,
         )
-        if panel >= 4:
+        if row == 4:
             axis.set_xlabel("Solar zenith angle (deg)")
-        if panel % 4 == 0:
+        if panel % 2 == 0:
             axis.set_ylabel("Altitude (km)")
         axis.axvline(90, color="0.25", lw=0.7, ls=":", alpha=0.9)
         axis.text(
-            0.025, 0.975, "abcdefgh"[panel],
+            0.025, 0.975, "abcdefghij"[panel],
             transform=axis.transAxes, ha="left", va="top",
             fontsize=8, fontweight="bold",
         )
-        colorbar = fig.colorbar(mesh, ax=axis, pad=0.015, fraction=0.048)
+
+    for row, colorbar_label in enumerate(row_colorbar_labels):
+        colorbar = fig.colorbar(
+            meshes[2 * row], ax=axes[row, :],
+            pad=0.02, fraction=0.045, aspect=32,
+        )
         colorbar.set_label(colorbar_label)
+    colorbar = fig.colorbar(
+        meshes[8], ax=axes[4, 0], pad=0.02, fraction=0.045, aspect=32,
+    )
+    colorbar.set_label(r"VER (photons m$^{-3}$ s$^{-1}$)")
+    colorbar = fig.colorbar(
+        meshes[9], ax=axes[4, 1], pad=0.02, fraction=0.045, aspect=32,
+    )
+    colorbar.set_label(r"Energy deposition rate (W m$^{-3}$)")
 
     fig.suptitle(
         "Uniform-dayside H$^+$ Monte Carlo SZA-altitude diagnostics\n"

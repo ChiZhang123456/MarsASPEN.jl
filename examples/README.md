@@ -699,7 +699,13 @@ The MSO solar zenith angle is
 
 The script uses 5 degree SZA bins, 1 km altitude bins, and the 100 to 300 km
 altitude range. Every SZA annulus is averaged with exact spherical cell-area
-weights. The dotted line at SZA $=90^\circ$ marks the terminator.
+weights. The five-row, two-column figure separately shows H+ and H-ENA number
+density, downward and upward H+ radial flux, downward and upward H-ENA radial
+flux, O and CO2 ionization rates, H Ly-alpha volume emission rate, and energy
+deposition rate. Each paired row through the ionization panels uses one shared
+color scale. The Ly-alpha and energy-deposition panels use separate color
+scales because they have different physical units. The dotted line at
+SZA $=90^\circ$ marks the terminator.
 
 Output:
 
