@@ -21,10 +21,12 @@ C:\Users\Win\.conda\envs\mars\python.exe examples/plot_single_trajectory.py exam
 ```
 
 The PNG is stored at
-`examples/figures/single_h_ena_400kms.png`. All four panels use the portion
+`examples/figures/single_h_ena_400kms.png`. All five panels use the portion
 of the trajectory lying between 100 and 200 km so reactions and associated
 energy and charge-state changes remain visible. Panel d uses the same reaction
-timeline and event-count convention as the H+ example.
+timeline and event-count convention as the H+ example. Panel e shows the
+three-dimensional scattering angle of every collision, calculated from the
+velocity vectors immediately before and after the event.
 
 ## 2. Single H+ trajectory
 
@@ -42,7 +44,8 @@ The PNG is stored at
 energy, and charge state between 100 and 200 km. Panel d places every
 collision on a reaction timeline with Elastic = 0, Ionization = 1,
 Ly-alpha = 2, and State change = 3, and reports the number of events in each
-category over the displayed altitude interval.
+category over the displayed altitude interval. Panel e shows the scattering
+angle of every collision.
 
 ## 3. Atmospheric density cases
 

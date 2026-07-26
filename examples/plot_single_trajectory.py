@@ -6,9 +6,10 @@ target ionization, Ly-alpha production, and elastic scattering. Identical
 reaction colors are used in the altitude and energy panels so each event can
 be followed between physical quantities.
 
-The displayed altitude interval is configurable. The four panels provide
+The displayed altitude interval is configurable. The five panels provide
 complementary evidence: reaction altitude, kinetic-energy evolution, charge
-state, and particle speed over the same selected time interval.
+state, particle speed or reaction timeline, and collision scattering angle
+over the same selected time interval.
 
 The output argument specifies the PNG file saved for the example.
 """
@@ -91,8 +92,25 @@ def main() -> None:
     vx = vector(data, "vx_m_s")
     vy = vector(data, "vy_m_s")
     vz = vector(data, "vz_m_s")
+    vx_before = vector(data, "vx_before_m_s")
+    vy_before = vector(data, "vy_before_m_s")
+    vz_before = vector(data, "vz_before_m_s")
     # Convert the SI velocity magnitude to km/s only for display.
     speed = np.sqrt(vx**2 + vy**2 + vz**2) / 1000
+    speed_before = np.sqrt(
+        vx_before**2 + vy_before**2 + vz_before**2
+    )
+    speed_after = np.sqrt(vx**2 + vy**2 + vz**2)
+    denominator = speed_before * speed_after
+    cosine_angle = np.divide(
+        vx_before * vx + vy_before * vy + vz_before * vz,
+        denominator,
+        out=np.ones_like(denominator, dtype=float),
+        where=denominator > 0,
+    )
+    scattering_angle_deg = np.degrees(
+        np.arccos(np.clip(cosine_angle, -1.0, 1.0))
+    )
 
     initial_charge = int(vector(data, "config_initial_charge_state")[0])
     species = r"H$^+$" if initial_charge == 1 else "H ENA"
@@ -116,14 +134,27 @@ def main() -> None:
     event_type = event_type[altitude_window]
     reaction = reaction[altitude_window]
     speed = speed[altitude_window]
+    scattering_angle_deg = scattering_angle_deg[altitude_window]
 
     # Propagation rows draw the tracks. Only collision rows receive markers.
     collision = event_type == 2
 
-    fig, axes = plt.subplots(
-        2, 2, figsize=(7.2, 5.4), sharex=True, constrained_layout=True
+    fig = plt.figure(figsize=(7.2, 7.0), constrained_layout=True)
+    grid = fig.add_gridspec(
+        3, 2, height_ratios=(1.0, 1.0, 0.92)
     )
-    axes = axes.ravel()
+    axes = np.array(
+        [
+            fig.add_subplot(grid[0, 0]),
+            fig.add_subplot(grid[0, 1]),
+            fig.add_subplot(grid[1, 0]),
+            fig.add_subplot(grid[1, 1]),
+            fig.add_subplot(grid[2, :]),
+        ],
+        dtype=object,
+    )
+    for axis in axes[1:]:
+        axis.sharex(axes[0])
     axes[0].plot(time_s, altitude, color="#222222", lw=1.1)
     axes[1].plot(time_s, energy, color="#4C72B0", lw=1.1)
     axes[2].step(time_s, charge, where="post", color="#8172B2", lw=1.1)
@@ -143,6 +174,10 @@ def main() -> None:
         )
         axes[1].scatter(
             time_s[mask], energy[mask], s=size,
+            color=REACTION_COLORS[code], zorder=3, edgecolors="none",
+        )
+        axes[4].scatter(
+            time_s[mask], scattering_angle_deg[mask], s=size,
             color=REACTION_COLORS[code], zorder=3, edgecolors="none",
         )
 
@@ -192,12 +227,14 @@ def main() -> None:
                 "alpha": 0.90,
             },
         )
-    axes[2].set_xlabel("Time (s)")
-    axes[3].set_xlabel("Time (s)")
+    axes[4].set_ylabel("Scattering angle (deg)")
+    axes[4].set_ylim(-3, 183)
+    axes[4].set_yticks((0, 30, 60, 90, 120, 150, 180))
+    axes[4].set_xlabel("Time (s)")
     axes[0].legend(ncol=2, fontsize=7, loc="best")
 
     # Lowercase bold panel labels follow common Nature-family conventions.
-    for label, axis in zip(("a", "b", "c", "d"), axes):
+    for label, axis in zip(("a", "b", "c", "d", "e"), axes):
         axis.text(
             0.02, 0.96, label, transform=axis.transAxes,
             ha="left", va="top", fontweight="bold", fontsize=9,
