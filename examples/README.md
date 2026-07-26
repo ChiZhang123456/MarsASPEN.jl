@@ -640,9 +640,12 @@ Output:
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_maps_120km.py
 ```
 
-The eight panels show number density, total scalar flux, downward radial flux,
-upward radial flux, signed radial flux, total target ionization rate,
-H Ly-alpha volume emission rate, and projectile energy transfer rate:
+The four-row, two-column layout uses longitude from 0 to 360 degrees and
+latitude from -90 to 90 degrees. The panels show H+ and H-ENA number densities,
+H+ downward and upward radial fluxes, O and CO2 ionization rates, H Ly-alpha
+volume emission rate, and total energy deposition rate. The two density panels
+share one color scale, the two H+ flux panels share one color scale, and the
+two target-ionization panels share one color scale:
 
 `examples/figures/dayside_hplus_10000000_3d_maps_120km_8panel.png`
 
