@@ -683,6 +683,35 @@ Latitude weighting uses the exact spherical factor
 \sin(\phi_{\mathrm{lower}}).
 ```
 
+### H+ and H-ENA density conversion from 100 to 600 km
+
+The following diagnostic extends the density comparison to the 600 km
+injection boundary:
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_density_100_600km.py
+```
+
+It plots the global spherical-mean H+ and H-ENA number densities and the
+neutral fraction
+
+```math
+f_{\mathrm{H\text{-}ENA}}
+=
+\frac{n_{\mathrm{H\text{-}ENA}}}
+{n_{\mathrm{H^+}}+n_{\mathrm{H\text{-}ENA}}}.
+```
+
+For the ten-million-particle result, the two densities are equal near
+232.8 km. H-ENA contributes approximately 62.4% of the total density at
+200.5 km, 96.0% at 150.5 km, and 98.6% at 120.5 km. The nonzero H-ENA
+density near 600 km is dominated by upward escaping H-ENA produced below the
+injection boundary, rather than by neutral particles in the injected source.
+
+Output:
+
+`examples/figures/dayside_hplus_10000000_density_100_600km.png`
+
 ### SZA and altitude distributions
 
 ```powershell
