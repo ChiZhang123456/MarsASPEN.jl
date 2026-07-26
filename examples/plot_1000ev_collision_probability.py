@@ -218,7 +218,7 @@ def plot_selected_case(
         r"$n_j(z),\quad j\in\{\mathrm{CO_2,O,N_2}\}$",
         fontsize=7.2,
     )
-    axes[0].legend(ncol=1, fontsize=6.5, loc="upper left")
+    axes[0].legend(ncol=1, fontsize=6.5, loc="lower left")
 
     for projectile_index, (_, label, color) in enumerate(PROJECTILES):
         axes[1].plot(
@@ -242,7 +242,7 @@ def plot_selected_case(
         r"=\sum_j n_j(\mathbf{r})\sum_k\sigma_{j,k}(E)$",
         fontsize=7.2,
     )
-    axes[1].legend(ncol=2, fontsize=6.5, loc="upper left")
+    axes[1].legend(ncol=2, fontsize=6.5, loc="lower left")
 
     axes[2].set_xlim(0, 1)
     axes[2].set_xlabel("Cumulative collision probability from 1000 km")
