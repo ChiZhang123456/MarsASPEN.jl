@@ -16,14 +16,17 @@ optical depth under different seasons and solar-activity levels.
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.io import loadmat
 from scipy.integrate import cumulative_trapezoid
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "analysis"))
+from marsaspen_analysis import load_atmosphere_case  # noqa: E402
+
 ATMOSPHERE = REPO / "data" / "atmosphere"
 CROSS_SECTIONS = REPO / "data" / "cross_sections"
 FIGURES = REPO / "examples" / "figures"
@@ -150,9 +153,7 @@ def collision_profiles(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Return densities, collision coefficients, and cumulative probabilities."""
     altitude = np.arange(80.0, 1001.0, 1.0)
-    suffix = f"ls{ls:03d}_f{f107:03d}.mat"
-    gitm = loadmat(ATMOSPHERE / f"gitm_{suffix}", squeeze_me=True)
-    mamps = loadmat(ATMOSPHERE / f"mamps_{suffix}", squeeze_me=True)
+    gitm, mamps = load_atmosphere_case(ATMOSPHERE, ls, f107)
     gitm_alt = np.asarray(gitm["alt_km"], dtype=float).squeeze()
 
     densities = []

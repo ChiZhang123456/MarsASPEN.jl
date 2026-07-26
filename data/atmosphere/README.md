@@ -1,7 +1,7 @@
 # Neutral atmosphere data
 
-MarsASPEN uses the processed GITM and AMPS MATLAB files in this directory.
-The source files are maintained in:
+The `GITM/` and `AMPS/` subdirectories are direct copies of the MATLAB files
+from:
 
 ```text
 D:\Work_Work\Mars\MAVEN\test_particle_jl\neutral\GITM
@@ -10,7 +10,7 @@ D:\Work_Work\Mars\MAVEN\test_particle_jl\neutral\AMPS
 
 ## Coordinates
 
-The packaged fields are already expressed in Mars Solar Orbital coordinates.
+The original files are already expressed in Mars Solar Orbital coordinates.
 The subsolar point is
 
 $$
@@ -42,14 +42,11 @@ linearly.
 
 ## Fields and units
 
-GITM supplies `nCO2`, `nO`, and `Tn`. Number densities are converted from
-cm\(^{-3}\) to m\(^{-3}\), and temperature is in K. The supplied processed
-GITM files do not contain N2, O2, or CO, so these fields are set to a
-negligible positive floor and do not contribute to transport collisions.
+GITM supplies `NCO2`, `NO`, and `temp`. Number densities are converted during
+loading from cm\(^{-3}\) to m\(^{-3}\), and temperature is in K. The supplied
+processed GITM files do not contain N2, O2, or CO, so these fields are set to
+a negligible positive floor and do not contribute to transport collisions.
 
-AMPS supplies hot atomic oxygen density, `nO_hot`. It is converted from
-cm\(^{-3}\) to m\(^{-3}\).
-
-Each packaged file records `source_file`, `coordinate_system`,
-`subsolar_lon_deg`, and `subsolar_lat_deg` so the provenance and coordinate
-assumptions can be inspected directly.
+AMPS supplies hot atomic oxygen density as `dens_oh`. It is converted during
+loading from cm\(^{-3}\) to m\(^{-3}\). MarsASPEN reads these original field
+names directly and does not create another repackaged atmosphere data layer.

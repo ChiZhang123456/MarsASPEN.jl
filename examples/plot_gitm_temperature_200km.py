@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.io import loadmat
 
 REPO = Path(__file__).resolve().parents[1]
-INPUT = REPO / "data" / "atmosphere" / "gitm_ls000_f130.mat"
+sys.path.insert(0, str(REPO / "analysis"))
+from marsaspen_analysis import load_atmosphere_case  # noqa: E402
+
+ATMOSPHERE = REPO / "data" / "atmosphere"
 OUTPUT = (
     REPO / "examples" / "figures" /
     "gitm_neutral_temperature_200km.png"
@@ -68,7 +71,7 @@ def interpolate_temperature(
 
 
 def main() -> None:
-    gitm = loadmat(INPUT, squeeze_me=True)
+    gitm, _ = load_atmosphere_case(ATMOSPHERE, 0, 130)
     temperature_lon_lat = interpolate_temperature(
         gitm["alt_km"], gitm["Tn"], ALTITUDE_KM
     )

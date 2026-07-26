@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import sys
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.constants import Boltzmann
 from scipy.interpolate import RegularGridInterpolator
-from scipy.io import loadmat
+
+REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "analysis"))
+from marsaspen_analysis import load_atmosphere_case  # noqa: E402
 
 mpl.rcParams["font.family"] = "Arial"
 mpl.rcParams["mathtext.fontset"] = "dejavusans"
@@ -68,9 +72,9 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
-    tag = f"ls{args.ls:03d}_f{args.f107:03d}"
-    gitm = loadmat(args.atmosphere_dir / f"gitm_{tag}.mat")
-    mamps = loadmat(args.atmosphere_dir / f"mamps_{tag}.mat")
+    gitm, mamps = load_atmosphere_case(
+        args.atmosphere_dir, args.ls, args.f107,
+    )
     z = np.arange(args.altitude_range[0], args.altitude_range[1] + 1.0, 1.0)
 
     lon_g = np.ravel(gitm["lon_deg"])

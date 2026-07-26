@@ -130,8 +130,12 @@ run_ensemble / run_binned_ensemble / run_phase_space_ensemble
 
 `load_atmospheres` 读取：
 
-* `gitm_lsXXX_fXXX.mat`
-* `mamps_lsXXX_fXXX.mat`
+* `data/atmosphere/GITM/*.mat`，原始处理后的 GITM 文件
+* `data/atmosphere/AMPS/*.mat`，原始处理后的 AMPS 文件
+
+`src/initialization.jl` 直接读取这些原始 MAT 文件中的 `NCO2`、`NO`、
+`temp` 和 `dens_oh`。数据已经采用 MSO 坐标，日下点为
+\((\mathrm{lon},\mathrm{lat})=(0^\circ,0^\circ)\)，因此程序不再执行坐标旋转。
 
 密度在读入时转换为 log density，保证空间插值和向下外推始终为正值。
 

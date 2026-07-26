@@ -14,13 +14,16 @@ used only inside its native altitude range.
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.io import loadmat
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "analysis"))
+from marsaspen_analysis import load_atmosphere_case  # noqa: E402
+
 DATA = REPO / "data" / "atmosphere"
 OUTPUT = REPO / "examples" / "figures" / "gitm_mamps_density_cases.png"
 
@@ -134,9 +137,7 @@ def main() -> None:
     for row, ls in enumerate(LS_VALUES):
         for col, f107 in enumerate(F107_VALUES):
             axis = axes[row, col]
-            suffix = f"ls{ls:03d}_f{f107:03d}.mat"
-            gitm = loadmat(DATA / f"gitm_{suffix}", squeeze_me=True)
-            mamps = loadmat(DATA / f"mamps_{suffix}", squeeze_me=True)
+            gitm, mamps = load_atmosphere_case(DATA, ls, f107)
             gitm_alt = np.asarray(gitm["alt_km"], dtype=float).squeeze()
 
             # Plot each cold neutral only over the vertical range supported by

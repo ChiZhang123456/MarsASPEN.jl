@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LogNorm
-from scipy.io import loadmat
 
 REPO = Path(__file__).resolve().parents[1]
-INPUT = REPO / "data" / "atmosphere" / "mamps_ls000_f130.mat"
+sys.path.insert(0, str(REPO / "analysis"))
+from marsaspen_analysis import load_atmosphere_case  # noqa: E402
+
+ATMOSPHERE = REPO / "data" / "atmosphere"
 OUTPUT = (
     REPO / "examples" / "figures" /
     "mamps_hot_o_density_300km.png"
@@ -66,7 +69,7 @@ def interpolate_log_density(
 
 
 def main() -> None:
-    mamps = loadmat(INPUT, squeeze_me=True)
+    _, mamps = load_atmosphere_case(ATMOSPHERE, 0, 130)
     density_lon_lat = interpolate_log_density(
         mamps["alt_km"], mamps["nO_hot"], ALTITUDE_KM
     )

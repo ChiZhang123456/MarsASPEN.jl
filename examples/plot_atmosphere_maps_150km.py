@@ -9,14 +9,17 @@ MAMPS hot O after each field is interpolated logarithmically to 150 km.
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import numpy as np
-from scipy.io import loadmat
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "analysis"))
+from marsaspen_analysis import load_atmosphere_case  # noqa: E402
+
 DATA = REPO / "data" / "atmosphere"
 OUTPUT = (
     REPO / "examples" / "figures" /
@@ -96,9 +99,7 @@ def main() -> None:
 
     for ls in LS_VALUES:
         for f107 in F107_VALUES:
-            suffix = f"ls{ls:03d}_f{f107:03d}.mat"
-            gitm = loadmat(DATA / f"gitm_{suffix}", squeeze_me=True)
-            mamps = loadmat(DATA / f"mamps_{suffix}", squeeze_me=True)
+            gitm, mamps = load_atmosphere_case(DATA, ls, f107)
 
             co2 = interpolate_log_altitude(
                 gitm["alt_km"], gitm["nCO2"], ALTITUDE_KM
