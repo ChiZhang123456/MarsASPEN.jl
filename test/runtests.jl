@@ -30,6 +30,8 @@ const MODEL = load_model(REPO; atmosphere_data_dir=ATMOSPHERE_DIR)
               expected_t80 rtol=2e-13
     end
     @test MonteCarloConfig().min_altitude_km == 80.0
+    @test MonteCarloConfig().max_altitude_km == 600.0
+    @test isnothing(MonteCarloConfig().max_collisions)
 end
 
 @testset "Uniform dayside injection geometry" begin

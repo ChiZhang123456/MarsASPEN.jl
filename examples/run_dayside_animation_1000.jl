@@ -30,7 +30,8 @@ config = MonteCarloConfig(
     initial_charge_state=1,
     initial_temperature_ev=10.0,
     min_altitude_km=80.0,
-    max_altitude_km=1_000.0,
+    max_altitude_km=600.0,
+    max_collisions=nothing,
     max_step_m=1_000.0,
     seed=73,
 )

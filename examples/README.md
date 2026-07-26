@@ -424,7 +424,16 @@ longitude bin width:    5 degrees
 latitude bin width:     5 degrees
 altitude bin width:     1 km
 altitude range:         80 to 600 km
+physical lower boundary: 80 km
+physical upper boundary: 600 km
+maximum collisions:     none
 ```
+
+Every realized collision is retained until a particle reaches a physical
+boundary or its energy falls below 10 eV. The example does not stop a particle
+after a prescribed number of collisions. The separate integration-step safety
+guard remains active only to prevent a numerically pathological trajectory
+from running indefinitely.
 
 ### Three-dimensional estimators
 

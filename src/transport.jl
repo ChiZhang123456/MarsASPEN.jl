@@ -230,7 +230,7 @@ function run_particle_core(
             energy(vx,vy,vz,charge),energy(vx,vy,vz,charge),vx,vy,vz,
             Int8(charge), 0, 0, 0.0))
     end
-    while collisions < cfg.max_collisions
+    while isnothing(cfg.max_collisions) || collisions < cfg.max_collisions
         e = energy(vx, vy, vz, charge)
         alt, n, alpha = local_state(model, x, y, z, charge, e, cfg.include_hot_o)
         if e < cfg.min_energy_ev
@@ -492,7 +492,9 @@ function run_particle_core(
             tau, threshold = 0.0, -log(rand(rng))
         end
     end
-    collisions == cfg.max_collisions && (stop = 5)
+    !isnothing(cfg.max_collisions) &&
+        collisions == cfg.max_collisions &&
+        (stop = 5)
     final_alt = sqrt(x*x+y*y+z*z)/1000 - MARS_RADIUS_KM
     if !isnothing(spatial_grid) && stop == 1
         accumulate_spatial_thermalization!(

@@ -82,9 +82,12 @@ Base.@kwdef struct MonteCarloConfig
     # Tracking stops when projectile energy falls below this threshold.
     min_energy_ev::Float64 = 10.0
     min_altitude_km::Float64 = MODEL_MIN_ALTITUDE_KM
-    max_altitude_km::Float64 = 1000.0
-    # Safety limits prevent pathologically long individual trajectories.
-    max_collisions::Int = 2000
+    max_altitude_km::Float64 = 600.0
+    # `nothing` allows any number of physical collisions. Set a positive
+    # integer only when a diagnostic explicitly needs a collision cap.
+    max_collisions::Union{Nothing,Int} = nothing
+    # This numerical guard prevents a trajectory from taking indefinitely many
+    # free-flight integration steps without reaching a physical stop condition.
     max_steps_per_collision::Int = 100_000
     include_hot_o::Bool = true
 end
@@ -99,7 +102,7 @@ struct ParticleSummary
     n_lya::Int
     n_state_change::Int
     # 1 low energy, 2 lower boundary, 3 upper boundary,
-    # 4 step safety limit, 5 collision safety limit.
+    # 4 step safety limit, 5 optional user-configured collision limit.
     stop_code::UInt8
 end
 

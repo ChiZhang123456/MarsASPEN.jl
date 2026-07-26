@@ -83,7 +83,7 @@ run_ensemble / run_binned_ensemble / run_phase_space_ensemble
 | 2 | altitude below lower boundary |
 | 3 | altitude above upper boundary |
 | 4 | numerical step safety limit |
-| 5 | collision safety limit |
+| 5 | optional collision limit, only used when `max_collisions` is an integer |
 
 ## 3. `src` 核心 Julia 文件
 
@@ -369,7 +369,7 @@ julia --project=. -t auto examples/sample_dayside_injection_10000000.jl
 
 ### 4.3 `examples/run_dayside_3d_10000000.jl`
 
-这是当前的大粒子数标准示例。它使用均匀日侧半球源运行 10 万个 H⁺
+这是当前的大粒子数标准示例。它使用均匀日侧半球源运行 1000 万个 H⁺
 macro particles，并在经度、纬度和 1 km 高度网格中累计粒子矩、反应率和
 能量转移率。
 
@@ -379,6 +379,10 @@ julia --project=. -t auto examples/run_dayside_3d_10000000.jl
 
 输出分成 grid、moments、reactions 和 energy 四个 MAT v7.3 文件。详细的
 macro-particle 归一化、单位和变量说明见 `examples/README.md`。
+
+标准物理边界为 80 km 和 600 km。`max_collisions=nothing` 表示不限制
+实际碰撞次数。粒子只会因为越过物理边界、能量低于 10 eV，或者触发
+独立的数值步数安全保护而停止。
 
 ## 5. Python 分析代码
 

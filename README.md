@@ -51,6 +51,11 @@ result = run_spatial_grid_ensemble(
 `MonteCarloWeight` controls importance sampling, source density normalization,
 and the weight represented by each macro-particle.
 
+The default physical transport domain extends from 80 to 600 km. The default
+`max_collisions=nothing` places no limit on the number of realized physical
+collisions. `max_steps_per_collision` remains a numerical safeguard against
+pathological trajectories and does not cap the physical collision count.
+
 A detailed Chinese guide to every source file, data convention, run script, and
 analysis program is available in [`docs/CODE_GUIDE_ZH.md`](docs/CODE_GUIDE_ZH.md).
 
@@ -120,7 +125,9 @@ The production example injects 10,000,000 H+ macro particles uniformly in
 spherical area over the 600 km MSO dayside hemisphere. Velocities are sampled
 from a drifting Maxwellian with density $5~\mathrm{cm}^{-3}$, temperature
 $10~\mathrm{eV}$, and MSO bulk velocity
-$(-400,0,0)~\mathrm{km\,s}^{-1}$.
+$(-400,0,0)~\mathrm{km\,s}^{-1}$. Particles are followed until they cross the
+80 km lower boundary or 600 km upper boundary, or fall below the 10 eV
+thermalization threshold. There is no collision-count stopping condition.
 
 The simulation accumulates longitude, latitude, and 1 km altitude cells and
 writes separate grid, moment, reaction, and energy MAT v7.3 files:

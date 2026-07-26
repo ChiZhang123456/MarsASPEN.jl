@@ -11,6 +11,9 @@
 #   physical kT:         10 eV
 #   source density:      5 cm^-3 = 5e6 m^-3
 #   number of particles: 10,000,000
+#   lower boundary:      80 km
+#   upper boundary:      600 km
+#   collision limit:     none
 #
 # Horizontal grid edges match the native 5 degree MGITM grid. Altitude edges
 # run from 80 to 600 km at 1 km spacing. The example writes four files:
@@ -46,7 +49,8 @@ config = MonteCarloConfig(
     max_step_m=1000.0,
     min_energy_ev=10.0,
     min_altitude_km=minimum_grid_altitude_km,
-    max_altitude_km=1000.0,
+    max_altitude_km=600.0,
+    max_collisions=nothing,
     include_hot_o=true,
 )
 weighting = MonteCarloWeight(
@@ -67,6 +71,9 @@ metadata = Dict(
     "injection_geometry" => "uniform dayside spherical surface",
     "coordinate_system" => "MSO",
     "initial_altitude_km" => config.initial_altitude_km,
+    "minimum_altitude_km" => config.min_altitude_km,
+    "maximum_altitude_km" => config.max_altitude_km,
+    "maximum_collisions" => "none",
     "bulk_velocity_m_s" => [-config.initial_speed_m_s, 0.0, 0.0],
     "physical_temperature_ev" => config.initial_temperature_ev,
     "source_number_density_m3" => weighting.source_number_density_m3,
