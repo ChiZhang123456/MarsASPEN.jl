@@ -667,6 +667,17 @@ The PNG is:
 
 `examples/figures/gitm_neutral_temperature_200km.png`
 
+MAMPS hot-O density for the same atmosphere case can be inspected at 300 km
+with:
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_mamps_hot_o_density_300km.py
+```
+
+The PNG is:
+
+`examples/figures/mamps_hot_o_density_300km.png`
+
 ### Altitude profiles
 
 ```powershell
