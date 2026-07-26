@@ -94,6 +94,116 @@ The PNG is stored at
 Cross sections are converted from cm$^{2}$ to m$^{2}$ before they are
 used in SI collision rates.
 
+### Random collision and scattering-angle sampling
+
+MarsASPEN treats collision transport as a sequence of reproducible random
+draws. Each particle has its own random-number stream derived from the global
+seed and particle ID, so thread scheduling does not change the result.
+
+First, a uniform random number is used to sample the optical depth to the next
+collision:
+
+```math
+U_\tau\sim U(0,1),
+\qquad
+\tau_*=-\ln U_\tau.
+```
+
+Along a free-flight trajectory, the accumulated optical depth is
+
+```math
+\tau(s)
+=
+\int_0^s\alpha(s')\,\mathrm{d}s',
+\qquad
+\alpha
+=
+\sum_j n_j\sum_k\sigma_{j,k}.
+```
+
+The collision occurs when the accumulated value reaches the sampled threshold:
+
+```math
+\tau(s)=\tau_*.
+```
+
+At the collision location, a second uniform random number selects atmospheric
+target `j` and reaction channel `k` from the categorical probabilities
+
+```math
+P(j,k)
+=
+\frac{n_j\sigma_{j,k}}
+{\sum_{j'}\sum_{k'}n_{j'}\sigma_{j',k'}}.
+```
+
+The scattering polar angle is also random, but it is not uniformly distributed
+in angle. MarsASPEN draws
+
+```math
+U_\theta\sim U(0,1),
+\qquad
+\theta=F_\theta^{-1}(U_\theta),
+```
+
+where the inverse CDF is read from
+`data/cross_sections/scattering_angle_distribution.txt`. The distribution is
+strongly forward peaked, so small-angle scattering is common and large-angle
+scattering is rare. A separate uniform random number gives the azimuth around
+the incident velocity direction:
+
+```math
+U_\phi\sim U(0,1),
+\qquad
+\phi=2\pi U_\phi.
+```
+
+The pair $(\theta,\phi)$ rotates the outgoing three-dimensional velocity.
+For an elastic collision, define the projectile-to-target mass ratio as
+
+```math
+\gamma=\frac{m_{\mathrm{projectile}}}{m_{\mathrm{target}}}.
+```
+
+The post-collision speed used by the Julia transport kernel is
+
+```math
+V_{\mathrm{after}}
+=
+V_{\mathrm{before}}
+\max\left[
+\frac{
+\gamma\cos\theta+
+\sqrt{\max\left(1-\gamma^2\sin^2\theta,0\right)}
+}{
+1+\gamma
+},
+0
+\right].
+```
+
+Thus the random polar angle affects both the outgoing direction and elastic
+energy transfer. For inelastic reactions, the tabulated energy loss and
+charge-state change are applied before the outgoing direction is rotated.
+After every realized collision, MarsASPEN draws a new $U_\tau$ and starts the
+next free path.
+
+The current package uses the same scattering-angle lookup table for all
+projectile states, targets, reaction channels, and energies. This is a model
+approximation that can be replaced later if channel-resolved differential
+cross sections become available.
+
+The following example plots the inverse-CDF table and verifies it with one
+million random samples:
+
+```powershell
+C:\Users\Win\.conda\envs\mars\python.exe examples/plot_scattering_angle_sampling.py
+```
+
+Output:
+
+`examples/figures/scattering_angle_sampling.png`
+
 ## 5. Collision probability for a 1000 eV projectile
 
 The following example selects the representative atmosphere case
