@@ -1,4 +1,4 @@
-"""Plot GITM neutral temperature at 200 km on its native longitude grid."""
+"""Compare GITM neutral temperature and solar zenith angle at 200 km."""
 
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ mpl.rcParams.update({
     "axes.linewidth": 0.8,
     "axes.spines.top": False,
     "axes.spines.right": False,
+    "legend.frameon": False,
 })
 
 
@@ -41,14 +42,14 @@ def coordinate_edges(centers: np.ndarray) -> np.ndarray:
     ))
 
 
-def interpolate_temperature(
+def interpolate_altitude(
     altitude_km: np.ndarray,
-    temperature_k: np.ndarray,
+    field: np.ndarray,
     requested_altitude_km: float,
 ) -> np.ndarray:
-    """Linearly interpolate the 3D neutral temperature in altitude."""
+    """Linearly interpolate a longitude-latitude-altitude field."""
     altitude = np.asarray(altitude_km, dtype=float).squeeze()
-    temperature = np.asarray(temperature_k, dtype=float)
+    values = np.asarray(field, dtype=float)
     if not altitude[0] <= requested_altitude_km <= altitude[-1]:
         raise ValueError(
             f"{requested_altitude_km:g} km is outside "
@@ -56,77 +57,91 @@ def interpolate_temperature(
         )
     upper = int(np.searchsorted(altitude, requested_altitude_km))
     if altitude[upper] == requested_altitude_km:
-        return temperature[:, :, upper].copy()
+        return values[:, :, upper].copy()
     lower = upper - 1
     fraction = (
         (requested_altitude_km - altitude[lower])
         / (altitude[upper] - altitude[lower])
     )
-    return (
-        temperature[:, :, lower]
-        + fraction * (
-            temperature[:, :, upper] - temperature[:, :, lower]
-        )
+    return values[:, :, lower] + fraction * (
+        values[:, :, upper] - values[:, :, lower]
     )
 
 
 def main() -> None:
-    gitm, _ = load_atmosphere_case(ATMOSPHERE, 0, 130)
-    temperature_lon_lat = interpolate_temperature(
+    # Use a directly supplied source case. F10.7 = 130 is not used because it
+    # is interpolated between the available solar-minimum and maximum files.
+    gitm, _ = load_atmosphere_case(ATMOSPHERE, 0, 200)
+    temperature_lon_lat = interpolate_altitude(
         gitm["alt_km"], gitm["Tn"], ALTITUDE_KM
     )
-
-    # GITM longitude is stored from 0 to 360 degrees. Roll only for the
-    # conventional -180 to 180 degree display. The packaged file does not
-    # include the subsolar longitude needed to convert this native longitude
-    # into MSO longitude.
-    temperature_lat_lon = np.roll(
-        temperature_lon_lat.T,
-        -(temperature_lon_lat.shape[0] // 2),
-        axis=1,
+    sza_lon_lat = interpolate_altitude(
+        gitm["alt_km"], gitm["SZA_deg"], ALTITUDE_KM
     )
+
+    # Source positions are already in MSO. Center longitude on the subsolar
+    # meridian for the conventional -180 to 180 degree display.
+    shift = -(temperature_lon_lat.shape[0] // 2)
+    temperature_lat_lon = np.roll(temperature_lon_lat.T, shift, axis=1)
+    sza_lat_lon = np.roll(sza_lon_lat.T, shift, axis=1)
     longitude_edges = np.linspace(-180.0, 180.0, 73)
     latitude_edges = coordinate_edges(gitm["lat_deg"])
     longitude_centers = np.linspace(-177.5, 177.5, 72)
     latitude_centers = np.asarray(gitm["lat_deg"], dtype=float)
+
     maximum_index = np.unravel_index(
         np.nanargmax(temperature_lat_lon), temperature_lat_lon.shape
     )
     maximum_longitude = longitude_centers[maximum_index[1]]
     maximum_latitude = latitude_centers[maximum_index[0]]
-
-    fig, axis = plt.subplots(
-        1, 1, figsize=(7.2, 3.5), constrained_layout=True
+    minimum_sza_index = np.unravel_index(
+        np.nanargmin(sza_lat_lon), sza_lat_lon.shape
     )
-    mesh = axis.pcolormesh(
-        longitude_edges,
-        latitude_edges,
-        temperature_lat_lon,
-        shading="flat",
-        cmap="turbo",
+    minimum_sza_longitude = longitude_centers[minimum_sza_index[1]]
+    minimum_sza_latitude = latitude_centers[minimum_sza_index[0]]
+
+    fig, axes = plt.subplots(
+        2, 1, figsize=(7.2, 6.2), sharex=True, sharey=True,
+        constrained_layout=True,
+    )
+    temperature_mesh = axes[0].pcolormesh(
+        longitude_edges, latitude_edges, temperature_lat_lon,
+        shading="flat", cmap="turbo", rasterized=True,
+    )
+    sza_mesh = axes[1].pcolormesh(
+        longitude_edges, latitude_edges, sza_lat_lon,
+        shading="flat", cmap="viridis", vmin=0, vmax=180,
         rasterized=True,
     )
-    axis.set(
-        xlim=(-180, 180),
-        ylim=(-90, 90),
-        xticks=(-180, -90, 0, 90, 180),
-        yticks=(-90, -45, 0, 45, 90),
-        xlabel="Longitude used by MarsASPEN (deg)",
-        ylabel="GITM latitude (deg)",
-        title=(
-            "GITM neutral temperature at 200 km\n"
-            r"$L_s=0^\circ$, F10.7 = 130"
-        ),
+
+    for axis in axes:
+        axis.set(
+            xlim=(-180, 180), ylim=(-90, 90),
+            xticks=(-180, -90, 0, 90, 180),
+            yticks=(-90, -45, 0, 45, 90),
+            ylabel="MSO latitude (deg)",
+        )
+        axis.axvline(-90, color="white", lw=0.8, ls=":", alpha=0.9)
+        axis.axvline(90, color="white", lw=0.8, ls=":", alpha=0.9)
+
+    axes[0].set_title(
+        r"GITM at 200 km, $L_s=0^\circ$, F10.7 = 200", fontsize=9,
     )
-    axis.axvline(-90, color="white", lw=0.8, ls=":", alpha=0.9)
-    axis.axvline(90, color="white", lw=0.8, ls=":", alpha=0.9)
-    axis.plot(
-        0.0, 0.0,
-        marker="*", ms=8, color="white",
+    axes[1].set_xlabel("MSO longitude (deg)")
+    axes[0].text(
+        0.015, 0.96, "a", transform=axes[0].transAxes,
+        va="top", fontweight="bold",
+    )
+    axes[1].text(
+        0.015, 0.96, "b", transform=axes[1].transAxes,
+        va="top", color="white", fontweight="bold",
+    )
+    axes[0].plot(
+        0.0, 0.0, marker="*", ms=8, color="white",
         markeredgecolor="0.15", markeredgewidth=0.5,
-        label="MarsASPEN subsolar point",
+        label="Subsolar point",
     )
-    axis.plot(
+    axes[0].plot(
         maximum_longitude, maximum_latitude,
         marker="x", ms=6, color="black", markeredgewidth=1.0,
         label=(
@@ -134,9 +149,18 @@ def main() -> None:
             f"({maximum_longitude:.1f}°, {maximum_latitude:.1f}°)"
         ),
     )
-    axis.legend(loc="upper right", fontsize=6.5)
-    colorbar = fig.colorbar(mesh, ax=axis, pad=0.015)
-    colorbar.set_label("Neutral temperature (K)")
+    axes[1].plot(
+        minimum_sza_longitude, minimum_sza_latitude,
+        marker="*", ms=8, color="white",
+        markeredgecolor="0.15", markeredgewidth=0.5,
+    )
+    axes[0].legend(loc="lower left", fontsize=6.5)
+    temperature_colorbar = fig.colorbar(
+        temperature_mesh, ax=axes[0], pad=0.015
+    )
+    temperature_colorbar.set_label("Neutral temperature (K)")
+    sza_colorbar = fig.colorbar(sza_mesh, ax=axes[1], pad=0.015)
+    sza_colorbar.set_label("Solar zenith angle (deg)")
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(OUTPUT, dpi=600, bbox_inches="tight")
@@ -146,8 +170,13 @@ def main() -> None:
         f"{temperature_lat_lon.max():.6g})"
     )
     print(
-        f"temperature_maximum_lon_lat_deg="
+        "temperature_maximum_lon_lat_deg="
         f"({maximum_longitude:.6g}, {maximum_latitude:.6g})"
+    )
+    print(
+        "minimum_sza_lon_lat_deg="
+        f"({minimum_sza_longitude:.6g}, {minimum_sza_latitude:.6g}); "
+        f"sza_deg={sza_lat_lon[minimum_sza_index]:.6g}"
     )
     print(f"output={OUTPUT.resolve()}")
 

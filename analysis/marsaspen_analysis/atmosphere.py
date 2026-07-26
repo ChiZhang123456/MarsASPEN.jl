@@ -36,6 +36,7 @@ def _read_gitm(path: Path) -> dict[str, np.ndarray]:
         "Tn": _cube(data, "temp", shape),
         "nCO2": _cube(data, "NCO2", shape) * 1e6,
         "nO": _cube(data, "NO", shape) * 1e6,
+        "SZA_deg": _cube(data, "SZA", shape),
         "source_file": path.name,
     }
     floor = np.full(result["nCO2"].shape, 1e-300)
@@ -96,6 +97,7 @@ def load_atmosphere_case(
         "Tn": (1.0 - weight) * gl["Tn"] + weight * gh["Tn"],
         "nCO2": _log_blend(gl["nCO2"], gh["nCO2"], weight),
         "nO": _log_blend(gl["nO"], gh["nO"], weight),
+        "SZA_deg": gl["SZA_deg"],
         "source_file": f"{gl['source_file']} + {gh['source_file']}",
     }
     floor = np.full(gitm["nCO2"].shape, 1e-300)
