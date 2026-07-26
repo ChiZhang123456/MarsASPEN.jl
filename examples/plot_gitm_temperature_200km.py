@@ -79,14 +79,13 @@ def main() -> None:
         gitm["alt_km"], gitm["SZA_deg"], ALTITUDE_KM
     )
 
-    # Source positions are already in MSO. Center longitude on the subsolar
-    # meridian for the conventional -180 to 180 degree display.
-    shift = -(temperature_lon_lat.shape[0] // 2)
-    temperature_lat_lon = np.roll(temperature_lon_lat.T, shift, axis=1)
-    sza_lat_lon = np.roll(sza_lon_lat.T, shift, axis=1)
-    longitude_edges = np.linspace(-180.0, 180.0, 73)
+    # Preserve the source longitude convention. GITM cell centers run from
+    # 2.5 to 357.5 degrees after the duplicate 362.5-degree column is removed.
+    temperature_lat_lon = temperature_lon_lat.T
+    sza_lat_lon = sza_lon_lat.T
+    longitude_edges = np.linspace(0.0, 360.0, 73)
     latitude_edges = coordinate_edges(gitm["lat_deg"])
-    longitude_centers = np.linspace(-177.5, 177.5, 72)
+    longitude_centers = np.asarray(gitm["lon_deg"], dtype=float)
     latitude_centers = np.asarray(gitm["lat_deg"], dtype=float)
 
     maximum_index = np.unravel_index(
@@ -116,18 +115,18 @@ def main() -> None:
 
     for axis in axes:
         axis.set(
-            xlim=(-180, 180), ylim=(-90, 90),
-            xticks=(-180, -90, 0, 90, 180),
+            xlim=(0, 360), ylim=(-90, 90),
+            xticks=(0, 90, 180, 270, 360),
             yticks=(-90, -45, 0, 45, 90),
             ylabel="MSO latitude (deg)",
         )
-        axis.axvline(-90, color="white", lw=0.8, ls=":", alpha=0.9)
         axis.axvline(90, color="white", lw=0.8, ls=":", alpha=0.9)
+        axis.axvline(270, color="white", lw=0.8, ls=":", alpha=0.9)
 
     axes[0].set_title(
         r"GITM at 200 km, $L_s=0^\circ$, F10.7 = 200", fontsize=9,
     )
-    axes[1].set_xlabel("MSO longitude (deg)")
+    axes[1].set_xlabel("MSO longitude, native 0° to 360° convention (deg)")
     axes[0].text(
         0.015, 0.96, "a", transform=axes[0].transAxes,
         va="top", fontweight="bold",
@@ -137,9 +136,9 @@ def main() -> None:
         va="top", color="white", fontweight="bold",
     )
     axes[0].plot(
-        0.0, 0.0, marker="*", ms=8, color="white",
+        2.5, -2.5, marker="*", ms=8, color="white",
         markeredgecolor="0.15", markeredgewidth=0.5,
-        label="Subsolar point",
+        label="Grid cell nearest the subsolar point",
     )
     axes[0].plot(
         maximum_longitude, maximum_latitude,
