@@ -74,21 +74,21 @@ def main() -> None:
         mamps["alt_km"], mamps["nO_hot"], ALTITUDE_KM
     )
 
-    # Convert the native 0 to 360 degree ordering to a centered display.
-    density_lat_lon = np.roll(
-        density_lon_lat.T,
-        -(density_lon_lat.shape[0] // 2),
-        axis=1,
+    # Preserve the native 0 to 360 degree convention. Append the periodic
+    # duplicate of the 0-degree column at 360 degrees for seamless plotting.
+    density_lon_lat = np.concatenate(
+        (density_lon_lat, density_lon_lat[:1, :]), axis=0
     )
-    longitude_edges = np.linspace(-180.0, 180.0, 73)
+    longitude_centers = np.arange(0.0, 361.0, 5.0)
+    density_lat_lon = density_lon_lat.T
+    longitude_edges = coordinate_edges(longitude_centers)
     latitude_edges = coordinate_edges(mamps["lat_deg"])
     positive = density_lat_lon[
         np.isfinite(density_lat_lon) & (density_lat_lon > 0)
     ]
-    limits = (
-        10.0 ** np.floor(np.log10(positive.min())),
-        10.0 ** np.ceil(np.log10(positive.max())),
-    )
+    # Rounded limits closely bracket the actual 300-km range
+    # (2.49e8 to 2.30e9 m^-3) without clipping valid cells.
+    limits = (2.0e8, 3.0e9)
 
     fig, axis = plt.subplots(
         1, 1, figsize=(7.2, 3.5), constrained_layout=True
@@ -103,26 +103,31 @@ def main() -> None:
         rasterized=True,
     )
     axis.set(
-        xlim=(-180, 180),
+        xlim=(0, 360),
         ylim=(-90, 90),
-        xticks=(-180, -90, 0, 90, 180),
+        xticks=(0, 90, 180, 270, 360),
         yticks=(-90, -45, 0, 45, 90),
-        xlabel="Longitude used by MarsASPEN (deg)",
-        ylabel="MAMPS latitude (deg)",
+        xlabel="MSO longitude, native 0° to 360° convention (deg)",
+        ylabel="MSO latitude (deg)",
         title=(
             "MAMPS hot-O number density at 300 km\n"
             r"$L_s=0^\circ$, F10.7 = 130"
         ),
     )
-    axis.axvline(-90, color="white", lw=0.8, ls=":", alpha=0.9)
     axis.axvline(90, color="white", lw=0.8, ls=":", alpha=0.9)
+    axis.axvline(270, color="white", lw=0.8, ls=":", alpha=0.9)
     axis.plot(
         0.0, 0.0, marker="*", ms=8, color="white",
         markeredgecolor="0.15", markeredgewidth=0.5,
-        label="MarsASPEN subsolar point",
+        label="Subsolar point",
     )
     axis.legend(loc="lower left", fontsize=6.5)
     colorbar = fig.colorbar(mesh, ax=axis, pad=0.015)
+    colorbar.set_ticks((2.0e8, 5.0e8, 1.0e9, 2.0e9, 3.0e9))
+    colorbar.set_ticklabels(
+        (r"$2\times10^8$", r"$5\times10^8$", r"$10^9$",
+         r"$2\times10^9$", r"$3\times10^9$")
+    )
     colorbar.set_label(r"Hot-O number density (m$^{-3}$)")
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
@@ -132,6 +137,7 @@ def main() -> None:
         f"density_range_m3=({positive.min():.9g}, "
         f"{positive.max():.9g})"
     )
+    print(f"color_limits_m3={limits}")
     print(f"output={OUTPUT.resolve()}")
 
 
