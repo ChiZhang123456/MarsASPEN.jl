@@ -159,7 +159,7 @@ def main() -> None:
         if panel % 3 == 0:
             axis.set_ylabel("Altitude (km)")
         axis.grid(True, which="major", color="0.90", lw=0.5)
-        axis.legend(loc="upper left", fontsize=6.5)
+        axis.legend(loc="lower left", fontsize=6.5)
         axis.text(
             0.025, 0.975, "abcdef"[panel],
             transform=axis.transAxes, ha="left", va="top",
