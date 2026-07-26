@@ -640,32 +640,16 @@ Output:
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_3d_maps_120km.py
 ```
 
-The four-row, two-column layout uses longitude from -180 to 180 degrees, with
-the subsolar longitude at 0 degrees in the map center, and latitude from -90
-to 90 degrees. The panels show H+ and H-ENA number densities,
+The four-row, two-column layout preserves native MSO longitude from 0 to
+360 degrees and latitude from -90 to 90 degrees. The subsolar meridian is at
+0/360 degrees and the antisolar meridian is at 180 degrees. The panels show
+H+ and H-ENA number densities,
 H+ downward and upward radial fluxes, O and CO2 ionization rates, H Ly-alpha
 volume emission rate, and total energy deposition rate. The two density panels
 share one color scale, the two H+ flux panels share one color scale, and the
 two target-ionization panels share one color scale:
 
 `examples/figures/dayside_hplus_10000000_3d_maps_120km_8panel.png`
-
-The following independent MGITM diagnostic plots the neutral temperature for
-the same $L_s=0^\circ$, F10.7 = 130 atmosphere at 200 km. Longitude is shown
-from -180 to 180 degrees. MarsASPEN currently uses the packaged MGITM longitude
-directly as MSO longitude, so the star at longitude and latitude zero marks the
-subsolar point used by transport and the dotted lines at -90 and 90 degrees
-mark its terminators. The packaged atmosphere does not contain an independent
-geographic-to-MSO rotation, so the temperature maximum is also marked to make
-this coordinate assumption directly inspectable:
-
-```powershell
-C:\Users\Win\.conda\envs\mars\python.exe examples/plot_gitm_temperature_200km.py
-```
-
-The PNG is:
-
-`examples/figures/gitm_neutral_temperature_200km.png`
 
 MAMPS hot-O density for the same atmosphere case can be inspected at 300 km
 with:
