@@ -392,7 +392,7 @@ The following commands sample 10,000,000 initial positions and velocities withou
 running transport:
 
 ```powershell
-julia --project=. -t auto examples/sample_dayside_injection_10000000.jl
+julia --project=. -t 16 examples/sample_dayside_injection_10000000.jl
 C:\Users\Win\.conda\envs\mars\python.exe examples/plot_dayside_injection_10000000.py
 ```
 
@@ -407,7 +407,7 @@ $V_z$ distributions:
 Run the complete 10,000,000-particle H+ simulation with:
 
 ```powershell
-julia --project=. -t auto examples/run_dayside_3d_10000000.jl
+julia --project=. -t 16 examples/run_dayside_3d_10000000.jl
 ```
 
 The example uses:
@@ -635,7 +635,7 @@ particles to keep individual positions readable and the detailed trajectory
 file manageable.
 
 ```powershell
-julia --project=. -t auto examples/run_dayside_animation_1000.jl
+julia --project=. -t 8 examples/run_dayside_animation_1000.jl
 C:\Users\Win\.conda\envs\mars\python.exe examples/animate_dayside_particles_4panel.py
 ```
 

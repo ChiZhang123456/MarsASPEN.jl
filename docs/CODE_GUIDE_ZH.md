@@ -4,6 +4,13 @@
 物理单位和常用运行方式。它同时说明哪些输出是原始 Monte Carlo 统计量，
 哪些输出可以进一步转换为物理通量、数密度、体积发射率或亮度。
 
+相关详细文档：
+
+* [物理模型与三维估计量](PHYSICS_AND_ESTIMATORS_ZH.md)
+* [MAT 输出变量和维度](OUTPUT_SCHEMA_ZH.md)
+* [运行、收敛和验证](RUNNING_AND_VALIDATION_ZH.md)
+* [完整 examples 说明](../examples/README.md)
+
 ## 1. 总体计算流程
 
 一次模拟依次执行以下步骤：
@@ -346,25 +353,28 @@ step count，可以避免自适应步长造成的统计偏差。
 
 ## 4. Julia 运行脚本
 
-### 4.1 `scripts/run_detailed.jl`
+### 4.1 单粒子详细轨迹
 
-为少量粒子保存完整轨迹 MAT 文件。
+H-ENA 和 H+ 分别使用：
 
 ```powershell
-julia --project=. -t auto scripts/run_detailed.jl 10 output/detailed.mat
+julia --project=. examples/run_h_ena_trajectory.jl
+julia --project=. examples/run_hplus_trajectory.jl
 ```
 
-不要用此模式保存 100 万粒子，因为完整 step history 可能达到数百 GB。
+两个脚本调用 `run_detailed_ensemble` 和 `write_detailed_mat`，保存每一步位置、
+速度、能量、电荷态、碰撞目标、反应类型和散射前速度。详细轨迹只适用于
+少量粒子，因为 step history 会随粒子数快速增大。
 
 ### 4.2 `examples/sample_dayside_injection_10000000.jl`
 
-在 600 km 高度的完整 MSO 日侧半球上按球面面积均匀采样 10 万个初始位置。
+在 600 km 高度的完整 MSO 日侧半球上按球面面积均匀采样 1000 万个初始位置。
 太阳风速度在 MSO 坐标系中取 $[-400,0,0]$ km s$^{-1}$，而不是在每个位置
 旋转到局地径向方向。该脚本只保存注入位置、速度、SZA 和 $W_n$，不运行
 输运。
 
 ```powershell
-julia --project=. -t auto examples/sample_dayside_injection_10000000.jl
+julia --project=. -t 16 examples/sample_dayside_injection_10000000.jl
 ```
 
 ### 4.3 `examples/run_dayside_3d_10000000.jl`
@@ -374,7 +384,7 @@ macro particles，并在经度、纬度和 1 km 高度网格中累计粒子矩�
 能量转移率。
 
 ```powershell
-julia --project=. -t auto examples/run_dayside_3d_10000000.jl
+julia --project=. -t 16 examples/run_dayside_3d_10000000.jl
 ```
 
 输出分成 grid、moments、reactions 和 energy 四个 MAT v7.3 文件。详细的
@@ -489,7 +499,7 @@ q_{\mathrm{event}}
 建议每次修改物理或数值算法后执行：
 
 ```powershell
-julia --project=. -t auto test/runtests.jl
+julia --project=. -t 4 -e "using Pkg; Pkg.test()"
 C:\Users\Win\.conda\envs\mars\python.exe -m pytest analysis/tests
 ```
 

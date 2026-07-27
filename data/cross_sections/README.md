@@ -8,6 +8,8 @@ The transport code reads these files in
 [`src/cross_sections.jl`](../../src/cross_sections.jl). The single-particle
 collision update is implemented in
 [`src/transport.jl`](../../src/transport.jl).
+The complete probability and estimator definitions are documented in
+[`docs/PHYSICS_AND_ESTIMATORS_ZH.md`](../../docs/PHYSICS_AND_ESTIMATORS_ZH.md).
 
 ## Files
 
@@ -206,3 +208,16 @@ curve was extracted. The cross-section curves originate from the Figure 3
 panels, and the inverse-CDF-style scattering distribution originates from
 Figure 2. These header comments are retained so each numerical table remains
 traceable to its source curve.
+
+## Current limitations
+
+* The same laboratory-frame scattering-angle lookup table is currently used
+  for all modeled targets, energies, reaction channels, and projectile charge
+  states.
+* Balmer-alpha columns are retained in the source tables but are not included
+  in the four-channel transport kernel.
+* N2 cross sections are available, but the packaged processed GITM atmosphere
+  does not contain a physical N2 density field.
+* Cross sections outside the tabulated energy range are zero.
+* H Ly-alpha production is treated as a local event channel. Radiative
+  transfer and resonant reabsorption are not included.
