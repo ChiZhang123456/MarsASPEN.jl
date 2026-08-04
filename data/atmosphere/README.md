@@ -28,13 +28,13 @@ $$
 $$
 
 No geographic-to-MSO rotation is applied by MarsASPEN. The GITM horizontal
-grid uses cell centers at longitudes \(2.5^\circ, 7.5^\circ,\ldots,357.5^\circ\)
-and latitudes \(-87.5^\circ,-82.5^\circ,\ldots,87.5^\circ\). Consequently,
+grid uses cell centers at longitudes $2.5^\circ, 7.5^\circ, \ldots, 357.5^\circ$
+and latitudes $-87.5^\circ, -82.5^\circ, \ldots, 87.5^\circ$. Consequently,
 the closest GITM cell center to the mathematical subsolar point has a small,
-nonzero SZA. The AMPS longitude grid includes \(0^\circ\), but its latitude
-cell centers are also offset by \(2.5^\circ\).
+nonzero SZA. The AMPS longitude grid includes $0^\circ$, but its latitude
+cell centers are also offset by $2.5^\circ$.
 
-For any MSO longitude \(\lambda\) and latitude \(\phi\), the solar zenith
+For any MSO longitude $\lambda$ and latitude $\phi$, the solar zenith
 angle used by the examples is:
 
 $$
@@ -43,17 +43,17 @@ $$
 \cos^{-1}\left(\cos\phi\cos\lambda\right).
 $$
 
-Longitude interpolation is periodic across \(0^\circ\) and \(360^\circ\).
+Longitude interpolation is periodic across $0^\circ$ and $360^\circ$.
 Latitude interpolation is linear between neighboring cell centers.
 
 ## Case mapping
 
 | Ls | GITM source | AMPS source |
 |---:|---|---|
-| \(0^\circ\) | `gitm_aequ*_subL0_alt220.mat` | `dsmc_aequ*.mat` |
-| \(90^\circ\) | `gitm_aph*_subL0_alt220.mat` | `dsmc_aph*.mat` |
-| \(180^\circ\) | `gitm_aequ*_subL180_alt220.mat` | `dsmc_aequ*.mat` |
-| \(270^\circ\) | `gitm_per*_subL270_alt220.mat` | `dsmc_per*.mat` |
+| $0^\circ$ | `gitm_aequ*_subL0_alt220.mat` | `dsmc_aequ*.mat` |
+| $90^\circ$ | `gitm_aph*_subL0_alt220.mat` | `dsmc_aph*.mat` |
+| $180^\circ$ | `gitm_aequ*_subL180_alt220.mat` | `dsmc_aequ*.mat` |
+| $270^\circ$ | `gitm_per*_subL270_alt220.mat` | `dsmc_per*.mat` |
 
 The suffix `min` supplies the F10.7 = 70 case and `max` supplies the
 F10.7 = 200 case. Because the source collection has no independent moderate
@@ -96,12 +96,12 @@ Here:
 ## Fields and units
 
 GITM supplies `NCO2`, `NO`, and `temp`. Number densities are converted during
-loading from cm\(^{-3}\) to m\(^{-3}\), and temperature is in K. The supplied
+loading from $\mathrm{cm}^{-3}$ to $\mathrm{m}^{-3}$, and temperature is in K. The supplied
 processed GITM files do not contain N2, O2, or CO, so these fields are set to
 a negligible positive floor and do not contribute to transport collisions.
 
 AMPS supplies hot atomic oxygen density as `dens_oh`. It is converted during
-loading from cm\(^{-3}\) to m\(^{-3}\). MarsASPEN reads these original field
+loading from $\mathrm{cm}^{-3}$ to $\mathrm{m}^{-3}$. MarsASPEN reads these original field
 names directly and does not create another repackaged atmosphere data layer.
 
 The coordinate variables read from both products are:
@@ -118,7 +118,7 @@ cells and 36 latitude cells.
 
 ## Solar activity interpolation
 
-For a positive density \(n\), F10.7 = 130 is evaluated in logarithmic space:
+For a positive density $n$, F10.7 = 130 is evaluated in logarithmic space:
 
 $$
 \ln n_{130}
@@ -145,7 +145,7 @@ $$
 Cold neutral densities are stored and interpolated in log density. At a point
 inside the native grid, MarsASPEN performs periodic longitude interpolation,
 linear latitude interpolation, and linear altitude interpolation in
-\(\ln n\).
+$\ln n$.
 
 Neutral temperature is interpolated linearly.
 
@@ -166,8 +166,8 @@ $$
 \right].
 $$
 
-Temperature uses the analogous linear expression in \(T\), rather than
-\(\ln T\). Requests below 80 km are clamped to the 80 km atmosphere because
+Temperature uses the analogous linear expression in $T$, rather than
+$\ln T$. Requests below 80 km are clamped to the 80 km atmosphere because
 80 km is the model lower boundary.
 
 ## Above the GITM top
@@ -267,7 +267,7 @@ After replacing any MAT file, verify:
 3. Density values are positive after unit conversion.
 4. Temperature is positive.
 5. The 80 km extension joins continuously to the native GITM grid.
-6. The \(0^\circ\) longitude and \(0^\circ\) latitude point is the subsolar
+6. The $0^\circ$ longitude and $0^\circ$ latitude point is the subsolar
    direction.
 7. AMPS hot O is zero outside its native altitude range.
 
